@@ -494,6 +494,7 @@ def inicio():
 
     conexion = obtener_conexion()
 
+    # Últimos marcajes
     asistencias = conexion.execute("""
         SELECT
             a.*,
@@ -510,19 +511,84 @@ def inicio():
         LIMIT 100
     """).fetchall()
 
+
+    # Dispositivos registrados
     dispositivos = conexion.execute("""
         SELECT DISTINCT sn_dispositivo
         FROM asistencias
         WHERE sn_dispositivo IS NOT NULL
-          AND sn_dispositivo != ''
+        AND sn_dispositivo != ''
     """).fetchall()
+
+
+    # ================================
+    # KPIs DASHBOARD ERP
+    # ================================
+
+    total_marcajes = conexion.execute("""
+        SELECT COUNT(*) 
+        FROM asistencias
+    """).fetchone()[0]
+
+
+    total_trabajadores = conexion.execute("""
+        SELECT COUNT(*)
+        FROM trabajadores
+    """).fetchone()[0]
+
+
+    fecha_hoy = datetime.now().strftime(
+        "%Y-%m-%d"
+    )
+
+
+    entradas_hoy = conexion.execute("""
+        SELECT COUNT(*)
+        FROM asistencias
+        WHERE fecha = ?
+        AND tipo_marcaje = '0'
+    """, (fecha_hoy,)).fetchone()[0]
+
+
+    salidas_hoy = conexion.execute("""
+        SELECT COUNT(*)
+        FROM asistencias
+        WHERE fecha = ?
+        AND tipo_marcaje = '1'
+    """, (fecha_hoy,)).fetchone()[0]
+
+
+    ultimo_marcaje = conexion.execute("""
+        SELECT fecha_recepcion
+        FROM asistencias
+        ORDER BY id DESC
+        LIMIT 1
+    """).fetchone()
+
 
     conexion.close()
 
+
     return render_template(
         "index.html",
+
         asistencias=asistencias,
-        dispositivos=dispositivos
+
+        dispositivos=dispositivos,
+
+        total_marcajes=total_marcajes,
+
+        total_trabajadores=total_trabajadores,
+
+        entradas_hoy=entradas_hoy,
+
+        salidas_hoy=salidas_hoy,
+
+        ultimo_marcaje=(
+            ultimo_marcaje["fecha_recepcion"]
+            if ultimo_marcaje
+            else "Sin registros"
+        )
     )
 
 
