@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+
+<html lang="es">
+
+<head>
+
+```
+<meta charset="UTF-8">
+
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
+
+<title>Control de Asistencias</title>
+
+<style>
+
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: #f4f6f8;
+        color: #222;
+    }
+
+    header {
+        background: #1f2937;
+        color: white;
+        padding: 20px 30px;
+    }
+
+    header h1 {
+        margin: 0;
+        font-size: 24px;
+    }
+
+    main {
+        padding: 30px;
+    }
+
+    .barra {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .barra h2 {
+        margin: 0;
+    }
+
+    .boton {
+        display: inline-block;
+        background: #2563eb;
+        color: white;
+        text-decoration: none;
+        padding: 10px 16px;
+        border-radius: 6px;
+        transition: opacity 0.2s;
+    }
+
+    .boton:hover {
+        opacity: 0.85;
+    }
+
+    .boton.secundario {
+        background: #059669;
+    }
+
+    .dispositivos {
+        margin-bottom: 20px;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .tabla-contenedor {
+        background: white;
+        border-radius: 8px;
+        overflow-x: auto;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    th,
+    td {
+        padding: 13px;
+        border-bottom: 1px solid #e5e7eb;
+        text-align: left;
+    }
+
+    th {
+        background: #f9fafb;
+        font-weight: bold;
+    }
+
+    tr:hover {
+        background: #f9fafb;
+    }
+
+    .vacio {
+        text-align: center;
+        padding: 40px;
+        color: #777;
+    }
+
+    .sin-registrar {
+        color: #9ca3af;
+        font-style: italic;
+    }
+
+</style>
+```
+
+</head>
+
+<body>
+
+```
+<header>
+
+    <h1>
+        Sistema de Control de Asistencias
+    </h1>
+
+</header>
+
+
+<main>
+
+    <div class="barra">
+
+        <h2>
+            Últimos marcajes
+        </h2>
+
+        <a
+            class="boton"
+            href="/exportar"
+        >
+            Exportar CSV
+        </a>
+
+    </div>
+
+
+    {% if dispositivos %}
+
+    <div class="dispositivos">
+
+        {% for d in dispositivos %}
+
+        <a
+            class="boton secundario"
+            href="/solicitar-usuarios?SN={{ d['sn_dispositivo'] }}"
+        >
+            Sincronizar nombres ({{ d['sn_dispositivo'] }})
+        </a>
+
+        {% endfor %}
+
+    </div>
+
+    {% endif %}
+
+
+    <div class="tabla-contenedor">
+
+        {% if asistencias %}
+
+        <table>
+
+            <thead>
+
+                <tr>
+
+                    <th>
+                        Código empleado
+                    </th>
+
+                    <th>
+                        Nombre
+                    </th>
+
+                    <th>
+                        Fecha
+                    </th>
+
+                    <th>
+                        Hora
+                    </th>
+
+                    <th>
+                        Tipo
+                    </th>
+
+                    <th>
+                        Verificación
+                    </th>
+
+                    <th>
+                        Dispositivo
+                    </th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                {% for asistencia in asistencias %}
+
+                <tr>
+
+                    <td>
+                        {{ asistencia["codigo_empleado"] }}
+                    </td>
+
+                    <td>
+
+                        {% if asistencia["nombres_trabajador"] %}
+
+                            {{ asistencia["nombres_trabajador"] }}
+                            {{ asistencia["apellidos_trabajador"] }}
+
+                        {% else %}
+
+                            <span class="sin-registrar">
+                                Sin registrar
+                            </span>
+
+                        {% endif %}
+
+                    </td>
+
+                    <td>
+                        {{ asistencia["fecha"] }}
+                    </td>
+
+                    <td>
+                        {{ asistencia["hora"] }}
+                    </td>
+
+                    <td>
+
+                        {% if asistencia["tipo_marcaje"] == "0" %}
+
+                            Entrada
+
+                        {% elif asistencia["tipo_marcaje"] == "1" %}
+
+                            Salida
+
+                        {% else %}
+
+                            {{ asistencia["tipo_marcaje"] }}
+
+                        {% endif %}
+
+                    </td>
+
+                    <td>
+                        {{ asistencia["verificacion"] }}
+                    </td>
+
+                    <td>
+                        {{ asistencia["sn_dispositivo"] }}
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+        {% else %}
+
+        <div class="vacio">
+
+            Todavía no hay asistencias registradas.
+
+        </div>
+
+        {% endif %}
+
+    </div>
+
+</main>
+```
+
+</body>
+
+</html>
