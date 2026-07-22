@@ -138,6 +138,8 @@ def inicializar_base_datos():
         conexion.close()
 
 
+inicializar_base_datos()
+
 # ==========================================
 # GUARDAR ASISTENCIA
 # ==========================================
@@ -1361,9 +1363,6 @@ def exportar():
 
 if __name__ == "__main__":
 
-    inicializar_base_datos()
-
-
     port = int(
 
         os.environ.get(
@@ -1375,7 +1374,6 @@ if __name__ == "__main__":
         )
 
     )
-
 
     app.run(
 
