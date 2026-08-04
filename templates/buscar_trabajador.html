@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Buscar trabajador · Personal y Asistencias</title>
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">Personal y Asistencias</div>
+      <nav>
+        <a href="{{ url_for('inicio') }}">Asistencias</a>
+        <a href="{{ url_for('trabajadores.pagina_nuevo_trabajador') }}">Nuevo trabajador</a>
+        <a href="{{ url_for('trabajadores.pagina_buscar_trabajador') }}" class="active">Buscar trabajador</a>
+      </nav>
+      <div class="user-box">
+        Sesión: <strong>{{ session.get('username', '-') }}</strong>
+        <a class="btn secondary" href="{{ url_for('auth.logout') }}">Cerrar sesión</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <h1>Buscar trabajador</h1>
+      <p class="lead">Escribe un nombre, apellido, DNI o código de empleado.</p>
+
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="Buscar..." autocomplete="off">
+      </div>
+
+      <div id="resultList" class="result-list"></div>
+      <div id="workerDetail"></div>
+    </main>
+  </div>
+
+  <script src="/static/js/buscar_trabajador.js"></script>
+</body>
+</html>

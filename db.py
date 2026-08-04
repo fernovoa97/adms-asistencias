@@ -1,0 +1,128 @@
+# db.py
+# Conexión a PostgreSQL y creación / migración de tablas.
+# Se ejecuta una sola vez al arrancar la app (ver inicializar_base_datos()).
+
+import os
+import psycopg2
+from werkzeug.security import generate_password_hash
+
+DATABASE_URL = os.environ.get("DATABASE_URL")
+
+if not DATABASE_URL:
+    raise RuntimeError("No se encontró la variable de entorno DATABASE_URL")
+
+
+def obtener_conexion():
+    return psycopg2.connect(DATABASE_URL)
+
+
+def _columna_existe(cursor, tabla, columna):
+    cursor.execute("""
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = %s AND column_name = %s
+    """, (tabla, columna))
+    return cursor.fetchone() is not None
+
+
+def _agregar_columna_si_falta(cursor, tabla, columna, definicion):
+    if not _columna_existe(cursor, tabla, columna):
+        cursor.execute(f"ALTER TABLE {tabla} ADD COLUMN {columna} {definicion}")
+        print(f"MIGRACIÓN: columna '{columna}' agregada a '{tabla}'")
+
+
+def inicializar_base_datos():
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    try:
+        # --- Tablas del sistema de asistencias (ya existentes) ---
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS asistencias (
+                id SERIAL PRIMARY KEY,
+                codigo_empleado TEXT NOT NULL,
+                fecha_hora TIMESTAMP NOT NULL,
+                fecha DATE NOT NULL,
+                hora TIME NOT NULL,
+                tipo_marcaje TEXT,
+                estado TEXT,
+                verificacion TEXT,
+                sn_dispositivo TEXT,
+                fecha_recepcion TIMESTAMP NOT NULL,
+                UNIQUE(codigo_empleado, fecha_hora, sn_dispositivo)
+            )
+        """)
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS trabajadores (
+                id SERIAL PRIMARY KEY,
+                codigo_empleado TEXT UNIQUE,
+                dni TEXT UNIQUE,
+                nombres TEXT NOT NULL,
+                apellidos TEXT NOT NULL,
+                cargo TEXT,
+                estado TEXT DEFAULT 'ACTIVO',
+                fecha_registro TIMESTAMP NOT NULL
+            )
+        """)
+
+        # Si la tabla "trabajadores" ya existia de una version anterior (solo
+        # con las columnas del sistema de asistencias), le agregamos las
+        # columnas nuevas del modulo de personal sin borrar nada de lo que
+        # ya tenia. Tambien relajamos codigo_empleado para que pueda quedar
+        # vacio cuando un trabajador se registra primero desde el modulo de
+        # personal y todavia no esta enrolado en el biometrico.
+        cursor.execute("ALTER TABLE trabajadores ALTER COLUMN codigo_empleado DROP NOT NULL")
+
+        _agregar_columna_si_falta(cursor, "trabajadores", "area", "TEXT")
+        _agregar_columna_si_falta(cursor, "trabajadores", "telefono", "TEXT")
+        _agregar_columna_si_falta(cursor, "trabajadores", "email", "TEXT")
+        _agregar_columna_si_falta(cursor, "trabajadores", "fecha_ingreso", "DATE")
+        _agregar_columna_si_falta(cursor, "trabajadores", "fecha_fin_contrato", "DATE")
+        _agregar_columna_si_falta(cursor, "trabajadores", "fecha_renovacion", "DATE")
+        _agregar_columna_si_falta(cursor, "trabajadores", "direccion", "TEXT")
+        _agregar_columna_si_falta(cursor, "trabajadores", "observaciones", "TEXT")
+        _agregar_columna_si_falta(
+            cursor, "trabajadores", "historial_renovaciones", "JSONB DEFAULT '[]'::jsonb"
+        )
+
+        # --- Documentos (PDFs) de cada trabajador, guardados en la propia BD ---
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS documentos (
+                id SERIAL PRIMARY KEY,
+                trabajador_id INTEGER NOT NULL REFERENCES trabajadores(id) ON DELETE CASCADE,
+                nombre TEXT NOT NULL,
+                archivo_original TEXT,
+                tipo_mime TEXT DEFAULT 'application/pdf',
+                contenido BYTEA NOT NULL,
+                tamano_bytes INTEGER,
+                subido_en TIMESTAMP NOT NULL
+            )
+        """)
+
+        # --- Usuarios del sistema (login) ---
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS usuarios (
+                id SERIAL PRIMARY KEY,
+                username TEXT NOT NULL UNIQUE,
+                password_hash TEXT NOT NULL
+            )
+        """)
+
+        cursor.execute("SELECT COUNT(*) FROM usuarios")
+        total_usuarios = cursor.fetchone()[0]
+
+        if total_usuarios == 0:
+            cursor.execute(
+                "INSERT INTO usuarios (username, password_hash) VALUES (%s, %s)",
+                ("admin", generate_password_hash("admin123"))
+            )
+            print("USUARIO POR DEFECTO CREADO -> usuario: admin / contraseña: admin123")
+
+        conexion.commit()
+        print("BASE DE DATOS POSTGRESQL INICIALIZADA CORRECTAMENTE")
+    except Exception as error:
+        conexion.rollback()
+        print("ERROR INICIALIZANDO BASE DE DATOS:", error)
+        raise
+    finally:
+        cursor.close()
+        conexion.close()

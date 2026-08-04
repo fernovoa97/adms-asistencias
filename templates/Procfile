@@ -1,1 +1,0 @@
-web: gunicorn adms_server:app
