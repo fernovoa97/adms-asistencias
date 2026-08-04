@@ -125,6 +125,24 @@ def inicializar_base_datos():
             )
         """)
 
+                # --- Carpetas de documentos por trabajador ---
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS carpetas_documentos (
+                id SERIAL PRIMARY KEY,
+                trabajador_id INTEGER NOT NULL REFERENCES trabajadores(id) ON DELETE CASCADE,
+                nombre TEXT NOT NULL,
+                creado_en TIMESTAMP NOT NULL,
+                UNIQUE(trabajador_id, nombre)
+            )
+        """)
+
+        _agregar_columna_si_falta(
+            cursor,
+            "documentos",
+            "carpeta_id",
+            "INTEGER REFERENCES carpetas_documentos(id) ON DELETE CASCADE"
+        )
+
         # --- Usuarios del sistema (login) ---
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS usuarios (
