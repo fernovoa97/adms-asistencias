@@ -9,6 +9,8 @@ import secrets
 from db import obtener_conexion, inicializar_base_datos
 from auth import auth_bp, login_requerido
 from trabajadores import trabajadores_bp
+from ajustes import ajustes_bp
+from reglas_asistencia import horario_del_trabajador, evaluar_marcaje_entrada
 
 app = Flask(__name__)
 
@@ -43,6 +45,7 @@ inicializar_base_datos()
 
 app.register_blueprint(auth_bp)
 app.register_blueprint(trabajadores_bp)
+app.register_blueprint(ajustes_bp)
 
 
 # ==========================================
@@ -353,7 +356,9 @@ def inicio():
 
     sql_base = """
         SELECT a.codigo_empleado, a.fecha, a.hora, a.tipo_marcaje,
-               t.nombres AS nombres_trabajador, t.apellidos AS apellidos_trabajador
+               t.id AS trabajador_id, t.nombres AS nombres_trabajador,
+               t.apellidos AS apellidos_trabajador,
+               t.hora_entrada, t.hora_salida
         FROM asistencias a
         LEFT JOIN trabajadores t
             ON t.codigo_empleado = a.codigo_empleado
@@ -371,23 +376,45 @@ def inicio():
         cursor.execute(sql_base + " ORDER BY a.fecha_hora DESC LIMIT 500")
 
     columnas = [
-        "codigo_empleado", "fecha", "hora", "tipo_marcaje",
-        "nombres_trabajador", "apellidos_trabajador"
+        "codigo_empleado", "fecha", "hora", "tipo_marcaje", "trabajador_id",
+        "nombres_trabajador", "apellidos_trabajador", "hora_entrada", "hora_salida"
     ]
+    filas = [dict(zip(columnas, fila)) for fila in cursor.fetchall()]
 
-    # Agrupamos los marcajes por dia, para mostrar un encabezado de fecha
-    # una sola vez por dia en vez de repetirla en cada fila.
+    # Feriados y ajustes del rango visible, cargados una sola vez para no
+    # hacer una consulta por cada fila de la tabla.
+    cursor.execute("SELECT fecha FROM feriados")
+    feriados_set = {fila[0] for fila in cursor.fetchall()}
+
+    cursor.execute("SELECT trabajador_id, fecha, motivo FROM ajustes_asistencia")
+    ajustes_map = {(fila[0], fila[1]): fila[2] for fila in cursor.fetchall()}
+
+    # Agrupamos los marcajes por dia, calculando el estado (puntual /
+    # tardanza / justificado / feriado) solo para las entradas.
     grupos = []
     fecha_grupo_actual = None
-    for fila in cursor.fetchall():
-        marcaje = dict(zip(columnas, fila))
+    for marcaje in filas:
         if marcaje["fecha"] != fecha_grupo_actual:
             grupos.append({
                 "fecha": marcaje["fecha"],
                 "fecha_larga": formatear_fecha_larga(marcaje["fecha"]),
+                "es_feriado": marcaje["fecha"] in feriados_set,
                 "marcajes": []
             })
             fecha_grupo_actual = marcaje["fecha"]
+
+        if marcaje["tipo_marcaje"] == "0" and marcaje["trabajador_id"]:
+            hora_entrada_prog, _ = horario_del_trabajador(
+                marcaje["hora_entrada"], marcaje["hora_salida"]
+            )
+            es_feriado = marcaje["fecha"] in feriados_set
+            motivo_ajuste = ajustes_map.get((marcaje["trabajador_id"], marcaje["fecha"]))
+            marcaje["evaluacion"] = evaluar_marcaje_entrada(
+                marcaje["hora"], hora_entrada_prog, es_feriado, motivo_ajuste
+            )
+        else:
+            marcaje["evaluacion"] = None
+
         grupos[-1]["marcajes"].append(marcaje)
 
     cursor.execute("""

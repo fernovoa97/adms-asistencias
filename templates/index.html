@@ -14,6 +14,7 @@
         <a href="{{ url_for('inicio') }}" class="active">Asistencias</a>
         <a href="{{ url_for('trabajadores.pagina_nuevo_trabajador') }}">Nuevo trabajador</a>
         <a href="{{ url_for('trabajadores.pagina_buscar_trabajador') }}">Buscar trabajador</a>
+        <a href="{{ url_for('ajustes.pagina_ajustes') }}">Ajustes</a>
       </nav>
       <div class="user-box">
         Sesión: <strong>{{ session.get('username', '-') }}</strong>
@@ -72,12 +73,16 @@
               <th>Nombre</th>
               <th>Hora</th>
               <th>Tipo</th>
+              <th>Estado</th>
             </tr>
           </thead>
           <tbody>
             {% for grupo in grupos %}
             <tr class="fila-fecha">
-              <td colspan="4">{{ grupo.fecha_larga }}</td>
+              <td colspan="5">
+                {{ grupo.fecha_larga }}
+                {% if grupo.es_feriado %}<span class="tag-feriado">Feriado</span>{% endif %}
+              </td>
             </tr>
             {% for asistencia in grupo.marcajes %}
             <tr>
@@ -97,6 +102,16 @@
                   <span class="badge salida">Salida</span>
                 {% else %}
                   {{ asistencia["tipo_marcaje"] }}
+                {% endif %}
+              </td>
+              <td>
+                {% if asistencia["evaluacion"] %}
+                  <span class="badge estado-{{ asistencia['evaluacion']['estado'] }}"
+                        {% if asistencia['evaluacion']['detalle'] %}title="{{ asistencia['evaluacion']['detalle'] }}"{% endif %}>
+                    {{ asistencia["evaluacion"]["etiqueta"] }}
+                  </span>
+                {% else %}
+                  <span class="muted">—</span>
                 {% endif %}
               </td>
             </tr>

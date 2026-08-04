@@ -80,6 +80,7 @@ function renderViewMode(w) {
     ['Teléfono', w.telefono || '—'],
     ['Correo', w.email || '—'],
     ['Fecha de ingreso', w.fecha_ingreso || '—'],
+    ['Horario', (w.hora_entrada || '08:00') + ' a ' + (w.hora_salida || '17:00') + (w.hora_entrada ? ' (personalizado)' : ' (estándar)')],
     ['Fecha de fin de contrato', w.fecha_fin_contrato || '—'],
     ['Última renovación', w.fecha_renovacion || '—'],
     ['Dirección', w.direccion || '—']
@@ -188,6 +189,14 @@ function renderEditForm(w) {
             <input type="date" id="editFechaIngreso" value="${w.fecha_ingreso || ''}">
           </div>
           <div class="field">
+            <label for="editHoraEntrada">Hora de entrada (dejar vacío = 08:00 estándar)</label>
+            <input type="time" id="editHoraEntrada" value="${w.hora_entrada || ''}">
+          </div>
+          <div class="field">
+            <label for="editHoraSalida">Hora de salida (dejar vacío = 17:00 estándar)</label>
+            <input type="time" id="editHoraSalida" value="${w.hora_salida || ''}">
+          </div>
+          <div class="field">
             <label for="editCargo">Cargo</label>
             <input type="text" id="editCargo" value="${escapeAttr(w.cargo || '')}">
           </div>
@@ -226,6 +235,8 @@ function renderEditForm(w) {
       telefono: document.getElementById('editTelefono').value.trim(),
       email: document.getElementById('editEmail').value.trim(),
       fechaIngreso: document.getElementById('editFechaIngreso').value,
+      horaEntrada: document.getElementById('editHoraEntrada').value,
+      horaSalida: document.getElementById('editHoraSalida').value,
       cargo: document.getElementById('editCargo').value.trim(),
       area: document.getElementById('editArea').value.trim(),
       direccion: document.getElementById('editDireccion').value.trim(),

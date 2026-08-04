@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ajustes · Personal y Asistencias</title>
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">Personal y Asistencias</div>
+      <nav>
+        <a href="{{ url_for('inicio') }}">Asistencias</a>
+        <a href="{{ url_for('trabajadores.pagina_nuevo_trabajador') }}">Nuevo trabajador</a>
+        <a href="{{ url_for('trabajadores.pagina_buscar_trabajador') }}">Buscar trabajador</a>
+        <a href="{{ url_for('ajustes.pagina_ajustes') }}" class="active">Ajustes</a>
+      </nav>
+      <div class="user-box">
+        Sesión: <strong>{{ session.get('username', '-') }}</strong>
+        <a class="btn secondary" href="{{ url_for('auth.logout') }}">Cerrar sesión</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <h1>Ajustes</h1>
+      <p class="lead">Justifica tardanzas puntuales y define los días feriados de la empresa.</p>
+
+      <div class="panel">
+        <h2 style="margin-top:0;font-size:1.05rem;">Justificar un día</h2>
+        <p class="muted">Busca al trabajador y agrega una fecha con el motivo (ej. cita médica). Ese día se considerará puntual, sin importar la hora real que marcó.</p>
+
+        <div class="search-box">
+          <input type="text" id="searchWorkerInput" placeholder="Buscar trabajador por nombre, DNI o código..." autocomplete="off">
+        </div>
+        <div id="workerResults" class="result-list"></div>
+
+        <div id="workerAjustesArea"></div>
+      </div>
+
+      <div class="panel">
+        <h2 style="margin-top:0;font-size:1.05rem;">Días feriados</h2>
+        <p class="muted">Estas fechas no cuentan como tardanza para ningún trabajador, aunque marquen algo raro ese día.</p>
+
+        <div class="error-msg" id="feriadoErrorMsg"></div>
+
+        <form id="feriadoForm" class="grid-2" style="align-items:end;margin-bottom:16px;">
+          <div class="field">
+            <label for="nuevaFechaFeriado">Fecha</label>
+            <input type="date" id="nuevaFechaFeriado" required>
+          </div>
+          <div class="field">
+            <label for="nuevaDescripcionFeriado">Descripción</label>
+            <input type="text" id="nuevaDescripcionFeriado" placeholder="Ej. Día de la Independencia">
+          </div>
+          <div class="field" style="grid-column: span 2;">
+            <button type="submit" class="btn">Agregar feriado</button>
+          </div>
+        </form>
+
+        <div id="feriadosList" class="doc-list"></div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/static/js/ajustes.js"></script>
+</body>
+</html>

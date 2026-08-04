@@ -83,6 +83,33 @@ def inicializar_base_datos():
         _agregar_columna_si_falta(
             cursor, "trabajadores", "historial_renovaciones", "JSONB DEFAULT '[]'::jsonb"
         )
+        # Horario personalizado. Si quedan en NULL, el trabajador usa el
+        # horario estandar de la empresa (8:00 - 17:00), que se aplica en
+        # el codigo, no en la base de datos.
+        _agregar_columna_si_falta(cursor, "trabajadores", "hora_entrada", "TIME")
+        _agregar_columna_si_falta(cursor, "trabajadores", "hora_salida", "TIME")
+
+        # --- Feriados: dias en los que no se espera marcacion normal ---
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS feriados (
+                fecha DATE PRIMARY KEY,
+                descripcion TEXT,
+                creado_en TIMESTAMP NOT NULL
+            )
+        """)
+
+        # --- Ajustes: justificaciones puntuales de tardanza por trabajador/dia ---
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS ajustes_asistencia (
+                id SERIAL PRIMARY KEY,
+                trabajador_id INTEGER NOT NULL REFERENCES trabajadores(id) ON DELETE CASCADE,
+                fecha DATE NOT NULL,
+                motivo TEXT NOT NULL,
+                creado_por TEXT,
+                creado_en TIMESTAMP NOT NULL,
+                UNIQUE(trabajador_id, fecha)
+            )
+        """)
 
         # --- Documentos (PDFs) de cada trabajador, guardados en la propia BD ---
         cursor.execute("""

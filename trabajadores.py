@@ -33,6 +33,9 @@ def _worker_a_dict(fila_worker, columnas):
     for campo in ("fecha_registro", "fecha_ingreso", "fecha_fin_contrato", "fecha_renovacion"):
         if w.get(campo) is not None:
             w[campo] = str(w[campo])
+    for campo in ("hora_entrada", "hora_salida"):
+        if w.get(campo) is not None:
+            w[campo] = w[campo].strftime("%H:%M")
     return w
 
 
@@ -40,7 +43,7 @@ COLUMNAS_TRABAJADOR = [
     "id", "codigo_empleado", "dni", "nombres", "apellidos", "cargo", "area",
     "estado", "telefono", "email", "fecha_ingreso", "fecha_fin_contrato",
     "fecha_renovacion", "direccion", "observaciones", "historial_renovaciones",
-    "fecha_registro"
+    "hora_entrada", "hora_salida", "fecha_registro"
 ]
 
 
@@ -290,7 +293,8 @@ def api_actualizar(worker_id):
             UPDATE trabajadores SET
                 nombres = %s, apellidos = %s, dni = %s, cargo = %s, area = %s,
                 telefono = %s, email = %s, fecha_ingreso = %s,
-                direccion = %s, observaciones = %s
+                direccion = %s, observaciones = %s,
+                hora_entrada = %s, hora_salida = %s
             WHERE id = %s
         """, (
             nombres, apellidos, dni,
@@ -301,6 +305,8 @@ def api_actualizar(worker_id):
             _fecha_o_none(datos.get("fechaIngreso")),
             (datos.get("direccion") or "").strip(),
             (datos.get("observaciones") or "").strip(),
+            (datos.get("horaEntrada") or "").strip() or None,
+            (datos.get("horaSalida") or "").strip() or None,
             worker_id
         ))
 
