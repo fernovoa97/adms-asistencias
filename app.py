@@ -1,5 +1,5 @@
 from flask import Flask, request, render_template, Response
-from datetime import datetime
+from datetime import datetime, timedelta
 import csv
 import io
 import os
@@ -11,6 +11,19 @@ from auth import auth_bp, login_requerido
 from trabajadores import trabajadores_bp
 
 app = Flask(__name__)
+
+DIAS_ES = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+MESES_ES = [
+    "", "enero", "febrero", "marzo", "abril", "mayo", "junio",
+    "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
+]
+
+
+def formatear_fecha_larga(fecha):
+    """Convierte un date a algo como 'Martes 4 de agosto', sin depender
+    del locale del sistema operativo (que en Railway no siempre esta en
+    español)."""
+    return f"{DIAS_ES[fecha.weekday()]} {fecha.day} de {MESES_ES[fecha.month]}"
 
 # La clave de sesion DEBE ser fija (definida por variable de entorno) en
 # produccion. Si no esta definida, generamos una aleatoria para que la app
@@ -321,24 +334,61 @@ def debug_diagnostico():
 @app.route("/")
 @login_requerido
 def inicio():
+    rango = request.args.get("rango", "semana")
+    if rango not in ("hoy", "semana", "mes", "todos"):
+        rango = "semana"
+
+    hoy = datetime.now().date()
+    if rango == "hoy":
+        fecha_desde = hoy
+    elif rango == "mes":
+        fecha_desde = hoy - timedelta(days=29)
+    elif rango == "todos":
+        fecha_desde = None
+    else:
+        fecha_desde = hoy - timedelta(days=6)
+
     conexion = obtener_conexion()
     cursor = conexion.cursor()
 
-    cursor.execute("""
+    sql_base = """
         SELECT a.codigo_empleado, a.fecha, a.hora, a.tipo_marcaje,
                t.nombres AS nombres_trabajador, t.apellidos AS apellidos_trabajador
         FROM asistencias a
         LEFT JOIN trabajadores t
             ON t.codigo_empleado = a.codigo_empleado
             OR t.dni = a.codigo_empleado
-        ORDER BY a.fecha_hora DESC
-        LIMIT 100
-    """)
+    """
+
+    if fecha_desde:
+        cursor.execute(
+            sql_base + " WHERE a.fecha >= %s ORDER BY a.fecha_hora DESC",
+            (fecha_desde,)
+        )
+    else:
+        # "Todos" sin filtro de fecha: se limita a los ultimos 500 marcajes
+        # como medida de seguridad, para no traer una tabla gigante de golpe.
+        cursor.execute(sql_base + " ORDER BY a.fecha_hora DESC LIMIT 500")
+
     columnas = [
         "codigo_empleado", "fecha", "hora", "tipo_marcaje",
         "nombres_trabajador", "apellidos_trabajador"
     ]
-    asistencias = [dict(zip(columnas, fila)) for fila in cursor.fetchall()]
+
+    # Agrupamos los marcajes por dia, para mostrar un encabezado de fecha
+    # una sola vez por dia en vez de repetirla en cada fila.
+    grupos = []
+    fecha_grupo_actual = None
+    for fila in cursor.fetchall():
+        marcaje = dict(zip(columnas, fila))
+        if marcaje["fecha"] != fecha_grupo_actual:
+            grupos.append({
+                "fecha": marcaje["fecha"],
+                "fecha_larga": formatear_fecha_larga(marcaje["fecha"]),
+                "marcajes": []
+            })
+            fecha_grupo_actual = marcaje["fecha"]
+        grupos[-1]["marcajes"].append(marcaje)
 
     cursor.execute("""
         SELECT DISTINCT sn_dispositivo
@@ -353,17 +403,15 @@ def inicio():
     cursor.execute("SELECT COUNT(*) FROM trabajadores")
     total_trabajadores = cursor.fetchone()[0]
 
-    fecha_hoy = datetime.now().date()
-
     cursor.execute(
         "SELECT COUNT(*) FROM asistencias WHERE fecha = %s AND tipo_marcaje = '0'",
-        (fecha_hoy,)
+        (hoy,)
     )
     entradas_hoy = cursor.fetchone()[0]
 
     cursor.execute(
         "SELECT COUNT(*) FROM asistencias WHERE fecha = %s AND tipo_marcaje = '1'",
-        (fecha_hoy,)
+        (hoy,)
     )
     salidas_hoy = cursor.fetchone()[0]
 
@@ -375,7 +423,8 @@ def inicio():
 
     return render_template(
         "index.html",
-        asistencias=asistencias,
+        grupos=grupos,
+        rango=rango,
         dispositivos=dispositivos,
         total_marcajes=total_marcajes,
         total_trabajadores=total_trabajadores,

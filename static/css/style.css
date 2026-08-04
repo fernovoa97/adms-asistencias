@@ -327,3 +327,36 @@ tr:hover { background: #f9fafb; }
 .sin-registrar { color: #9ca3af; font-style: italic; }
 
 .info-box { background: white; padding: 15px; border-radius: 10px; margin-bottom: 20px; }
+
+.filtro-rango {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.filtro-rango a {
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.filtro-rango a:hover { border-color: var(--primary); }
+.filtro-rango a.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+tr.fila-fecha td {
+  background: #f3f4f6;
+  font-weight: 700;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+  padding: 10px 15px;
+}
+
+tr.fila-fecha:hover td { background: #f3f4f6; }

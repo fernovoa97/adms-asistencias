@@ -56,20 +56,30 @@
         <a class="boton" href="/exportar">Exportar CSV</a>
       </div>
 
+      <div class="filtro-rango">
+        <a href="{{ url_for('inicio', rango='hoy') }}" class="{{ 'active' if rango == 'hoy' }}">Hoy</a>
+        <a href="{{ url_for('inicio', rango='semana') }}" class="{{ 'active' if rango == 'semana' }}">Últimos 7 días</a>
+        <a href="{{ url_for('inicio', rango='mes') }}" class="{{ 'active' if rango == 'mes' }}">Últimos 30 días</a>
+        <a href="{{ url_for('inicio', rango='todos') }}" class="{{ 'active' if rango == 'todos' }}">Todos</a>
+      </div>
+
       <div class="tabla-contenedor">
-        {% if asistencias %}
+        {% if grupos %}
         <table>
           <thead>
             <tr>
               <th>Código</th>
               <th>Nombre</th>
-              <th>Fecha</th>
               <th>Hora</th>
               <th>Tipo</th>
             </tr>
           </thead>
           <tbody>
-            {% for asistencia in asistencias %}
+            {% for grupo in grupos %}
+            <tr class="fila-fecha">
+              <td colspan="4">{{ grupo.fecha_larga }}</td>
+            </tr>
+            {% for asistencia in grupo.marcajes %}
             <tr>
               <td>{{ asistencia["codigo_empleado"] }}</td>
               <td>
@@ -79,7 +89,6 @@
                   <span class="sin-registrar">Sin registrar</span>
                 {% endif %}
               </td>
-              <td>{{ asistencia["fecha"] }}</td>
               <td>{{ asistencia["hora"] }}</td>
               <td>
                 {% if asistencia["tipo_marcaje"] == "0" %}
@@ -92,10 +101,11 @@
               </td>
             </tr>
             {% endfor %}
+            {% endfor %}
           </tbody>
         </table>
         {% else %}
-        <div style="padding:40px;text-align:center">No existen registros</div>
+        <div style="padding:40px;text-align:center">No existen registros en este rango</div>
         {% endif %}
       </div>
     </main>
