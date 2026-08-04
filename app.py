@@ -266,6 +266,55 @@ def solicitar_usuarios():
 
 
 # ==========================================
+# DIAGNÓSTICO TEMPORAL (protegido con login)
+# ==========================================
+# Ruta de solo lectura para revisar por que un marcaje no muestra nombre.
+# Es seguro dejarla, pero puedes borrar este bloque completo mas adelante
+# si ya no la necesitas.
+
+@app.route("/debug/diagnostico")
+@login_requerido
+def debug_diagnostico():
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+
+    cursor.execute(
+        "SELECT id, codigo_empleado, dni, nombres, apellidos FROM trabajadores ORDER BY id"
+    )
+    trabajadores = [
+        {"id": f[0], "codigo_empleado": f[1], "dni": f[2], "nombres": f[3], "apellidos": f[4]}
+        for f in cursor.fetchall()
+    ]
+
+    cursor.execute(
+        "SELECT codigo_empleado, fecha, hora, tipo_marcaje FROM asistencias ORDER BY fecha_hora DESC LIMIT 10"
+    )
+    ultimos_marcajes = [
+        {"codigo_empleado": f[0], "fecha": str(f[1]), "hora": str(f[2]), "tipo_marcaje": f[3]}
+        for f in cursor.fetchall()
+    ]
+
+    cursor.execute("""
+        SELECT DISTINCT a.codigo_empleado
+        FROM asistencias a
+        LEFT JOIN trabajadores t
+            ON t.codigo_empleado = a.codigo_empleado
+            OR t.dni = a.codigo_empleado
+        WHERE t.id IS NULL
+    """)
+    codigos_sin_match = [f[0] for f in cursor.fetchall()]
+
+    cursor.close()
+    conexion.close()
+
+    return {
+        "trabajadores": trabajadores,
+        "ultimos_marcajes": ultimos_marcajes,
+        "codigos_sin_match": codigos_sin_match
+    }
+
+
+# ==========================================
 # PANEL WEB (protegido con login)
 # ==========================================
 
