@@ -108,12 +108,29 @@ def guardar_trabajador(codigo_empleado, nombre_completo):
         conexion = obtener_conexion()
         cursor = conexion.cursor()
 
-        cursor.execute("""
-            INSERT INTO trabajadores (codigo_empleado, nombres, apellidos, fecha_registro)
-            VALUES (%s, %s, %s, %s)
-            ON CONFLICT (codigo_empleado)
-            DO UPDATE SET nombres = EXCLUDED.nombres, apellidos = EXCLUDED.apellidos
-        """, (codigo_empleado, nombres, apellidos, fecha_registro))
+        # En muchos casos el "codigo de empleado" configurado en el huellero
+        # es el mismo numero de DNI del trabajador. Si ya existe una ficha
+        # de personal con ese DNI pero todavia sin codigo de empleado
+        # asignado, la vinculamos en vez de crear un trabajador duplicado.
+        cursor.execute(
+            "SELECT id FROM trabajadores WHERE codigo_empleado IS NULL AND dni = %s",
+            (codigo_empleado,)
+        )
+        fila_existente = cursor.fetchone()
+
+        if fila_existente:
+            cursor.execute(
+                "UPDATE trabajadores SET codigo_empleado = %s WHERE id = %s",
+                (codigo_empleado, fila_existente[0])
+            )
+            print(f"TRABAJADOR VINCULADO POR DNI: {codigo_empleado} -> id {fila_existente[0]}")
+        else:
+            cursor.execute("""
+                INSERT INTO trabajadores (codigo_empleado, nombres, apellidos, fecha_registro)
+                VALUES (%s, %s, %s, %s)
+                ON CONFLICT (codigo_empleado)
+                DO UPDATE SET nombres = EXCLUDED.nombres, apellidos = EXCLUDED.apellidos
+            """, (codigo_empleado, nombres, apellidos, fecha_registro))
 
         conexion.commit()
         cursor.close()
@@ -260,16 +277,17 @@ def inicio():
 
     cursor.execute("""
         SELECT a.codigo_empleado, a.fecha, a.hora, a.tipo_marcaje,
-               a.verificacion, a.sn_dispositivo,
                t.nombres AS nombres_trabajador, t.apellidos AS apellidos_trabajador
         FROM asistencias a
-        LEFT JOIN trabajadores t ON t.codigo_empleado = a.codigo_empleado
+        LEFT JOIN trabajadores t
+            ON t.codigo_empleado = a.codigo_empleado
+            OR t.dni = a.codigo_empleado
         ORDER BY a.fecha_hora DESC
         LIMIT 100
     """)
     columnas = [
-        "codigo_empleado", "fecha", "hora", "tipo_marcaje", "verificacion",
-        "sn_dispositivo", "nombres_trabajador", "apellidos_trabajador"
+        "codigo_empleado", "fecha", "hora", "tipo_marcaje",
+        "nombres_trabajador", "apellidos_trabajador"
     ]
     asistencias = [dict(zip(columnas, fila)) for fila in cursor.fetchall()]
 
@@ -335,7 +353,9 @@ def exportar():
             a.fecha_hora, a.fecha, a.hora, a.tipo_marcaje,
             a.estado, a.verificacion, a.sn_dispositivo, a.fecha_recepcion
         FROM asistencias a
-        LEFT JOIN trabajadores t ON t.codigo_empleado = a.codigo_empleado
+        LEFT JOIN trabajadores t
+            ON t.codigo_empleado = a.codigo_empleado
+            OR t.dni = a.codigo_empleado
         ORDER BY a.fecha_hora DESC
     """)
     asistencias = cursor.fetchall()
