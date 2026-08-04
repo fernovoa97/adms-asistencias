@@ -321,107 +321,24 @@ th { background: #f9fafb; text-align: left; padding: 15px; font-size: 14px; }
 td { padding: 14px; border-bottom: 1px solid #e5e7eb; }
 tr:hover { background: #f9fafb; }
 
-/* ---------- Badges de asistencia ---------- */
+.badge { padding: 5px 10px; border-radius: 20px; font-size: 13px; font-weight: bold; }
+.badge.entrada { background: #dcfce7; color: #166534; }
+.badge.salida { background: #fee2e2; color: #991b1b; }
+.badge.estado-puntual { background: #dcfce7; color: #166534; }
+.badge.estado-tardanza { background: #fef3c7; color: #92400e; }
+.badge.estado-justificado { background: #dbeafe; color: #1e40af; cursor: help; }
+.badge.estado-feriado { background: #e5e7eb; color: #4b5563; }
+.sin-registrar { color: #9ca3af; font-style: italic; }
 
-.badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 6px 13px;
+.tag-feriado {
+  margin-left: 8px;
+  background: #4b5563;
+  color: #fff;
+  padding: 2px 8px;
   border-radius: 999px;
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: .01em;
-  white-space: nowrap;
-  border: 1px solid transparent;
-}
-
-
-/* ==========================
-   TIPO DE MARCAJE
-   ========================== */
-
-.badge.entrada {
-  background: #dcfce7;
-  color: #166534;
-  border-color: #bbf7d0;
-}
-
-
-.badge.salida {
-  background: #fee2e2;
-  color: #991b1b;
-  border-color: #fecaca;
-}
-
-
-/* ==========================
-   ESTADOS DE ASISTENCIA
-   ========================== */
-
-
-/* Puntual */
-.badge.estado-puntual {
-  background: #dcfce7;
-  color: #15803d;
-  border-color: #86efac;
-}
-
-
-/* Tardanza normal */
-.badge.estado-tardanza {
-  background: #fee2e2;
-  color: #dc2626;
-  border-color: #fca5a5;
-}
-
-
-/* Tardanza con descuento */
-.badge.estado-tardanza_descuento,
-.badge.estado-tardanza-descuento {
-  background: #991b1b;
-  color: #ffffff;
-  border-color: #7f1d1d;
-}
-
-
-/* Justificado */
-.badge.estado-justificado {
-  background: #dbeafe;
-  color: #1d4ed8;
-  border-color: #93c5fd;
-}
-
-
-/* Feriado */
-.badge.estado-feriado {
-  background: #ede9fe;
-  color: #7c3aed;
-  border-color: #c4b5fd;
-}
-
-
-/* Sin evaluación */
-.badge.estado-sin-evaluacion {
-  background: #f3f4f6;
-  color: #6b7280;
-}
-
-
-/* ==========================
-   SIN REGISTRAR
-   ========================== */
-
-.sin-registrar {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 9px;
-  border-radius: 999px;
-  background: #f3f4f6;
-  color: #6b7280;
-  font-size: .75rem;
-  font-style: normal;
-  font-weight: 600;
+  font-size: 0.7rem;
+  text-transform: none;
+  letter-spacing: normal;
 }
 
 .info-box { background: white; padding: 15px; border-radius: 10px; margin-bottom: 20px; }

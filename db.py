@@ -125,7 +125,7 @@ def inicializar_base_datos():
             )
         """)
 
-                # --- Carpetas de documentos por trabajador ---
+        # --- Carpetas para organizar los documentos de cada trabajador ---
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS carpetas_documentos (
                 id SERIAL PRIMARY KEY,
@@ -136,11 +136,12 @@ def inicializar_base_datos():
             )
         """)
 
+        # Si "documentos" ya existia sin la columna de carpeta, se la
+        # agregamos. Un documento sin carpeta_id simplemente queda
+        # clasificado como "Sin carpeta" en la app.
         _agregar_columna_si_falta(
-            cursor,
-            "documentos",
-            "carpeta_id",
-            "INTEGER REFERENCES carpetas_documentos(id) ON DELETE CASCADE"
+            cursor, "documentos", "carpeta_id",
+            "INTEGER REFERENCES carpetas_documentos(id) ON DELETE SET NULL"
         )
 
         # --- Usuarios del sistema (login) ---
