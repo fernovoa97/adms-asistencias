@@ -71,8 +71,8 @@
             <tr>
               <th>Código</th>
               <th>Nombre</th>
-              <th>Hora</th>
-              <th>Tipo</th>
+              <th>Entrada</th>
+              <th>Salida</th>
               <th>Estado</th>
             </tr>
           </thead>
@@ -84,31 +84,35 @@
                 {% if grupo.es_feriado %}<span class="tag-feriado">Feriado</span>{% endif %}
               </td>
             </tr>
-            {% for asistencia in grupo.marcajes %}
+            {% for registro in grupo.registros %}
             <tr>
-              <td>{{ asistencia["codigo_empleado"] }}</td>
+              <td>{{ registro["codigo_empleado"] }}</td>
               <td>
-                {% if asistencia["nombres_trabajador"] %}
-                  {{ asistencia["nombres_trabajador"] }} {{ asistencia["apellidos_trabajador"] }}
+                {% if registro["nombres_trabajador"] %}
+                  {{ registro["nombres_trabajador"] }} {{ registro["apellidos_trabajador"] }}
                 {% else %}
                   <span class="sin-registrar">Sin registrar</span>
                 {% endif %}
               </td>
-              <td>{{ asistencia["hora"] }}</td>
               <td>
-                {% if asistencia["tipo_marcaje"] == "0" %}
-                  <span class="badge entrada">Entrada</span>
-                {% elif asistencia["tipo_marcaje"] == "1" %}
-                  <span class="badge salida">Salida</span>
+                {% if registro["entrada"] %}
+                  {{ registro["entrada"] }}
                 {% else %}
-                  {{ asistencia["tipo_marcaje"] }}
+                  <span class="muted">—</span>
                 {% endif %}
               </td>
               <td>
-                {% if asistencia["evaluacion"] %}
-                  <span class="badge estado-{{ asistencia['evaluacion']['estado'] }}"
-                        {% if asistencia['evaluacion']['detalle'] %}title="{{ asistencia['evaluacion']['detalle'] }}"{% endif %}>
-                    {{ asistencia["evaluacion"]["etiqueta"] }}
+                {% if registro["salida"] %}
+                  {{ registro["salida"] }}
+                {% else %}
+                  <span class="muted">—</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if registro["evaluacion"] %}
+                  <span class="badge estado-{{ registro['evaluacion']['estado'] }}"
+                        {% if registro['evaluacion']['detalle'] %}title="{{ registro['evaluacion']['detalle'] }}"{% endif %}>
+                    {{ registro["evaluacion"]["etiqueta"] }}
                   </span>
                 {% else %}
                   <span class="muted">—</span>

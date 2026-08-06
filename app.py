@@ -389,33 +389,75 @@ def inicio():
     cursor.execute("SELECT trabajador_id, fecha, motivo FROM ajustes_asistencia")
     ajustes_map = {(fila[0], fila[1]): fila[2] for fila in cursor.fetchall()}
 
-    # Agrupamos los marcajes por dia, calculando el estado (puntual /
-    # tardanza / justificado / feriado) solo para las entradas.
-    grupos = []
-    fecha_grupo_actual = None
+    # Agrupamos los marcajes por dia y por trabajador: cada persona tiene
+    # una sola fila por dia, con su entrada (la mas temprana) y su salida
+    # (la mas tardia). Si alguien marca varias veces en el dia (ej. salida a
+    # almorzar y regreso), esto ignora las marcas intermedias y se queda con
+    # la primera entrada y la ultima salida del dia.
+    registros = {}
+    orden_por_fecha = {}
+
     for marcaje in filas:
-        if marcaje["fecha"] != fecha_grupo_actual:
-            grupos.append({
-                "fecha": marcaje["fecha"],
-                "fecha_larga": formatear_fecha_larga(marcaje["fecha"]),
-                "es_feriado": marcaje["fecha"] in feriados_set,
-                "marcajes": []
-            })
-            fecha_grupo_actual = marcaje["fecha"]
+        fecha = marcaje["fecha"]
+        clave = (fecha, marcaje["codigo_empleado"])
 
-        if marcaje["tipo_marcaje"] == "0" and marcaje["trabajador_id"]:
-            hora_entrada_prog, _ = horario_del_trabajador(
-                marcaje["hora_entrada"], marcaje["hora_salida"]
-            )
-            es_feriado = marcaje["fecha"] in feriados_set
-            motivo_ajuste = ajustes_map.get((marcaje["trabajador_id"], marcaje["fecha"]))
-            marcaje["evaluacion"] = evaluar_marcaje_entrada(
-                marcaje["hora"], hora_entrada_prog, es_feriado, motivo_ajuste
-            )
-        else:
-            marcaje["evaluacion"] = None
+        if clave not in registros:
+            registros[clave] = {
+                "codigo_empleado": marcaje["codigo_empleado"],
+                "fecha": fecha,
+                "trabajador_id": marcaje["trabajador_id"],
+                "nombres_trabajador": marcaje["nombres_trabajador"],
+                "apellidos_trabajador": marcaje["apellidos_trabajador"],
+                "hora_entrada_config": marcaje["hora_entrada"],
+                "hora_salida_config": marcaje["hora_salida"],
+                "entrada": None,
+                "salida": None
+            }
+            orden_por_fecha.setdefault(fecha, []).append(clave)
 
-        grupos[-1]["marcajes"].append(marcaje)
+        registro = registros[clave]
+
+        if marcaje["tipo_marcaje"] == "0":
+            if registro["entrada"] is None or marcaje["hora"] < registro["entrada"]:
+                registro["entrada"] = marcaje["hora"]
+        elif marcaje["tipo_marcaje"] == "1":
+            if registro["salida"] is None or marcaje["hora"] > registro["salida"]:
+                registro["salida"] = marcaje["hora"]
+
+    # El orden de "filas" ya viene del mas reciente al mas antiguo, asi que
+    # orden_por_fecha conserva ese mismo orden de dias.
+    grupos = []
+    for fecha in orden_por_fecha:
+        grupo = {
+            "fecha": fecha,
+            "fecha_larga": formatear_fecha_larga(fecha),
+            "es_feriado": fecha in feriados_set,
+            "registros": []
+        }
+
+        for clave in orden_por_fecha[fecha]:
+            registro = registros[clave]
+
+            if registro["entrada"] is not None and registro["trabajador_id"]:
+                hora_entrada_prog, _ = horario_del_trabajador(
+                    registro["hora_entrada_config"], registro["hora_salida_config"]
+                )
+                motivo_ajuste = ajustes_map.get((registro["trabajador_id"], fecha))
+                registro["evaluacion"] = evaluar_marcaje_entrada(
+                    registro["entrada"], hora_entrada_prog, grupo["es_feriado"], motivo_ajuste
+                )
+            else:
+                registro["evaluacion"] = None
+
+            grupo["registros"].append(registro)
+
+        # Dentro del dia, ordenamos por hora de entrada (los que no
+        # marcaron entrada quedan al final).
+        grupo["registros"].sort(
+            key=lambda r: (r["entrada"] is None, r["entrada"])
+        )
+
+        grupos.append(grupo)
 
     cursor.execute("""
         SELECT DISTINCT sn_dispositivo
