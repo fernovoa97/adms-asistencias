@@ -1,5 +1,6 @@
 from flask import Flask, request, render_template, Response
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 import csv
 import io
 import os
@@ -13,6 +14,17 @@ from ajustes import ajustes_bp
 from reglas_asistencia import horario_del_trabajador, evaluar_marcaje_entrada
 
 app = Flask(__name__)
+
+# El servidor (Railway) corre con reloj en UTC, pero la empresa opera en
+# hora de Peru. Sin esto, "hoy" se calcularia mal cada vez que sean las
+# 7pm o mas tarde en Peru (porque en UTC ya seria el dia siguiente),
+# haciendo que el filtro "Hoy" del panel no muestre nada.
+ZONA_HORARIA_LOCAL = ZoneInfo("America/Lima")
+
+
+def hoy_local():
+    return datetime.now(ZONA_HORARIA_LOCAL).date()
+
 
 DIAS_ES = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
 MESES_ES = [
@@ -341,7 +353,7 @@ def inicio():
     if rango not in ("hoy", "semana", "mes", "todos"):
         rango = "semana"
 
-    hoy = datetime.now().date()
+    hoy = hoy_local()
     if rango == "hoy":
         fecha_desde = hoy
     elif rango == "mes":
