@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Historial de {{ trabajador.nombres }} · Personal y Asistencias</title>
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">Personal y Asistencias</div>
+      <nav>
+        <a href="{{ url_for('inicio') }}">Asistencias</a>
+        <a href="{{ url_for('resumen.pagina_resumen') }}">Resumen</a>
+        <a href="{{ url_for('trabajadores.pagina_nuevo_trabajador') }}">Nuevo trabajador</a>
+        <a href="{{ url_for('trabajadores.pagina_buscar_trabajador') }}">Buscar trabajador</a>
+        <a href="{{ url_for('ajustes.pagina_ajustes') }}">Ajustes</a>
+      </nav>
+      <div class="user-box">
+        Sesión: <strong>{{ session.get('username', '-') }}</strong>
+        <a class="btn secondary" href="{{ url_for('auth.logout') }}">Cerrar sesión</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <a href="{{ url_for('resumen.pagina_resumen', anio=anio, mes=mes) }}" class="muted" style="text-decoration:none;">← Volver al resumen</a>
+
+      <h1 style="margin-top:8px;">{{ trabajador.nombres }} {{ trabajador.apellidos }}</h1>
+      <p class="lead">
+        DNI: {{ trabajador.dni or '—' }}
+        {% if trabajador.cargo %} · {{ trabajador.cargo }}{% endif %}
+        {% if trabajador.area %} · {{ trabajador.area }}{% endif %}
+      </p>
+
+      <div class="barra">
+        <h2 style="margin:0;">{{ mes_nombre }} {{ anio }}</h2>
+        <div style="display:flex;gap:8px;">
+          <a class="btn secondary" href="{{ url_for('historial.pagina_historial', trabajador_id=trabajador.id, anio=anio_prev, mes=mes_prev) }}">← Mes anterior</a>
+          <a class="btn secondary" href="{{ url_for('historial.pagina_historial', trabajador_id=trabajador.id, anio=anio_next, mes=mes_next) }}">Mes siguiente →</a>
+        </div>
+      </div>
+
+      <div class="tabla-contenedor">
+        <table>
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Entrada</th>
+              <th>Salida</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for dia in dias %}
+            <tr class="{{ 'fila-finde' if dia.es_fin_semana }}">
+              <td>
+                {{ dia.dia_semana }} {{ dia.fecha.day }}
+                {% if dia.es_feriado %}<span class="tag-feriado">Feriado</span>{% endif %}
+              </td>
+              <td>
+                {% if dia.entrada %}
+                  {{ dia.entrada }}
+                {% else %}
+                  <span class="muted">—</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if dia.salida %}
+                  {{ dia.salida }}
+                {% else %}
+                  <span class="muted">—</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if dia.evaluacion %}
+                  <span class="badge estado-{{ dia['evaluacion']['estado'] }}"
+                        {% if dia['evaluacion']['detalle'] %}title="{{ dia['evaluacion']['detalle'] }}"{% endif %}>
+                    {{ dia["evaluacion"]["etiqueta"] }}
+                  </span>
+                {% else %}
+                  <span class="muted">—</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

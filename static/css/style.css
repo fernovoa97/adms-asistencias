@@ -410,3 +410,8 @@ td.descuento-alto {
 }
 
 .leyenda-punto.leyenda-alto { background: #fee2e2; border: 1px solid #991b1b; }
+
+/* ---------- Historial mensual por trabajador ---------- */
+tr.fila-finde { background: #fafafa; }
+tr.fila-finde td { color: #9ca3af; }
+tr.fila-finde:hover { background: #f3f4f6; }

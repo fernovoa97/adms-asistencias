@@ -174,6 +174,7 @@ def pagina_resumen():
             }
 
         filas.append({
+            "trabajador_id": t["id"],
             "nombre": f"{t['nombres']} {t['apellidos']}",
             "totales": totales
         })
