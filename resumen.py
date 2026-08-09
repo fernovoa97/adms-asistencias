@@ -163,7 +163,7 @@ def pagina_resumen():
                 hora_entrada_real, hora_prog, es_feriado, motivo_ajuste
             )
 
-            totales_min[numero_semana] += evaluacion["descuento_min"]
+            totales_min[numero_semana] += evaluacion["minutos_tarde"]
 
         totales = {}
         for numero, minutos in totales_min.items():

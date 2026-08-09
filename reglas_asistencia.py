@@ -49,22 +49,34 @@ ETIQUETAS_ESTADO = {
 
 def evaluar_marcaje_entrada(hora_marcada, hora_entrada_programada, es_feriado, motivo_ajuste):
     """Punto de entrada principal: aplica feriado > ajuste > calculo normal,
-    en ese orden de prioridad, y devuelve un dict listo para mostrar."""
+    en ese orden de prioridad, y devuelve un dict listo para mostrar.
+
+    Incluye dos totales distintos, para dos usos distintos:
+    - descuento_min: solo cuenta si supera los 30 min de tolerancia (se usa
+      para el descuento de pago que se muestra en el panel diario).
+    - minutos_tarde: TODOS los minutos tarde, desde el minuto 1 (se usa para
+      la tardanza acumulada semanal del Resumen, ya que incluso las
+      tardanzas chicas dentro de la tolerancia cuentan para la
+      amonestacion de 1 hora acumulada)."""
     if es_feriado:
-        return {"estado": "feriado", "etiqueta": "Feriado", "descuento_min": 0, "detalle": None}
+        return {
+            "estado": "feriado", "etiqueta": "Feriado",
+            "descuento_min": 0, "minutos_tarde": 0, "detalle": None
+        }
 
     if motivo_ajuste:
         return {
-            "estado": "justificado",
-            "etiqueta": "Justificado",
-            "descuento_min": 0,
-            "detalle": motivo_ajuste
+            "estado": "justificado", "etiqueta": "Justificado",
+            "descuento_min": 0, "minutos_tarde": 0, "detalle": motivo_ajuste
         }
 
     resultado = calcular_estado_entrada(hora_entrada_programada, hora_marcada)
 
     if resultado["estado"] == "puntual":
-        return {"estado": "puntual", "etiqueta": "Puntual", "descuento_min": 0, "detalle": None}
+        return {
+            "estado": "puntual", "etiqueta": "Puntual",
+            "descuento_min": 0, "minutos_tarde": 0, "detalle": None
+        }
 
     if resultado["descuento_min"] > 0:
         etiqueta = f"Tardanza (-{resultado['descuento_min']} min)"
@@ -75,5 +87,6 @@ def evaluar_marcaje_entrada(hora_marcada, hora_entrada_programada, es_feriado, m
         "estado": "tardanza",
         "etiqueta": etiqueta,
         "descuento_min": resultado["descuento_min"],
+        "minutos_tarde": resultado["minutos_tarde"],
         "detalle": None
     }
