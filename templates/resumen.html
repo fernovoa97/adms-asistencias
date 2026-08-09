@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Resumen · Personal y Asistencias</title>
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">Personal y Asistencias</div>
+      <nav>
+        <a href="{{ url_for('inicio') }}">Asistencias</a>
+        <a href="{{ url_for('resumen.pagina_resumen') }}" class="active">Resumen</a>
+        <a href="{{ url_for('trabajadores.pagina_nuevo_trabajador') }}">Nuevo trabajador</a>
+        <a href="{{ url_for('trabajadores.pagina_buscar_trabajador') }}">Buscar trabajador</a>
+        <a href="{{ url_for('ajustes.pagina_ajustes') }}">Ajustes</a>
+      </nav>
+      <div class="user-box">
+        Sesión: <strong>{{ session.get('username', '-') }}</strong>
+        <a class="btn secondary" href="{{ url_for('auth.logout') }}">Cerrar sesión</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <h1>Resumen de tardanzas</h1>
+      <p class="lead">Minutos de descuento acumulados por semana (lunes a viernes), por trabajador.</p>
+
+      <div class="barra">
+        <h2 style="margin:0;">{{ mes_nombre }} {{ anio }}</h2>
+        <div style="display:flex;gap:8px;">
+          <a class="btn secondary" href="{{ url_for('resumen.pagina_resumen', anio=anio_prev, mes=mes_prev) }}">← Mes anterior</a>
+          <a class="btn secondary" href="{{ url_for('resumen.pagina_resumen', anio=anio_next, mes=mes_next) }}">Mes siguiente →</a>
+        </div>
+      </div>
+
+      <p class="muted" style="margin-top:-8px;margin-bottom:16px;">
+        <span class="leyenda-punto leyenda-alto"></span> 1 hora o más de descuento acumulado en la semana
+      </p>
+
+      <div class="tabla-contenedor">
+        {% if filas %}
+        <table>
+          <thead>
+            <tr>
+              <th>Trabajador</th>
+              {% for semana in semanas %}
+              <th>{{ semana.etiqueta }}</th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for fila in filas %}
+            <tr>
+              <td>{{ fila.nombre }}</td>
+              {% for semana in semanas %}
+              {% set total = fila.totales[semana.numero] %}
+              <td class="{{ 'descuento-alto' if total.alto else '' }}">
+                {{ total.texto }}
+              </td>
+              {% endfor %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div style="padding:40px;text-align:center">
+          No hay trabajadores con código de empleado registrado todavía.
+        </div>
+        {% endif %}
+      </div>
+    </main>
+  </div>
+</body>
+</html>

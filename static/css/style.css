@@ -254,6 +254,23 @@ a { color: var(--primary); }
 
 .upload-row input[type="text"] { flex: 1; min-width: 160px; }
 .upload-row .file-name { font-size: 0.82rem; color: var(--muted); flex: 1; }
+.upload-row select.doc-carpeta-select {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  background: #fff;
+  color: var(--text);
+}
+
+.carpeta-grupo { margin-bottom: 16px; }
+
+.carpeta-titulo {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 8px;
+}
 
 .muted { color: var(--muted); font-size: 0.85rem; }
 .empty-state { text-align: center; padding: 40px 20px; color: var(--muted); }
@@ -375,3 +392,21 @@ tr.fila-fecha td {
 }
 
 tr.fila-fecha:hover td { background: #f3f4f6; }
+
+/* ---------- Resumen mensual de tardanzas ---------- */
+td.descuento-alto {
+  background: #fee2e2;
+  color: #991b1b;
+  font-weight: 700;
+}
+
+.leyenda-punto {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+
+.leyenda-punto.leyenda-alto { background: #fee2e2; border: 1px solid #991b1b; }

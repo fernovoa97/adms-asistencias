@@ -11,6 +11,7 @@ from db import obtener_conexion, inicializar_base_datos
 from auth import auth_bp, login_requerido
 from trabajadores import trabajadores_bp
 from ajustes import ajustes_bp
+from resumen import resumen_bp
 from reglas_asistencia import horario_del_trabajador, evaluar_marcaje_entrada
 
 app = Flask(__name__)
@@ -58,6 +59,7 @@ inicializar_base_datos()
 app.register_blueprint(auth_bp)
 app.register_blueprint(trabajadores_bp)
 app.register_blueprint(ajustes_bp)
+app.register_blueprint(resumen_bp)
 
 
 # ==========================================

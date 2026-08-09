@@ -12,8 +12,10 @@
       <div class="brand">Personal y Asistencias</div>
       <nav>
         <a href="{{ url_for('inicio') }}">Asistencias</a>
+        <a href="{{ url_for('resumen.pagina_resumen') }}">Resumen</a>
         <a href="{{ url_for('trabajadores.pagina_nuevo_trabajador') }}" class="active">Nuevo trabajador</a>
         <a href="{{ url_for('trabajadores.pagina_buscar_trabajador') }}">Buscar trabajador</a>
+        <a href="{{ url_for('ajustes.pagina_ajustes') }}">Ajustes</a>
       </nav>
       <div class="user-box">
         Sesión: <strong>{{ session.get('username', '-') }}</strong>
