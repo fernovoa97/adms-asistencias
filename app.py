@@ -379,11 +379,12 @@ def inicio():
         LEFT JOIN trabajadores t
             ON t.codigo_empleado = a.codigo_empleado
             OR t.dni = a.codigo_empleado
+        WHERE (t.id IS NULL OR t.estado IS DISTINCT FROM 'INACTIVO')
     """
 
     if fecha_desde:
         cursor.execute(
-            sql_base + " WHERE a.fecha >= %s ORDER BY a.fecha_hora DESC",
+            sql_base + " AND a.fecha >= %s ORDER BY a.fecha_hora DESC",
             (fecha_desde,)
         )
     else:

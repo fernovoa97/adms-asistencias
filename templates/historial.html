@@ -42,6 +42,13 @@
       </div>
 
       <div class="tabla-contenedor">
+        {% if inactivo %}
+        <div style="padding:40px;text-align:center">
+          Este trabajador está <strong>inactivo</strong>. No se muestra su historial de asistencia.
+          <br>
+          <a href="{{ url_for('trabajadores.pagina_buscar_trabajador') }}" class="muted">Ir a Buscar trabajador para reactivarlo</a>
+        </div>
+        {% else %}
         <table>
           <thead>
             <tr>
@@ -53,7 +60,7 @@
           </thead>
           <tbody>
             {% for dia in dias %}
-            <tr class="{{ 'fila-finde' if dia.es_fin_semana }}">
+            <tr>
               <td>
                 {{ dia.dia_semana }} {{ dia.fecha.day }}
                 {% if dia.es_feriado %}<span class="tag-feriado">Feriado</span>{% endif %}
@@ -86,6 +93,7 @@
             {% endfor %}
           </tbody>
         </table>
+        {% endif %}
       </div>
     </main>
   </div>

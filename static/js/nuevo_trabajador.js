@@ -96,6 +96,8 @@ document.getElementById('workerForm').addEventListener('submit', async (e) => {
   formData.append('fechaRenovacion', document.getElementById('fechaRenovacion').value);
   formData.append('cargo', document.getElementById('cargo').value.trim());
   formData.append('area', document.getElementById('area').value.trim());
+  formData.append('supervisor', document.getElementById('supervisor').value.trim());
+  formData.append('sueldoNeto', document.getElementById('sueldoNeto').value);
   formData.append('direccion', document.getElementById('direccion').value.trim());
   formData.append('observaciones', document.getElementById('observaciones').value.trim());
 

@@ -35,6 +35,16 @@ def _fecha_o_none(valor):
     return valor if valor else None
 
 
+def _sueldo_o_none(valor):
+    valor = (valor or "").strip()
+    if not valor:
+        return None
+    try:
+        return float(valor)
+    except ValueError:
+        return None
+
+
 def _worker_a_dict(fila, columnas):
     w = dict(zip(columnas, fila))
 
@@ -46,14 +56,19 @@ def _worker_a_dict(fila, columnas):
         if w.get(campo):
             w[campo] = w[campo].strftime("%H:%M")
 
+    # Postgres devuelve NUMERIC como Decimal, que no se puede convertir a
+    # JSON directamente -- lo pasamos a float.
+    if w.get("sueldo_neto") is not None:
+        w["sueldo_neto"] = float(w["sueldo_neto"])
+
     return w
 
 
 COLUMNAS_TRABAJADOR = [
     "id", "codigo_empleado", "dni", "nombres", "apellidos", "cargo", "area",
-    "estado", "telefono", "email", "fecha_ingreso", "fecha_fin_contrato",
-    "fecha_renovacion", "direccion", "observaciones", "historial_renovaciones",
-    "hora_entrada", "hora_salida", "fecha_registro"
+    "estado", "supervisor", "sueldo_neto", "telefono", "email", "fecha_ingreso",
+    "fecha_fin_contrato", "fecha_renovacion", "direccion", "observaciones",
+    "historial_renovaciones", "hora_entrada", "hora_salida", "fecha_registro"
 ]
 
 
@@ -198,6 +213,8 @@ def api_crear_trabajador():
 
     cargo = request.form.get("cargo", "").strip()
     area = request.form.get("area", "").strip()
+    supervisor = request.form.get("supervisor", "").strip()
+    sueldo_neto = _sueldo_o_none(request.form.get("sueldoNeto"))
     telefono = request.form.get("telefono", "").strip()
     email = request.form.get("email", "").strip()
     fecha_ingreso = _fecha_o_none(request.form.get("fechaIngreso"))
@@ -216,15 +233,15 @@ def api_crear_trabajador():
 
         cursor.execute("""
             INSERT INTO trabajadores (
-                dni, nombres, apellidos, cargo, area, telefono, email,
-                fecha_ingreso, fecha_fin_contrato, fecha_renovacion,
+                dni, nombres, apellidos, cargo, area, supervisor, sueldo_neto,
+                telefono, email, fecha_ingreso, fecha_fin_contrato, fecha_renovacion,
                 direccion, observaciones, estado, fecha_registro
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'ACTIVO', %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'ACTIVO', %s)
             RETURNING id
         """, (
-            dni, nombres, apellidos, cargo, area, telefono, email,
-            fecha_ingreso, fecha_fin, fecha_renovacion,
+            dni, nombres, apellidos, cargo, area, supervisor, sueldo_neto,
+            telefono, email, fecha_ingreso, fecha_fin, fecha_renovacion,
             direccion, observaciones, datetime.now()
         ))
         worker_id = cursor.fetchone()[0]
@@ -272,7 +289,7 @@ def api_buscar():
     conexion = obtener_conexion()
     cursor = conexion.cursor()
     cursor.execute("""
-        SELECT id, nombres, apellidos, dni, cargo, area
+        SELECT id, nombres, apellidos, dni, cargo, area, estado
         FROM trabajadores
         WHERE (nombres || ' ' || apellidos) ILIKE %s
            OR dni ILIKE %s
@@ -282,7 +299,10 @@ def api_buscar():
     """, (patron, patron, patron))
 
     resultados = [
-        {"id": f[0], "nombres": f[1], "apellidos": f[2], "dni": f[3], "cargo": f[4], "area": f[5]}
+        {
+            "id": f[0], "nombres": f[1], "apellidos": f[2], "dni": f[3],
+            "cargo": f[4], "area": f[5], "estado": f[6] or "ACTIVO"
+        }
         for f in cursor.fetchall()
     ]
 
@@ -375,6 +395,10 @@ def api_actualizar(worker_id):
     if not nombres or not apellidos or not dni:
         return jsonify({"error": "Nombres, apellidos y DNI son obligatorios"}), 400
 
+    estado = (datos.get("estado") or "ACTIVO").strip().upper()
+    if estado not in ("ACTIVO", "INACTIVO"):
+        estado = "ACTIVO"
+
     conexion = obtener_conexion()
     cursor = conexion.cursor()
 
@@ -388,6 +412,7 @@ def api_actualizar(worker_id):
         cursor.execute("""
             UPDATE trabajadores SET
                 nombres = %s, apellidos = %s, dni = %s, cargo = %s, area = %s,
+                supervisor = %s, sueldo_neto = %s, estado = %s,
                 telefono = %s, email = %s, fecha_ingreso = %s,
                 direccion = %s, observaciones = %s,
                 hora_entrada = %s, hora_salida = %s
@@ -396,6 +421,9 @@ def api_actualizar(worker_id):
             nombres, apellidos, dni,
             (datos.get("cargo") or "").strip(),
             (datos.get("area") or "").strip(),
+            (datos.get("supervisor") or "").strip(),
+            _sueldo_o_none(datos.get("sueldoNeto")),
+            estado,
             (datos.get("telefono") or "").strip(),
             (datos.get("email") or "").strip(),
             _fecha_o_none(datos.get("fechaIngreso")),

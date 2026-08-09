@@ -39,7 +39,7 @@ def pagina_historial(trabajador_id):
 
     cursor.execute("""
         SELECT id, nombres, apellidos, dni, codigo_empleado, cargo, area,
-               hora_entrada, hora_salida
+               estado, hora_entrada, hora_salida
         FROM trabajadores
         WHERE id = %s
     """, (trabajador_id,))
@@ -52,9 +52,28 @@ def pagina_historial(trabajador_id):
 
     columnas_t = [
         "id", "nombres", "apellidos", "dni", "codigo_empleado", "cargo",
-        "area", "hora_entrada", "hora_salida"
+        "area", "estado", "hora_entrada", "hora_salida"
     ]
     trabajador = dict(zip(columnas_t, fila_trabajador))
+
+    # Un trabajador inactivo no debe mostrar su asistencia en ninguna parte
+    # del sistema. Cortamos aqui mismo, sin siquiera consultar sus marcajes.
+    if trabajador["estado"] == "INACTIVO":
+        cursor.close()
+        conexion.close()
+
+        anio_prev, mes_prev = (anio, mes - 1) if mes > 1 else (anio - 1, 12)
+        anio_next, mes_next = (anio, mes + 1) if mes < 12 else (anio + 1, 1)
+
+        return render_template(
+            "historial.html",
+            trabajador=trabajador,
+            dias=[],
+            inactivo=True,
+            anio=anio, mes=mes, mes_nombre=MESES_ES[mes],
+            anio_prev=anio_prev, mes_prev=mes_prev,
+            anio_next=anio_next, mes_next=mes_next
+        )
 
     primer_dia = date(anio, mes, 1)
     ultimo_dia = date(anio, mes, monthrange(anio, mes)[1])
@@ -129,6 +148,7 @@ def pagina_historial(trabajador_id):
         "historial.html",
         trabajador=trabajador,
         dias=dias,
+        inactivo=False,
         anio=anio, mes=mes, mes_nombre=MESES_ES[mes],
         anio_prev=anio_prev, mes_prev=mes_prev,
         anio_next=anio_next, mes_next=mes_next

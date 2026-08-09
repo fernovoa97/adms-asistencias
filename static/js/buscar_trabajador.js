@@ -35,11 +35,15 @@ function renderResults(results) {
 
   resultList.innerHTML = '';
   results.forEach((w) => {
+    const inactivo = w.estado === 'INACTIVO';
     const item = document.createElement('div');
     item.className = 'result-item';
     item.innerHTML = `
       <div>
-        <div class="name">${escapeHtml(w.nombres)} ${escapeHtml(w.apellidos)}</div>
+        <div class="name">
+          ${escapeHtml(w.nombres)} ${escapeHtml(w.apellidos)}
+          ${inactivo ? '<span class="tag-inactivo">Inactivo</span>' : ''}
+        </div>
         <div class="meta">DNI: ${escapeHtml(w.dni || '—')} ${w.cargo ? '· ' + escapeHtml(w.cargo) : ''}</div>
       </div>
       <span class="tag">${w.area ? escapeHtml(w.area) : 'Ver detalle'}</span>
@@ -74,9 +78,12 @@ function renderViewMode(w) {
     ['Nombres', w.nombres],
     ['Apellidos', w.apellidos],
     ['DNI', w.dni || '—'],
+    ['Estado', w.estado === 'INACTIVO' ? 'Inactivo' : 'Activo'],
     ['Código de empleado', w.codigo_empleado || '— (no enrolado en el biométrico)'],
     ['Cargo', w.cargo || '—'],
     ['Área', w.area || '—'],
+    ['Supervisor', w.supervisor || '—'],
+    ['Sueldo neto', w.sueldo_neto != null ? formatearSueldo(w.sueldo_neto) : '—'],
     ['Teléfono', w.telefono || '—'],
     ['Correo', w.email || '—'],
     ['Fecha de ingreso', w.fecha_ingreso || '—'],
@@ -216,6 +223,13 @@ function renderEditForm(w) {
             <input type="text" id="editDni" value="${escapeAttr(w.dni || '')}" required>
           </div>
           <div class="field">
+            <label for="editEstado">Estado</label>
+            <select id="editEstado">
+              <option value="ACTIVO" ${w.estado !== 'INACTIVO' ? 'selected' : ''}>Activo</option>
+              <option value="INACTIVO" ${w.estado === 'INACTIVO' ? 'selected' : ''}>Inactivo</option>
+            </select>
+          </div>
+          <div class="field">
             <label for="editTelefono">Teléfono</label>
             <input type="text" id="editTelefono" value="${escapeAttr(w.telefono || '')}">
           </div>
@@ -242,6 +256,14 @@ function renderEditForm(w) {
           <div class="field">
             <label for="editArea">Área / Departamento</label>
             <input type="text" id="editArea" value="${escapeAttr(w.area || '')}">
+          </div>
+          <div class="field">
+            <label for="editSupervisor">Supervisor</label>
+            <input type="text" id="editSupervisor" value="${escapeAttr(w.supervisor || '')}">
+          </div>
+          <div class="field">
+            <label for="editSueldoNeto">Sueldo neto (S/)</label>
+            <input type="number" id="editSueldoNeto" value="${w.sueldo_neto != null ? w.sueldo_neto : ''}" step="0.01" min="0">
           </div>
         </div>
         <div class="field">
@@ -271,6 +293,7 @@ function renderEditForm(w) {
       nombres: document.getElementById('editNombres').value.trim(),
       apellidos: document.getElementById('editApellidos').value.trim(),
       dni: document.getElementById('editDni').value.trim(),
+      estado: document.getElementById('editEstado').value,
       telefono: document.getElementById('editTelefono').value.trim(),
       email: document.getElementById('editEmail').value.trim(),
       fechaIngreso: document.getElementById('editFechaIngreso').value,
@@ -278,6 +301,8 @@ function renderEditForm(w) {
       horaSalida: document.getElementById('editHoraSalida').value,
       cargo: document.getElementById('editCargo').value.trim(),
       area: document.getElementById('editArea').value.trim(),
+      supervisor: document.getElementById('editSupervisor').value.trim(),
+      sueldoNeto: document.getElementById('editSueldoNeto').value,
       direccion: document.getElementById('editDireccion').value.trim(),
       observaciones: document.getElementById('editObservaciones').value.trim()
     };
@@ -556,6 +581,12 @@ function togglePdfPreview(docId, url) {
   div.id = existingId;
   div.innerHTML = `<iframe src="${url}"></iframe>`;
   area.appendChild(div);
+}
+
+function formatearSueldo(monto) {
+  const numero = Number(monto);
+  if (Number.isNaN(numero)) return '—';
+  return 'S/ ' + numero.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function escapeHtml(str) {

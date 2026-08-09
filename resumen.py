@@ -108,6 +108,7 @@ def pagina_resumen():
         SELECT id, nombres, apellidos, hora_entrada, hora_salida
         FROM trabajadores
         WHERE codigo_empleado IS NOT NULL
+          AND estado IS DISTINCT FROM 'INACTIVO'
         ORDER BY nombres, apellidos
     """)
     columnas_t = ["id", "nombres", "apellidos", "hora_entrada", "hora_salida"]

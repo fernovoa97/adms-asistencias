@@ -89,6 +89,18 @@ def inicializar_base_datos():
         _agregar_columna_si_falta(cursor, "trabajadores", "hora_entrada", "TIME")
         _agregar_columna_si_falta(cursor, "trabajadores", "hora_salida", "TIME")
 
+        # Supervisor (texto libre, no un vinculo a otro trabajador) y sueldo
+        # neto (informacion sensible, solo se muestra en las fichas de
+        # personal, nunca en los reportes de asistencia).
+        _agregar_columna_si_falta(cursor, "trabajadores", "supervisor", "TEXT")
+        _agregar_columna_si_falta(cursor, "trabajadores", "sueldo_neto", "NUMERIC(10,2)")
+
+        # La columna "estado" ya existia desde la version original, pero
+        # nunca se expuso en pantalla. Por las dudas, si algun registro
+        # viejo quedo con estado en NULL, lo normalizamos a ACTIVO para que
+        # no desaparezca de los reportes por accidente.
+        cursor.execute("UPDATE trabajadores SET estado = 'ACTIVO' WHERE estado IS NULL")
+
         # --- Feriados: dias en los que no se espera marcacion normal ---
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS feriados (
