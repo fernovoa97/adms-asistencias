@@ -1,10 +1,10 @@
 # historial.py
-# Historial de asistencia de UN trabajador, mes por mes. Muestra todos los
-# dias del mes (incluidos fines de semana y dias sin marcar), para que se
-# pueda ver de un vistazo el mes completo de una persona.
+# Historial de asistencia de UN trabajador, mes por mes. Solo muestra los
+# dias que tienen algun marcaje real (entrada y/o salida) -- no se listan
+# dias vacios, para evitar desorden en la tabla.
 
 from calendar import monthrange
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
 from flask import Blueprint, render_template, request, abort
@@ -97,12 +97,14 @@ def pagina_historial(trabajador_id):
         trabajador["hora_entrada"], trabajador["hora_salida"]
     )
 
+    # Solo se muestran los dias que realmente tienen algun marcaje (entrada
+    # y/o salida). No se listan dias vacios, sea entre semana o fin de
+    # semana -- si alguien llega a marcar un sabado, tambien aparece aqui.
     dias = []
-    cursor_dia = primer_dia
-    while cursor_dia <= ultimo_dia:
-        marca = marcas_por_dia.get(cursor_dia, {"entrada": None, "salida": None})
-        es_feriado = cursor_dia in feriados_set
-        motivo_ajuste = ajustes_map.get(cursor_dia)
+    for fecha in sorted(marcas_por_dia.keys()):
+        marca = marcas_por_dia[fecha]
+        es_feriado = fecha in feriados_set
+        motivo_ajuste = ajustes_map.get(fecha)
 
         if marca["entrada"] is not None:
             evaluacion = evaluar_marcaje_entrada(
@@ -112,15 +114,13 @@ def pagina_historial(trabajador_id):
             evaluacion = None
 
         dias.append({
-            "fecha": cursor_dia,
-            "dia_semana": DIAS_ES[cursor_dia.weekday()],
-            "es_fin_semana": cursor_dia.weekday() >= 5,
+            "fecha": fecha,
+            "dia_semana": DIAS_ES[fecha.weekday()],
             "es_feriado": es_feriado,
             "entrada": marca["entrada"],
             "salida": marca["salida"],
             "evaluacion": evaluacion
         })
-        cursor_dia += timedelta(days=1)
 
     anio_prev, mes_prev = (anio, mes - 1) if mes > 1 else (anio - 1, 12)
     anio_next, mes_next = (anio, mes + 1) if mes < 12 else (anio + 1, 1)

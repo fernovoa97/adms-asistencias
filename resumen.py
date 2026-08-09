@@ -1,82 +1,135 @@
-# historial.py
-# Historial de asistencia de UN trabajador, mes por mes. Solo muestra los
-# dias que tienen algun marcaje real (entrada y/o salida) -- no se listan
-# dias vacios, para evitar desorden en la tabla.
+# resumen.py
+# Vista de resumen mensual: una fila por trabajador, una columna por cada
+# semana (lunes a domingo) del mes, con los minutos de tardanza acumulados
+# en esa semana.
 
+from datetime import date, datetime, timedelta
 from calendar import monthrange
-from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
-from flask import Blueprint, render_template, request, abort
+from flask import Blueprint, request, render_template
 
 from auth import login_requerido
 from db import obtener_conexion
 from reglas_asistencia import horario_del_trabajador, evaluar_marcaje_entrada
 
-historial_bp = Blueprint("historial", __name__)
+resumen_bp = Blueprint("resumen", __name__)
 
 ZONA_HORARIA_LOCAL = ZoneInfo("America/Lima")
 
-DIAS_ES = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
 MESES_ES = [
     "", "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
     "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
 ]
 
+MESES_ABREV = [
+    "", "ene", "feb", "mar", "abr", "may", "jun",
+    "jul", "ago", "sep", "oct", "nov", "dic"
+]
 
-@historial_bp.route("/trabajador/<int:trabajador_id>/historial")
+UMBRAL_DESCUENTO_ALTO_MIN = 60  # 1 hora
+
+
+def _etiqueta_semana(numero, inicio, fin):
+    if inicio.month == fin.month:
+        return f"Semana {numero} (del {inicio.day} al {fin.day})"
+    # La semana cruza el fin de mes (ej. lunes 31 ago a viernes 4 sep):
+    # se aclara el mes de cada extremo para que no se lea como un error.
+    return (
+        f"Semana {numero} (del {inicio.day} {MESES_ABREV[inicio.month]} "
+        f"al {fin.day} {MESES_ABREV[fin.month]})"
+    )
+
+
+def _construir_semanas(anio, mes):
+    """Semanas de lunes a viernes (nunca sabado/domingo), siempre de 5 dias
+    completos. Cada semana pertenece al mes en el que cae su LUNES, sin
+    importar si el viernes de esa semana ya cae en el mes siguiente. Esto
+    mantiene el criterio de '1 hora acumulada = amonestacion' parejo todas
+    las semanas, y de paso hace que cada mes tenga entre 4 y 5 semanas
+    (nunca fragmentos sueltos de 1-2 dias)."""
+    primer_dia = date(anio, mes, 1)
+    ultimo_dia = date(anio, mes, monthrange(anio, mes)[1])
+
+    dias_hasta_lunes = (7 - primer_dia.weekday()) % 7
+    lunes = primer_dia + timedelta(days=dias_hasta_lunes)
+
+    semanas = []
+    numero = 1
+
+    while lunes <= ultimo_dia:
+        viernes = lunes + timedelta(days=4)
+        semanas.append({
+            "numero": numero,
+            "inicio": lunes,
+            "fin": viernes,
+            "etiqueta": _etiqueta_semana(numero, lunes, viernes)
+        })
+        lunes += timedelta(days=7)
+        numero += 1
+
+    return semanas
+
+
+def _semana_de(fecha, semanas):
+    for semana in semanas:
+        if semana["inicio"] <= fecha <= semana["fin"]:
+            return semana["numero"]
+    return None
+
+
+def _formatear_duracion(minutos):
+    horas = minutos // 60
+    resto = minutos % 60
+    return f"{horas}:{resto:02d}:00"
+
+
+@resumen_bp.route("/resumen")
 @login_requerido
-def pagina_historial(trabajador_id):
+def pagina_resumen():
     hoy = datetime.now(ZONA_HORARIA_LOCAL).date()
 
     anio = request.args.get("anio", type=int) or hoy.year
     mes = request.args.get("mes", type=int) or hoy.month
+
     if mes < 1 or mes > 12:
         anio, mes = hoy.year, hoy.month
+
+    semanas = _construir_semanas(anio, mes)
+    primer_dia = semanas[0]["inicio"]
+    ultimo_dia = semanas[-1]["fin"]
 
     conexion = obtener_conexion()
     cursor = conexion.cursor()
 
+    # Solo tiene sentido mostrar trabajadores que tengan codigo de empleado
+    # (sin eso, nunca van a tener marcajes que evaluar).
     cursor.execute("""
-        SELECT id, nombres, apellidos, dni, codigo_empleado, cargo, area,
-               hora_entrada, hora_salida
+        SELECT id, nombres, apellidos, hora_entrada, hora_salida
         FROM trabajadores
-        WHERE id = %s
-    """, (trabajador_id,))
-    fila_trabajador = cursor.fetchone()
+        WHERE codigo_empleado IS NOT NULL
+        ORDER BY nombres, apellidos
+    """)
+    columnas_t = ["id", "nombres", "apellidos", "hora_entrada", "hora_salida"]
+    trabajadores = [dict(zip(columnas_t, f)) for f in cursor.fetchall()]
 
-    if not fila_trabajador:
-        cursor.close()
-        conexion.close()
-        abort(404)
-
-    columnas_t = [
-        "id", "nombres", "apellidos", "dni", "codigo_empleado", "cargo",
-        "area", "hora_entrada", "hora_salida"
-    ]
-    trabajador = dict(zip(columnas_t, fila_trabajador))
-
-    primer_dia = date(anio, mes, 1)
-    ultimo_dia = date(anio, mes, monthrange(anio, mes)[1])
-
-    # Un trabajador puede tener marcajes bajo su codigo_empleado o (en casos
-    # viejos, antes de vincularse) bajo un codigo que coincide con su DNI.
+    # Entradas del mes, unidas a su trabajador por codigo de empleado o DNI
+    # (mismo criterio que usa el panel de asistencias).
     cursor.execute("""
-        SELECT fecha, hora, tipo_marcaje
-        FROM asistencias
-        WHERE (codigo_empleado = %s OR codigo_empleado = %s)
-          AND fecha BETWEEN %s AND %s
-    """, (trabajador["codigo_empleado"], trabajador["dni"], primer_dia, ultimo_dia))
+        SELECT t.id, a.fecha, a.hora
+        FROM asistencias a
+        JOIN trabajadores t
+            ON t.codigo_empleado = a.codigo_empleado
+            OR t.dni = a.codigo_empleado
+        WHERE a.tipo_marcaje = '0'
+          AND a.fecha BETWEEN %s AND %s
+    """, (primer_dia, ultimo_dia))
 
-    marcas_por_dia = {}
-    for fecha, hora, tipo_marcaje in cursor.fetchall():
-        registro = marcas_por_dia.setdefault(fecha, {"entrada": None, "salida": None})
-        if tipo_marcaje == "0":
-            if registro["entrada"] is None or hora < registro["entrada"]:
-                registro["entrada"] = hora
-        elif tipo_marcaje == "1":
-            if registro["salida"] is None or hora > registro["salida"]:
-                registro["salida"] = hora
+    entradas_por_trabajador = {}
+    for trabajador_id, fecha, hora in cursor.fetchall():
+        dias = entradas_por_trabajador.setdefault(trabajador_id, {})
+        if fecha not in dias or hora < dias[fecha]:
+            dias[fecha] = hora
 
     cursor.execute(
         "SELECT fecha FROM feriados WHERE fecha BETWEEN %s AND %s",
@@ -85,51 +138,57 @@ def pagina_historial(trabajador_id):
     feriados_set = {f[0] for f in cursor.fetchall()}
 
     cursor.execute("""
-        SELECT fecha, motivo FROM ajustes_asistencia
-        WHERE trabajador_id = %s AND fecha BETWEEN %s AND %s
-    """, (trabajador_id, primer_dia, ultimo_dia))
-    ajustes_map = {f[0]: f[1] for f in cursor.fetchall()}
+        SELECT trabajador_id, fecha, motivo FROM ajustes_asistencia
+        WHERE fecha BETWEEN %s AND %s
+    """, (primer_dia, ultimo_dia))
+    ajustes_map = {(f[0], f[1]): f[2] for f in cursor.fetchall()}
 
     cursor.close()
     conexion.close()
 
-    hora_entrada_prog, _ = horario_del_trabajador(
-        trabajador["hora_entrada"], trabajador["hora_salida"]
-    )
+    filas = []
+    for t in trabajadores:
+        totales_min = {s["numero"]: 0 for s in semanas}
+        dias_marcados = entradas_por_trabajador.get(t["id"], {})
 
-    # Solo se muestran los dias que realmente tienen algun marcaje (entrada
-    # y/o salida). No se listan dias vacios, sea entre semana o fin de
-    # semana -- si alguien llega a marcar un sabado, tambien aparece aqui.
-    dias = []
-    for fecha in sorted(marcas_por_dia.keys()):
-        marca = marcas_por_dia[fecha]
-        es_feriado = fecha in feriados_set
-        motivo_ajuste = ajustes_map.get(fecha)
+        for fecha, hora_entrada_real in dias_marcados.items():
+            numero_semana = _semana_de(fecha, semanas)
+            if numero_semana is None:
+                continue
 
-        if marca["entrada"] is not None:
+            es_feriado = fecha in feriados_set
+            motivo_ajuste = ajustes_map.get((t["id"], fecha))
+            hora_prog, _ = horario_del_trabajador(t["hora_entrada"], t["hora_salida"])
             evaluacion = evaluar_marcaje_entrada(
-                marca["entrada"], hora_entrada_prog, es_feriado, motivo_ajuste
+                hora_entrada_real, hora_prog, es_feriado, motivo_ajuste
             )
-        else:
-            evaluacion = None
 
-        dias.append({
-            "fecha": fecha,
-            "dia_semana": DIAS_ES[fecha.weekday()],
-            "es_feriado": es_feriado,
-            "entrada": marca["entrada"],
-            "salida": marca["salida"],
-            "evaluacion": evaluacion
+            totales_min[numero_semana] += evaluacion["minutos_tarde"]
+
+        totales = {}
+        for numero, minutos in totales_min.items():
+            totales[numero] = {
+                "minutos": minutos,
+                "texto": _formatear_duracion(minutos),
+                "alto": minutos >= UMBRAL_DESCUENTO_ALTO_MIN
+            }
+
+        filas.append({
+            "trabajador_id": t["id"],
+            "nombre": f"{t['nombres']} {t['apellidos']}",
+            "totales": totales
         })
 
     anio_prev, mes_prev = (anio, mes - 1) if mes > 1 else (anio - 1, 12)
     anio_next, mes_next = (anio, mes + 1) if mes < 12 else (anio + 1, 1)
 
     return render_template(
-        "historial.html",
-        trabajador=trabajador,
-        dias=dias,
-        anio=anio, mes=mes, mes_nombre=MESES_ES[mes],
+        "resumen.html",
+        semanas=semanas,
+        filas=filas,
+        anio=anio,
+        mes=mes,
+        mes_nombre=MESES_ES[mes],
         anio_prev=anio_prev, mes_prev=mes_prev,
         anio_next=anio_next, mes_next=mes_next
     )
