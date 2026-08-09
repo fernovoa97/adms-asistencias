@@ -281,22 +281,30 @@ def api_crear_trabajador():
 @login_requerido
 def api_buscar():
     q = (request.args.get("q") or "").strip()
-    if not q:
-        return jsonify({"results": []})
-
-    patron = f"%{q}%"
 
     conexion = obtener_conexion()
     cursor = conexion.cursor()
-    cursor.execute("""
-        SELECT id, nombres, apellidos, dni, cargo, area, estado
-        FROM trabajadores
-        WHERE (nombres || ' ' || apellidos) ILIKE %s
-           OR dni ILIKE %s
-           OR codigo_empleado ILIKE %s
-        ORDER BY nombres
-        LIMIT 50
-    """, (patron, patron, patron))
+
+    if not q:
+        # Sin texto de busqueda: se listan todos los trabajadores, para que
+        # la pantalla no empiece vacia. Activos primero, luego inactivos.
+        cursor.execute("""
+            SELECT id, nombres, apellidos, dni, cargo, area, estado
+            FROM trabajadores
+            ORDER BY (estado = 'INACTIVO'), nombres
+            LIMIT 200
+        """)
+    else:
+        patron = f"%{q}%"
+        cursor.execute("""
+            SELECT id, nombres, apellidos, dni, cargo, area, estado
+            FROM trabajadores
+            WHERE (nombres || ' ' || apellidos) ILIKE %s
+               OR dni ILIKE %s
+               OR codigo_empleado ILIKE %s
+            ORDER BY (estado = 'INACTIVO'), nombres
+            LIMIT 50
+        """, (patron, patron, patron))
 
     resultados = [
         {

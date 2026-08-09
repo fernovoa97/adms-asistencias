@@ -8,12 +8,6 @@ let uploadRowCount = 0;
 searchInput.addEventListener('input', () => {
   clearTimeout(debounceTimer);
   const q = searchInput.value.trim();
-
-  if (!q) {
-    resultList.innerHTML = '';
-    return;
-  }
-
   debounceTimer = setTimeout(() => doSearch(q), 180);
 });
 
@@ -26,6 +20,11 @@ async function doSearch(q) {
     resultList.innerHTML = '<div class="empty-state">Error al buscar</div>';
   }
 }
+
+// Al entrar a la pagina, se muestra la lista completa de trabajadores de
+// una vez (sin tener que escribir nada). Escribir en el buscador sigue
+// filtrando esa misma lista.
+doSearch('');
 
 function renderResults(results) {
   if (results.length === 0) {
