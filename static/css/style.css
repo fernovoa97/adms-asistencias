@@ -217,6 +217,20 @@ a { color: var(--primary); }
 .nav-submenu a:hover { background: rgba(255, 255, 255, 0.08); }
 .nav-submenu a.active { background: var(--primary); color: #fff; }
 
+.nav-toplink {
+  display: block;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #fff;
+  text-decoration: none;
+  margin-bottom: 2px;
+}
+
+.nav-toplink:hover { background: rgba(255, 255, 255, 0.08); }
+.nav-toplink.active { background: var(--primary); }
+
 .sidebar .user-box {
   border-top: 1px solid rgba(255, 255, 255, 0.12);
   padding-top: 16px;
@@ -534,3 +548,198 @@ td.descuento-alto {
 tr.fila-finde { background: #fafafa; }
 tr.fila-finde td { color: #9ca3af; }
 tr.fila-finde:hover { background: #f3f4f6; }
+
+/* ---------- Calendario de eventos ---------- */
+.calendario-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.vista-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.vista-toggle a {
+  padding: 7px 16px;
+  text-decoration: none;
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: #fff;
+}
+
+.vista-toggle a.active { background: var(--primary); color: #fff; }
+.vista-toggle a:not(.active):hover { background: #f0f0f0; }
+
+.calendario-mes {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.04);
+}
+
+.calendario-dias-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  background: #f9fafb;
+  border-bottom: 1px solid var(--border);
+}
+
+.calendario-dias-header div {
+  padding: 8px 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  text-align: center;
+}
+
+.calendario-semana { display: grid; grid-template-columns: repeat(7, 1fr); }
+
+.dia-celda {
+  min-height: 92px;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 6px;
+  position: relative;
+}
+
+.dia-celda:nth-child(7n) { border-right: none; }
+
+.dia-otro-mes { background: #fafbfc; }
+.dia-otro-mes .dia-numero { color: #c3c8cf; }
+
+.dia-hoy { background: var(--primary-light); }
+.dia-hoy .dia-numero { background: var(--primary); color: #fff; border-radius: 50%; }
+
+.dia-numero-fila { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+
+.dia-numero {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--text);
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dia-add-btn {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.85rem;
+  cursor: pointer;
+  line-height: 1;
+  opacity: 0;
+  transition: opacity 0.1s ease, background 0.1s ease;
+}
+
+.dia-celda:hover .dia-add-btn { opacity: 1; }
+.dia-add-btn:hover { background: var(--border); }
+
+.dia-eventos { display: flex; flex-direction: column; gap: 2px; }
+
+.evento-chip {
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 600;
+}
+
+.evento-chip:hover { filter: brightness(0.95); }
+
+.evento-mas { font-size: 0.66rem; color: var(--muted); padding: 1px 6px; }
+
+/* Vista semanal */
+.calendario-semana-vista {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 10px;
+}
+
+.semana-dia-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px;
+  min-height: 220px;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.04);
+}
+
+.semana-dia-card.dia-hoy { border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary-light); }
+
+.semana-dia-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.76rem;
+  color: var(--muted);
+}
+
+.semana-dia-header strong { font-size: 1rem; color: var(--text); }
+.semana-dia-header .dia-add-btn { margin-left: auto; opacity: 1; }
+
+.semana-dia-eventos { display: flex; flex-direction: column; gap: 4px; }
+.evento-chip-semana { white-space: normal; }
+
+@media (max-width: 900px) {
+  .calendario-semana-vista { grid-template-columns: 1fr; }
+  .calendario-dias-header, .calendario-semana { grid-template-columns: repeat(7, minmax(80px, 1fr)); }
+  .calendario-mes { overflow-x: auto; }
+}
+
+/* Modal de evento */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 100;
+}
+
+.modal-box {
+  background: #fff;
+  border-radius: var(--radius);
+  padding: 22px;
+  width: 100%;
+  max-width: 440px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.color-swatches { display: flex; gap: 8px; margin-bottom: 4px; }
+
+.color-swatch {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+}
+
+.color-swatch.selected { border-color: var(--text); box-shadow: 0 0 0 2px #fff inset; }

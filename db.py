@@ -156,6 +156,20 @@ def inicializar_base_datos():
             "INTEGER REFERENCES carpetas_documentos(id) ON DELETE SET NULL"
         )
 
+        # --- Eventos del calendario de la empresa ---
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS eventos (
+                id SERIAL PRIMARY KEY,
+                titulo TEXT NOT NULL,
+                descripcion TEXT,
+                fecha DATE NOT NULL,
+                hora TIME,
+                color TEXT DEFAULT '#133984',
+                creado_por TEXT,
+                creado_en TIMESTAMP NOT NULL
+            )
+        """)
+
         # --- Usuarios del sistema (login) ---
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS usuarios (

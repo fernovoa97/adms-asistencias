@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calendario · Personal y Asistencias</title>
+<link rel="icon" href="{{ url_for('static', filename='img/logo.png') }}">
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <div class="app-shell">
+    {% include '_sidebar.html' %}
+
+    <main class="main">
+      <h1>Calendario</h1>
+      <p class="lead">Reuniones, fechas importantes y recordatorios de la empresa.</p>
+
+      <div class="barra">
+        <h2 style="margin:0;">{{ titulo_periodo }}</h2>
+        <button type="button" class="btn" id="btnNuevoEvento">+ Nuevo evento</button>
+      </div>
+
+      <div class="calendario-toolbar">
+        <div class="vista-toggle">
+          <a href="{{ url_for('calendario.pagina_calendario', **nav_vista_mes) }}" class="{{ 'active' if vista == 'mes' }}">Mes</a>
+          <a href="{{ url_for('calendario.pagina_calendario', **nav_vista_semana) }}" class="{{ 'active' if vista == 'semana' }}">Semana</a>
+        </div>
+        <div style="display:flex;gap:6px;">
+          <a class="btn secondary" href="{{ url_for('calendario.pagina_calendario', **nav_prev) }}">← Anterior</a>
+          <a class="btn secondary" href="{{ url_for('calendario.pagina_calendario', **nav_hoy) }}">Hoy</a>
+          <a class="btn secondary" href="{{ url_for('calendario.pagina_calendario', **nav_next) }}">Siguiente →</a>
+        </div>
+      </div>
+
+      {% if vista == 'mes' %}
+      <div class="calendario-mes">
+        <div class="calendario-dias-header">
+          {% for d in ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'] %}
+          <div>{{ d }}</div>
+          {% endfor %}
+        </div>
+        {% for semana in semanas %}
+        <div class="calendario-semana">
+          {% for dia in semana %}
+          <div class="dia-celda {{ 'dia-otro-mes' if not dia.es_mes_actual }} {{ 'dia-hoy' if dia.es_hoy }}"
+               data-fecha="{{ dia.fecha.isoformat() }}">
+            <div class="dia-numero-fila">
+              <span class="dia-numero">{{ dia.dia_numero }}</span>
+              <button type="button" class="dia-add-btn" title="Agregar evento">+</button>
+            </div>
+            <div class="dia-eventos">
+              {% for ev in dia.eventos[:3] %}
+              <div class="evento-chip"
+                   style="background:{{ ev.color }}22;border-left:3px solid {{ ev.color }};color:{{ ev.color }};"
+                   data-id="{{ ev.id }}"
+                   data-titulo="{{ ev.titulo }}"
+                   data-descripcion="{{ ev.descripcion or '' }}"
+                   data-fecha="{{ dia.fecha.isoformat() }}"
+                   data-hora="{{ ev.hora_texto or '' }}"
+                   data-color="{{ ev.color }}">
+                {% if ev.hora_texto %}<strong>{{ ev.hora_texto }}</strong>{% endif %} {{ ev.titulo }}
+              </div>
+              {% endfor %}
+              {% if dia.eventos|length > 3 %}
+              <div class="evento-mas">+{{ dia.eventos|length - 3 }} más</div>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="calendario-semana-vista">
+        {% for dia in dias_semana %}
+        <div class="semana-dia-card {{ 'dia-hoy' if dia.es_hoy }}" data-fecha="{{ dia.fecha.isoformat() }}">
+          <div class="semana-dia-header">
+            <span>{{ dia.dia_semana }}</span>
+            <strong>{{ dia.fecha.day }}</strong>
+            <button type="button" class="dia-add-btn" title="Agregar evento">+</button>
+          </div>
+          <div class="semana-dia-eventos">
+            {% for ev in dia.eventos %}
+            <div class="evento-chip evento-chip-semana"
+                 style="background:{{ ev.color }}22;border-left:3px solid {{ ev.color }};color:{{ ev.color }};"
+                 data-id="{{ ev.id }}"
+                 data-titulo="{{ ev.titulo }}"
+                 data-descripcion="{{ ev.descripcion or '' }}"
+                 data-fecha="{{ dia.fecha.isoformat() }}"
+                 data-hora="{{ ev.hora_texto or '' }}"
+                 data-color="{{ ev.color }}">
+              {% if ev.hora_texto %}<strong>{{ ev.hora_texto }}</strong>{% endif %} {{ ev.titulo }}
+            </div>
+            {% else %}
+            <p class="muted" style="font-size:0.78rem;">Sin eventos</p>
+            {% endfor %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <div id="eventoModalOverlay" class="modal-overlay" style="display:none;">
+        <div class="modal-box">
+          <h2 id="eventoModalTitulo" style="margin-top:0;font-size:1.05rem;">Nuevo evento</h2>
+          <div class="error-msg" id="eventoErrorMsg"></div>
+          <form id="eventoForm">
+            <input type="hidden" id="eventoId">
+            <div class="field">
+              <label for="eventoTitulo">Título *</label>
+              <input type="text" id="eventoTitulo" required>
+            </div>
+            <div class="grid-2">
+              <div class="field">
+                <label for="eventoFecha">Fecha *</label>
+                <input type="date" id="eventoFecha" required>
+              </div>
+              <div class="field">
+                <label for="eventoHora">Hora (opcional)</label>
+                <input type="time" id="eventoHora">
+              </div>
+            </div>
+            <div class="field">
+              <label>Color</label>
+              <div class="color-swatches" id="colorSwatches">
+                {% for hex_color, nombre in colores %}
+                <button type="button" class="color-swatch" data-color="{{ hex_color }}" style="background:{{ hex_color }};" title="{{ nombre }}"></button>
+                {% endfor %}
+              </div>
+              <input type="hidden" id="eventoColor" value="{{ colores[0][0] }}">
+            </div>
+            <div class="field">
+              <label for="eventoDescripcion">Descripción</label>
+              <textarea id="eventoDescripcion" rows="3"></textarea>
+            </div>
+            <div style="display:flex;gap:10px;">
+              <button type="button" class="btn danger" id="eventoEliminarBtn" style="display:none;">Eliminar</button>
+              <div style="display:flex;gap:10px;margin-left:auto;">
+                <button type="button" class="btn secondary" id="eventoCancelarBtn">Cancelar</button>
+                <button type="submit" class="btn">Guardar</button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/static/js/calendario.js"></script>
+</body>
+</html>
