@@ -1,0 +1,25 @@
+<aside class="sidebar">
+  <div class="brand">Personal y Asistencias</div>
+  <nav>
+    <details class="nav-group" {% if active_page in ['inicio', 'resumen', 'ajustes', 'historial'] %}open{% endif %}>
+      <summary>Asistencias</summary>
+      <div class="nav-submenu">
+        <a href="{{ url_for('inicio') }}" class="{{ 'active' if active_page == 'inicio' }}">Panel</a>
+        <a href="{{ url_for('resumen.pagina_resumen') }}" class="{{ 'active' if active_page == 'resumen' }}">Resumen</a>
+        <a href="{{ url_for('ajustes.pagina_ajustes') }}" class="{{ 'active' if active_page == 'ajustes' }}">Ajustes</a>
+      </div>
+    </details>
+
+    <details class="nav-group" {% if active_page in ['nuevo_trabajador', 'buscar_trabajador'] %}open{% endif %}>
+      <summary>Colaboradores</summary>
+      <div class="nav-submenu">
+        <a href="{{ url_for('trabajadores.pagina_nuevo_trabajador') }}" class="{{ 'active' if active_page == 'nuevo_trabajador' }}">Nuevo trabajador</a>
+        <a href="{{ url_for('trabajadores.pagina_buscar_trabajador') }}" class="{{ 'active' if active_page == 'buscar_trabajador' }}">Buscar trabajador</a>
+      </div>
+    </details>
+  </nav>
+  <div class="user-box">
+    Sesión: <strong>{{ session.get('username', '-') }}</strong>
+    <a class="btn secondary" href="{{ url_for('auth.logout') }}">Cerrar sesión</a>
+  </div>
+</aside>

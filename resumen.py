@@ -191,5 +191,6 @@ def pagina_resumen():
         mes=mes,
         mes_nombre=MESES_ES[mes],
         anio_prev=anio_prev, mes_prev=mes_prev,
-        anio_next=anio_next, mes_next=mes_next
+        anio_next=anio_next, mes_next=mes_next,
+        active_page="resumen"
     )

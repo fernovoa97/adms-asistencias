@@ -138,6 +138,53 @@ a { color: var(--primary); }
 .sidebar nav a:hover { background: rgba(255, 255, 255, 0.08); }
 .sidebar nav a.active { background: var(--primary); color: #fff; }
 
+/* ---------- Menu lateral agrupado (Asistencias / Colaboradores) ---------- */
+.nav-group { margin-bottom: 2px; }
+
+.nav-group summary {
+  cursor: pointer;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  list-style: none;
+}
+
+.nav-group summary::-webkit-details-marker { display: none; }
+
+.nav-group summary::after {
+  content: '▸';
+  font-size: 0.72rem;
+  color: #9fb3a8;
+  transition: transform 0.15s ease;
+}
+
+.nav-group[open] summary::after { transform: rotate(90deg); }
+.nav-group summary:hover { background: rgba(255, 255, 255, 0.08); }
+
+.nav-submenu {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: 12px;
+  margin: 2px 0 10px;
+}
+
+.nav-submenu a {
+  color: #d7ded9;
+  text-decoration: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.87rem;
+}
+
+.nav-submenu a:hover { background: rgba(255, 255, 255, 0.08); }
+.nav-submenu a.active { background: var(--primary); color: #fff; }
+
 .sidebar .user-box {
   border-top: 1px solid rgba(255, 255, 255, 0.12);
   padding-top: 14px;

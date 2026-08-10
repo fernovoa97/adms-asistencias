@@ -516,7 +516,8 @@ def inicio():
         total_trabajadores=total_trabajadores,
         entradas_hoy=entradas_hoy,
         salidas_hoy=salidas_hoy,
-        ultimo_marcaje=(ultimo_marcaje[0] if ultimo_marcaje else "Sin registros")
+        ultimo_marcaje=(ultimo_marcaje[0] if ultimo_marcaje else "Sin registros"),
+        active_page="inicio"
     )
 
 

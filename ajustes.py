@@ -15,7 +15,7 @@ ajustes_bp = Blueprint("ajustes", __name__)
 @ajustes_bp.route("/ajustes")
 @login_requerido
 def pagina_ajustes():
-    return render_template("ajustes.html")
+    return render_template("ajustes.html", active_page="ajustes")
 
 
 # ---------------------------------------------------------------------------

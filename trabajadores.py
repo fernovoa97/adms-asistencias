@@ -172,13 +172,13 @@ def _guardar_documentos(cursor, worker_id, archivos, nombres_docs, carpetas_ids=
 @trabajadores_bp.route("/nuevo-trabajador")
 @login_requerido
 def pagina_nuevo_trabajador():
-    return render_template("nuevo_trabajador.html")
+    return render_template("nuevo_trabajador.html", active_page="nuevo_trabajador")
 
 
 @trabajadores_bp.route("/buscar-trabajador")
 @login_requerido
 def pagina_buscar_trabajador():
-    return render_template("buscar_trabajador.html")
+    return render_template("buscar_trabajador.html", active_page="buscar_trabajador")
 
 
 # ==========================================================

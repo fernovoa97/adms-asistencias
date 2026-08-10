@@ -72,7 +72,8 @@ def pagina_historial(trabajador_id):
             inactivo=True,
             anio=anio, mes=mes, mes_nombre=MESES_ES[mes],
             anio_prev=anio_prev, mes_prev=mes_prev,
-            anio_next=anio_next, mes_next=mes_next
+            anio_next=anio_next, mes_next=mes_next,
+            active_page="resumen"
         )
 
     primer_dia = date(anio, mes, 1)
@@ -151,5 +152,6 @@ def pagina_historial(trabajador_id):
         inactivo=False,
         anio=anio, mes=mes, mes_nombre=MESES_ES[mes],
         anio_prev=anio_prev, mes_prev=mes_prev,
-        anio_next=anio_next, mes_next=mes_next
+        anio_next=anio_next, mes_next=mes_next,
+        active_page="resumen"
     )
