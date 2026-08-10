@@ -12,11 +12,12 @@
       </div>
     </details>
 
-    <details class="nav-group" {% if active_page in ['nuevo_trabajador', 'buscar_trabajador'] %}open{% endif %}>
+    <details class="nav-group" {% if active_page in ['nuevo_trabajador', 'buscar_trabajador', 'boletas'] %}open{% endif %}>
       <summary>Colaboradores</summary>
       <div class="nav-submenu">
         <a href="{{ url_for('trabajadores.pagina_nuevo_trabajador') }}" class="{{ 'active' if active_page == 'nuevo_trabajador' }}">Nuevo trabajador</a>
         <a href="{{ url_for('trabajadores.pagina_buscar_trabajador') }}" class="{{ 'active' if active_page == 'buscar_trabajador' }}">Buscar trabajador</a>
+        <a href="{{ url_for('boletas.pagina_boletas') }}" class="{{ 'active' if active_page == 'boletas' }}">Boletas de pago</a>
       </div>
     </details>
 

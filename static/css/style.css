@@ -549,6 +549,17 @@ tr.fila-finde { background: #fafafa; }
 tr.fila-finde td { color: #9ca3af; }
 tr.fila-finde:hover { background: #f3f4f6; }
 
+/* ---------- Boletas de pago ---------- */
+.select-correo {
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  background: #fff;
+  color: var(--text);
+  max-width: 220px;
+}
+
 /* ---------- Calendario de eventos ---------- */
 .calendario-toolbar {
   display: flex;

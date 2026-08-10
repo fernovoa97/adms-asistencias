@@ -91,6 +91,7 @@ document.getElementById('workerForm').addEventListener('submit', async (e) => {
   formData.append('dni', document.getElementById('dni').value.trim());
   formData.append('telefono', document.getElementById('telefono').value.trim());
   formData.append('email', document.getElementById('email').value.trim());
+  formData.append('emailCorporativo', document.getElementById('emailCorporativo').value.trim());
   formData.append('fechaIngreso', document.getElementById('fechaIngreso').value);
   formData.append('fechaNacimiento', document.getElementById('fechaNacimiento').value);
   formData.append('fechaFinContrato', document.getElementById('fechaFinContrato').value);

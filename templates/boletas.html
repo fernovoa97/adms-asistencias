@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Boletas de pago · Personal y Asistencias</title>
+<link rel="icon" href="{{ url_for('static', filename='img/logo.png') }}">
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <div class="app-shell">
+    {% include '_sidebar.html' %}
+
+    <main class="main">
+      <h1>Boletas de pago</h1>
+      <p class="lead">Crea un periodo de pago, sube la boleta PDF de cada trabajador, y envíalas todas por correo con un clic.</p>
+
+      <div class="panel">
+        <h2 style="margin-top:0;font-size:1rem;">Nuevo periodo</h2>
+        <div class="error-msg" id="errorMsg"></div>
+        <form id="periodoForm" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+          <div class="field" style="flex:1;min-width:220px;margin-bottom:0;">
+            <label for="nombrePeriodo">Nombre del periodo</label>
+            <input type="text" id="nombrePeriodo" placeholder="Ej. 1ra quincena - Agosto 2026" required>
+          </div>
+          <button type="submit" class="btn">Crear periodo</button>
+        </form>
+      </div>
+
+      <div id="periodosList"></div>
+    </main>
+  </div>
+
+  <script src="/static/js/boletas.js"></script>
+</body>
+</html>

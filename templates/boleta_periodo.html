@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ periodo.nombre }} · Boletas de pago</title>
+<link rel="icon" href="{{ url_for('static', filename='img/logo.png') }}">
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <div class="app-shell">
+    {% include '_sidebar.html' %}
+
+    <main class="main">
+      <a href="{{ url_for('boletas.pagina_boletas') }}" class="muted" style="text-decoration:none;">← Volver a periodos</a>
+
+      <div class="barra" style="margin-top:8px;">
+        <h1 style="margin:0;">{{ periodo.nombre }}</h1>
+        <button type="button" class="btn" id="btnEnviarTodo" data-periodo-id="{{ periodo.id }}">
+          Enviar boletas pendientes
+        </button>
+      </div>
+      <p class="lead">Sube el PDF de cada trabajador y confirma a qué correo se le enviará. Cuando esté todo listo, presiona "Enviar boletas pendientes".</p>
+
+      <div class="success-msg" id="successMsg"></div>
+      <div class="error-msg" id="errorMsg"></div>
+
+      <div class="tabla-contenedor">
+        <table>
+          <thead>
+            <tr>
+              <th>Trabajador</th>
+              <th>Boleta PDF</th>
+              <th>Enviar a</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody id="tablaTrabajadores">
+            <tr><td colspan="4" class="muted" style="text-align:center;padding:24px;">Cargando…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const PERIODO_ID = {{ periodo.id }};
+  </script>
+  <script src="/static/js/boleta_periodo.js"></script>
+</body>
+</html>

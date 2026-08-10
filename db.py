@@ -75,6 +75,7 @@ def inicializar_base_datos():
         _agregar_columna_si_falta(cursor, "trabajadores", "area", "TEXT")
         _agregar_columna_si_falta(cursor, "trabajadores", "telefono", "TEXT")
         _agregar_columna_si_falta(cursor, "trabajadores", "email", "TEXT")
+        _agregar_columna_si_falta(cursor, "trabajadores", "email_corporativo", "TEXT")
         _agregar_columna_si_falta(cursor, "trabajadores", "fecha_ingreso", "DATE")
         _agregar_columna_si_falta(cursor, "trabajadores", "fecha_fin_contrato", "DATE")
         _agregar_columna_si_falta(cursor, "trabajadores", "fecha_renovacion", "DATE")
@@ -157,6 +158,32 @@ def inicializar_base_datos():
             "INTEGER REFERENCES carpetas_documentos(id) ON DELETE SET NULL"
         )
 
+        # --- Boletas de pago: periodos y archivos por trabajador ---
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS periodos_pago (
+                id SERIAL PRIMARY KEY,
+                nombre TEXT NOT NULL,
+                creado_por TEXT,
+                creado_en TIMESTAMP NOT NULL
+            )
+        """)
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS boletas_pago (
+                id SERIAL PRIMARY KEY,
+                periodo_id INTEGER NOT NULL REFERENCES periodos_pago(id) ON DELETE CASCADE,
+                trabajador_id INTEGER NOT NULL REFERENCES trabajadores(id) ON DELETE CASCADE,
+                archivo_nombre TEXT NOT NULL,
+                archivo_contenido BYTEA NOT NULL,
+                correo_destino TEXT,
+                estado_envio TEXT NOT NULL DEFAULT 'PENDIENTE',
+                error_detalle TEXT,
+                enviado_en TIMESTAMP,
+                subido_en TIMESTAMP NOT NULL,
+                UNIQUE(periodo_id, trabajador_id)
+            )
+        """)
+
         # --- Eventos del calendario de la empresa ---
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS eventos (
@@ -168,6 +195,35 @@ def inicializar_base_datos():
                 color TEXT DEFAULT '#133984',
                 creado_por TEXT,
                 creado_en TIMESTAMP NOT NULL
+            )
+        """)
+
+        # --- Periodos de pago y boletas (PDF enviados por correo) ---
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS periodos_pago (
+                id SERIAL PRIMARY KEY,
+                nombre TEXT NOT NULL,
+                asunto TEXT NOT NULL,
+                mensaje TEXT NOT NULL,
+                creado_por TEXT,
+                creado_en TIMESTAMP NOT NULL
+            )
+        """)
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS boletas_pago (
+                id SERIAL PRIMARY KEY,
+                periodo_id INTEGER NOT NULL REFERENCES periodos_pago(id) ON DELETE CASCADE,
+                trabajador_id INTEGER NOT NULL REFERENCES trabajadores(id) ON DELETE CASCADE,
+                archivo_original TEXT,
+                contenido BYTEA NOT NULL,
+                tamano_bytes INTEGER,
+                correo_destino TEXT NOT NULL,
+                estado TEXT NOT NULL DEFAULT 'PENDIENTE',
+                mensaje_error TEXT,
+                enviado_en TIMESTAMP,
+                subido_en TIMESTAMP NOT NULL,
+                UNIQUE(periodo_id, trabajador_id)
             )
         """)
 

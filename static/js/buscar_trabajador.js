@@ -84,7 +84,8 @@ function renderViewMode(w) {
     ['Supervisor', w.supervisor || '—'],
     ['Sueldo neto', w.sueldo_neto != null ? formatearSueldo(w.sueldo_neto) : '—'],
     ['Teléfono', w.telefono || '—'],
-    ['Correo', w.email || '—'],
+    ['Correo personal', w.email || '—'],
+    ['Correo corporativo', w.email_corporativo || '—'],
     ['Fecha de ingreso', w.fecha_ingreso || '—'],
     ['Fecha de nacimiento', w.fecha_nacimiento || '—'],
     ['Horario', (w.hora_entrada || '08:00') + ' a ' + (w.hora_salida || '17:00') + (w.hora_entrada ? ' (personalizado)' : ' (estándar)')],
@@ -234,8 +235,12 @@ function renderEditForm(w) {
             <input type="text" id="editTelefono" value="${escapeAttr(w.telefono || '')}">
           </div>
           <div class="field">
-            <label for="editEmail">Correo electrónico</label>
+            <label for="editEmail">Correo personal</label>
             <input type="email" id="editEmail" value="${escapeAttr(w.email || '')}">
+          </div>
+          <div class="field">
+            <label for="editEmailCorporativo">Correo corporativo</label>
+            <input type="email" id="editEmailCorporativo" value="${escapeAttr(w.email_corporativo || '')}">
           </div>
           <div class="field">
             <label for="editFechaIngreso">Fecha de ingreso</label>
@@ -300,6 +305,7 @@ function renderEditForm(w) {
       estado: document.getElementById('editEstado').value,
       telefono: document.getElementById('editTelefono').value.trim(),
       email: document.getElementById('editEmail').value.trim(),
+      emailCorporativo: document.getElementById('editEmailCorporativo').value.trim(),
       fechaIngreso: document.getElementById('editFechaIngreso').value,
       fechaNacimiento: document.getElementById('editFechaNacimiento').value,
       horaEntrada: document.getElementById('editHoraEntrada').value,
