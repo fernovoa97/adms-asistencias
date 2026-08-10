@@ -94,6 +94,7 @@ def inicializar_base_datos():
         # personal, nunca en los reportes de asistencia).
         _agregar_columna_si_falta(cursor, "trabajadores", "supervisor", "TEXT")
         _agregar_columna_si_falta(cursor, "trabajadores", "sueldo_neto", "NUMERIC(10,2)")
+        _agregar_columna_si_falta(cursor, "trabajadores", "fecha_nacimiento", "DATE")
 
         # La columna "estado" ya existia desde la version original, pero
         # nunca se expuso en pantalla. Por las dudas, si algun registro

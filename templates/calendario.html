@@ -64,6 +64,9 @@
               {% if dia.eventos|length > 3 %}
               <div class="evento-mas">+{{ dia.eventos|length - 3 }} más</div>
               {% endif %}
+              {% for nombre in dia.cumpleanos %}
+              <div class="cumple-chip" title="Cumpleaños de {{ nombre }}">🎂 {{ nombre }}</div>
+              {% endfor %}
             </div>
           </div>
           {% endfor %}
@@ -91,9 +94,13 @@
                  data-color="{{ ev.color }}">
               {% if ev.hora_texto %}<strong>{{ ev.hora_texto }}</strong>{% endif %} {{ ev.titulo }}
             </div>
-            {% else %}
-            <p class="muted" style="font-size:0.78rem;">Sin eventos</p>
             {% endfor %}
+            {% for nombre in dia.cumpleanos %}
+            <div class="cumple-chip" title="Cumpleaños de {{ nombre }}">🎂 {{ nombre }}</div>
+            {% endfor %}
+            {% if not dia.eventos and not dia.cumpleanos %}
+            <p class="muted" style="font-size:0.78rem;">Sin eventos</p>
+            {% endif %}
           </div>
         </div>
         {% endfor %}

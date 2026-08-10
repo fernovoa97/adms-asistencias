@@ -59,6 +59,39 @@ def _obtener_eventos_en_rango(desde, hasta):
     return eventos_por_dia
 
 
+def _obtener_cumpleanos_en_rango(desde, hasta):
+    """Cumpleaños de los trabajadores activos que caen dentro del rango de
+    fechas, comparando solo mes y dia (no el año) -- asi se calculan solos
+    cada año, sin tener que crear un evento manual cada vez. Los
+    trabajadores inactivos no se incluyen."""
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    cursor.execute("""
+        SELECT nombres, apellidos, fecha_nacimiento
+        FROM trabajadores
+        WHERE fecha_nacimiento IS NOT NULL
+          AND estado IS DISTINCT FROM 'INACTIVO'
+    """)
+
+    cumples_por_mes_dia = {}
+    for nombres, apellidos, fecha_nac in cursor.fetchall():
+        clave = (fecha_nac.month, fecha_nac.day)
+        cumples_por_mes_dia.setdefault(clave, []).append(f"{nombres} {apellidos}")
+
+    cursor.close()
+    conexion.close()
+
+    cumples_por_dia = {}
+    cursor_dia = desde
+    while cursor_dia <= hasta:
+        clave = (cursor_dia.month, cursor_dia.day)
+        if clave in cumples_por_mes_dia:
+            cumples_por_dia[cursor_dia] = cumples_por_mes_dia[clave]
+        cursor_dia += timedelta(days=1)
+
+    return cumples_por_dia
+
+
 @calendario_bp.route("/calendario")
 @login_requerido
 def pagina_calendario():
@@ -84,6 +117,7 @@ def pagina_calendario():
         fin = inicio + timedelta(days=6)
 
         eventos_por_dia = _obtener_eventos_en_rango(inicio, fin)
+        cumples_por_dia = _obtener_cumpleanos_en_rango(inicio, fin)
 
         dias_semana = []
         cursor_dia = inicio
@@ -92,7 +126,8 @@ def pagina_calendario():
                 "fecha": cursor_dia,
                 "dia_semana": DIAS_ES[cursor_dia.weekday()],
                 "es_hoy": cursor_dia == hoy,
-                "eventos": eventos_por_dia.get(cursor_dia, [])
+                "eventos": eventos_por_dia.get(cursor_dia, []),
+                "cumpleanos": cumples_por_dia.get(cursor_dia, [])
             })
             cursor_dia += timedelta(days=1)
 
@@ -133,6 +168,7 @@ def pagina_calendario():
     fin_grilla = ultimo_dia + timedelta(days=(6 - ultimo_dia.weekday()))
 
     eventos_por_dia = _obtener_eventos_en_rango(inicio_grilla, fin_grilla)
+    cumples_por_dia = _obtener_cumpleanos_en_rango(inicio_grilla, fin_grilla)
 
     semanas = []
     semana_actual = []
@@ -143,7 +179,8 @@ def pagina_calendario():
             "dia_numero": cursor_dia.day,
             "es_mes_actual": cursor_dia.month == mes,
             "es_hoy": cursor_dia == hoy,
-            "eventos": eventos_por_dia.get(cursor_dia, [])
+            "eventos": eventos_por_dia.get(cursor_dia, []),
+            "cumpleanos": cumples_por_dia.get(cursor_dia, [])
         })
         if len(semana_actual) == 7:
             semanas.append(semana_actual)

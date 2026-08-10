@@ -48,7 +48,7 @@ def _sueldo_o_none(valor):
 def _worker_a_dict(fila, columnas):
     w = dict(zip(columnas, fila))
 
-    for campo in ("fecha_registro", "fecha_ingreso", "fecha_fin_contrato", "fecha_renovacion"):
+    for campo in ("fecha_registro", "fecha_ingreso", "fecha_fin_contrato", "fecha_renovacion", "fecha_nacimiento"):
         if w.get(campo):
             w[campo] = str(w[campo])
 
@@ -67,8 +67,9 @@ def _worker_a_dict(fila, columnas):
 COLUMNAS_TRABAJADOR = [
     "id", "codigo_empleado", "dni", "nombres", "apellidos", "cargo", "area",
     "estado", "supervisor", "sueldo_neto", "telefono", "email", "fecha_ingreso",
-    "fecha_fin_contrato", "fecha_renovacion", "direccion", "observaciones",
-    "historial_renovaciones", "hora_entrada", "hora_salida", "fecha_registro"
+    "fecha_fin_contrato", "fecha_renovacion", "fecha_nacimiento", "direccion",
+    "observaciones", "historial_renovaciones", "hora_entrada", "hora_salida",
+    "fecha_registro"
 ]
 
 
@@ -220,6 +221,7 @@ def api_crear_trabajador():
     fecha_ingreso = _fecha_o_none(request.form.get("fechaIngreso"))
     fecha_fin = _fecha_o_none(request.form.get("fechaFinContrato"))
     fecha_renovacion = _fecha_o_none(request.form.get("fechaRenovacion"))
+    fecha_nacimiento = _fecha_o_none(request.form.get("fechaNacimiento"))
     direccion = request.form.get("direccion", "").strip()
     observaciones = request.form.get("observaciones", "").strip()
 
@@ -235,14 +237,14 @@ def api_crear_trabajador():
             INSERT INTO trabajadores (
                 dni, nombres, apellidos, cargo, area, supervisor, sueldo_neto,
                 telefono, email, fecha_ingreso, fecha_fin_contrato, fecha_renovacion,
-                direccion, observaciones, estado, fecha_registro
+                fecha_nacimiento, direccion, observaciones, estado, fecha_registro
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'ACTIVO', %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'ACTIVO', %s)
             RETURNING id
         """, (
             dni, nombres, apellidos, cargo, area, supervisor, sueldo_neto,
             telefono, email, fecha_ingreso, fecha_fin, fecha_renovacion,
-            direccion, observaciones, datetime.now()
+            fecha_nacimiento, direccion, observaciones, datetime.now()
         ))
         worker_id = cursor.fetchone()[0]
 
@@ -421,7 +423,7 @@ def api_actualizar(worker_id):
             UPDATE trabajadores SET
                 nombres = %s, apellidos = %s, dni = %s, cargo = %s, area = %s,
                 supervisor = %s, sueldo_neto = %s, estado = %s,
-                telefono = %s, email = %s, fecha_ingreso = %s,
+                telefono = %s, email = %s, fecha_ingreso = %s, fecha_nacimiento = %s,
                 direccion = %s, observaciones = %s,
                 hora_entrada = %s, hora_salida = %s
             WHERE id = %s
@@ -435,6 +437,7 @@ def api_actualizar(worker_id):
             (datos.get("telefono") or "").strip(),
             (datos.get("email") or "").strip(),
             _fecha_o_none(datos.get("fechaIngreso")),
+            _fecha_o_none(datos.get("fechaNacimiento")),
             (datos.get("direccion") or "").strip(),
             (datos.get("observaciones") or "").strip(),
             (datos.get("horaEntrada") or "").strip() or None,
