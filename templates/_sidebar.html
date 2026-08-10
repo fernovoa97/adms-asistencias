@@ -1,5 +1,7 @@
 <aside class="sidebar">
-  <div class="brand">Personal y Asistencias</div>
+  <div class="sidebar-logo">
+    <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Shareate Drillco">
+  </div>
   <nav>
     <details class="nav-group" {% if active_page in ['inicio', 'resumen', 'ajustes', 'historial'] %}open{% endif %}>
       <summary>Asistencias</summary>
@@ -19,7 +21,14 @@
     </details>
   </nav>
   <div class="user-box">
-    Sesión: <strong>{{ session.get('username', '-') }}</strong>
+    {% set username = session.get('username', 'usuario') %}
+    <div class="user-box-profile">
+      <div class="user-avatar">{{ username[0]|upper }}</div>
+      <div class="user-box-text">
+        <div class="greeting">Bienvenido</div>
+        <div class="username">{{ username }}</div>
+      </div>
+    </div>
     <a class="btn secondary" href="{{ url_for('auth.logout') }}">Cerrar sesión</a>
   </div>
 </aside>
