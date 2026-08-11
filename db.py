@@ -158,23 +158,6 @@ def inicializar_base_datos():
             "INTEGER REFERENCES carpetas_documentos(id) ON DELETE SET NULL"
         )
 
-        # --- Token OAuth de Microsoft (para enviar boletas via Graph) ---
-        # Una sola fila (id=1 siempre): la cuenta de correo de administracion
-        # es compartida por todo el sistema, no hay tokens por usuario.
-        # Nunca se guarda la contraseña ni el MFA -- solo lo que Microsoft
-        # entrega al final del login (access_token/refresh_token).
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS microsoft_oauth_token (
-                id INTEGER PRIMARY KEY DEFAULT 1,
-                access_token TEXT NOT NULL,
-                refresh_token TEXT NOT NULL,
-                cuenta_correo TEXT,
-                expira_en TIMESTAMP NOT NULL,
-                actualizado_en TIMESTAMP NOT NULL,
-                CHECK (id = 1)
-            )
-        """)
-
         # --- Boletas de pago: periodos y archivos por trabajador ---
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS periodos_pago (

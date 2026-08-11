@@ -16,32 +16,14 @@
 
       <div class="barra" style="margin-top:8px;">
         <h1 style="margin:0;">{{ periodo.nombre }}</h1>
-        <a href="{{ url_for('boletas.enviar_boletas_periodo', periodo_id=periodo.id) }}"
-           class="btn"
-           onclick="return confirm('¿Enviar por correo todas las boletas pendientes de este periodo? Esta acción envía correos reales.');">
-          Enviar boletas pendientes
-        </a>
       </div>
-      <p class="lead">Sube el PDF de cada trabajador y confirma a qué correo se le enviará. Cuando esté todo listo, presiona "Enviar boletas pendientes".</p>
+      <p class="lead">Sube el PDF de cada trabajador y confirma a qué correo se le enviará.</p>
 
-      <p class="muted" style="margin-top:-8px;">
-        Cuenta de Microsoft:
-        {% if conexion_microsoft.conectado %}
-          <strong style="color:#166534;">Conectada</strong>
-          {% if conexion_microsoft.cuenta_correo %}({{ conexion_microsoft.cuenta_correo }}){% endif %}
-        {% else %}
-          <strong style="color:#92400e;">No conectada</strong> — se te pedirá iniciar sesión con Microsoft la primera vez que envíes.
-        {% endif %}
-      </p>
-
-      {% set enviadas = request.args.get('enviadas', type=int) %}
-      {% set con_error = request.args.get('con_error', type=int) %}
-      {% if enviadas is not none %}
-      <div class="{{ 'error-msg' if con_error else 'success-msg' }}" style="display:block;">
-        Se enviaron {{ enviadas }} boleta(s) correctamente.
-        {% if con_error %}{{ con_error }} tuvieron error (revisa el estado de cada trabajador).{% endif %}
+      <div class="info-box">
+        <b>El envío se hace desde tu computadora, no desde esta página.</b>
+        <br>
+        Corre el script <code>enviar_boletas.py</code> en tu equipo (el que tiene Outlook instalado con tu sesión iniciada). El script te va a preguntar qué periodo enviar — elige <strong>"{{ periodo.nombre }}"</strong> — y va a mandar automáticamente todas las boletas que aparezcan como "Pendiente" aquí abajo. El estado de cada una se actualiza solo en esta tabla apenas el script termine.
       </div>
-      {% endif %}
 
       <div class="error-msg" id="errorMsg"></div>
 
