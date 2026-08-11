@@ -106,21 +106,25 @@ print("=" * 60)
 print(f"BOLETAS PENDIENTES EN: {nombre_periodo}")
 print("=" * 60)
 
-sin_correo = []
+omitidos = []
 
 for b in pendientes:
-    if b["correo_destino"]:
-        print(f"✔ {b['nombre_trabajador']}  ->  {b['correo_destino']}")
-    else:
+    if not b["correo_destino"]:
         print(f"✖ {b['nombre_trabajador']}  ->  SIN CORREO DE DESTINO")
-        sin_correo.append(b)
+        omitidos.append(b)
+    elif not b["archivos"]:
+        print(f"✖ {b['nombre_trabajador']}  ->  SIN NINGÚN PDF ADJUNTO")
+        omitidos.append(b)
+    else:
+        correo_legible = b["correo_destino"].replace(";", ", ")
+        print(f"✔ {b['nombre_trabajador']}  ->  {correo_legible}  ({len(b['archivos'])} PDF)")
 
-if sin_correo:
+if omitidos:
     print()
-    print(f"Hay {len(sin_correo)} trabajador(es) sin correo de destino configurado.")
-    print("Se van a omitir -- corrígelo desde la página web y vuelve a correr el script para esos.")
+    print(f"Hay {len(omitidos)} trabajador(es) que se van a omitir (sin correo o sin PDF configurado).")
+    print("Corrígelo desde la página web y vuelve a correr el script para esos.")
 
-print(f"\nTotal a enviar ahora: {len(pendientes) - len(sin_correo)} de {len(pendientes)}")
+print(f"\nTotal a enviar ahora: {len(pendientes) - len(omitidos)} de {len(pendientes)}")
 
 confirmacion = input("\nEscriba OK para comenzar el envío: ").strip().upper()
 
@@ -160,17 +164,34 @@ for indice, boleta in enumerate(pendientes):
         })
         continue
 
+    if not boleta["archivos"]:
+        estado_local = "ERROR: sin ningún PDF adjunto"
+        print(f"✖ {estado_local}")
+        resultados.append({
+            "nombre": nombre, "correo": boleta["correo_destino"], "estado": estado_local,
+            "fecha": datetime.now().strftime("%Y-%m-%d %H:%M")
+        })
+        continue
+
     try:
         # Outlook necesita una RUTA de archivo para adjuntar, no los bytes
-        # directamente -- por eso lo guardamos primero en una carpeta
-        # temporal.
-        contenido_pdf = base64.b64decode(boleta["archivo_base64"])
-        ruta_temp = os.path.join(carpeta_temporal, boleta["archivo_nombre"])
-        with open(ruta_temp, "wb") as archivo_temp:
-            archivo_temp.write(contenido_pdf)
+        # directamente -- por eso guardamos cada PDF primero en una
+        # carpeta temporal.
+        rutas_temp = []
+        for archivo in boleta["archivos"]:
+            contenido_pdf = base64.b64decode(archivo["contenido_base64"])
+            ruta_temp = os.path.join(carpeta_temporal, f"{boleta['id']}_{archivo['nombre']}")
+            with open(ruta_temp, "wb") as archivo_temp:
+                archivo_temp.write(contenido_pdf)
+            rutas_temp.append(ruta_temp)
+
+        # correo_destino puede traer varios correos separados por ";"
+        # (ej. el personal y el corporativo). Outlook acepta varios
+        # destinatarios en el mismo campo "To" separados por ";".
+        destinatarios = [c.strip() for c in boleta["correo_destino"].split(";") if c.strip()]
 
         mail = outlook.CreateItem(0)
-        mail.To = boleta["correo_destino"]
+        mail.To = "; ".join(destinatarios)
         mail.Subject = f"Boleta de pago – {nombre_periodo}"
         mail.Body = f"""Estimado/a {nombre},
 
@@ -180,7 +201,8 @@ Ante cualquier consulta, no dude en contactarnos.
 
 Saludos,
 Recursos Humanos"""
-        mail.Attachments.Add(os.path.abspath(ruta_temp))
+        for ruta_temp in rutas_temp:
+            mail.Attachments.Add(os.path.abspath(ruta_temp))
         mail.Send()
 
         # Avisamos al sistema que esta boleta ya se envio

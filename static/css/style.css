@@ -560,6 +560,40 @@ tr.fila-finde:hover { background: #f3f4f6; }
   max-width: 220px;
 }
 
+.archivos-lista { display: flex; flex-direction: column; gap: 4px; margin-bottom: 4px; }
+
+.archivo-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: #f3f4f6;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 0.82rem;
+}
+
+.archivo-quitar {
+  background: none;
+  border: none;
+  color: var(--danger);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+.archivo-quitar:hover { font-weight: 700; }
+
+.correo-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  margin-bottom: 4px;
+  cursor: pointer;
+}
+
 /* ---------- Calendario de eventos ---------- */
 .calendario-toolbar {
   display: flex;

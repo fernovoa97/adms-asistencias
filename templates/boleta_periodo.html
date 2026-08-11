@@ -17,12 +17,12 @@
       <div class="barra" style="margin-top:8px;">
         <h1 style="margin:0;">{{ periodo.nombre }}</h1>
       </div>
-      <p class="lead">Sube el PDF de cada trabajador y confirma a qué correo se le enviará.</p>
+      <p class="lead">Sube uno o más PDF por trabajador y elige a qué correo(s) se le enviarán.</p>
 
       <div class="info-box">
         <b>El envío se hace desde tu computadora, no desde esta página.</b>
         <br>
-        Corre el script <code>enviar_boletas.py</code> en tu equipo (el que tiene Outlook instalado con tu sesión iniciada). El script te va a preguntar qué periodo enviar — elige <strong>"{{ periodo.nombre }}"</strong> — y va a mandar automáticamente todas las boletas que aparezcan como "Pendiente" aquí abajo. El estado de cada una se actualiza solo en esta tabla apenas el script termine.
+        Corre <code>enviar_boletas_gui.pyw</code> (o <code>enviar_boletas.py</code>) en tu equipo, el que tiene Outlook instalado con tu sesión iniciada. Te va a preguntar qué periodo enviar — elige <strong>"{{ periodo.nombre }}"</strong> — y va a mandar automáticamente todas las boletas que aparezcan como "Pendiente" aquí abajo, con todos sus PDF adjuntos a todos los correos marcados. El estado de cada una se actualiza solo en esta tabla apenas termine.
       </div>
 
       <div class="error-msg" id="errorMsg"></div>
@@ -32,7 +32,7 @@
           <thead>
             <tr>
               <th>Trabajador</th>
-              <th>Boleta PDF</th>
+              <th>PDFs de la boleta</th>
               <th>Enviar a</th>
               <th>Estado</th>
             </tr>

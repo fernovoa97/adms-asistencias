@@ -188,25 +188,29 @@ class AppBoletas:
         marco_lista = ttk.Frame(marco)
         marco_lista.pack(fill="both", expand=False, pady=(0, 10))
 
-        columnas = ("nombre", "correo")
+        columnas = ("nombre", "correo", "archivos")
         self.tabla = ttk.Treeview(marco_lista, columns=columnas, show="headings", height=7)
         self.tabla.heading("nombre", text="Trabajador")
-        self.tabla.heading("correo", text="Correo destino")
-        self.tabla.column("nombre", width=260)
+        self.tabla.heading("correo", text="Correo(s) destino")
+        self.tabla.heading("archivos", text="PDFs")
+        self.tabla.column("nombre", width=220)
         self.tabla.column("correo", width=260)
+        self.tabla.column("archivos", width=50, anchor="center")
         self.tabla.pack(fill="both", expand=True)
 
         self.sin_correo = []
         for b in self.pendientes:
-            correo = b["correo_destino"] or "⚠ SIN CORREO"
-            if not b["correo_destino"]:
+            sin_archivos = not b["archivos"]
+            correo = b["correo_destino"].replace(";", ", ") if b["correo_destino"] else "⚠ SIN CORREO"
+            if not b["correo_destino"] or sin_archivos:
                 self.sin_correo.append(b)
-            self.tabla.insert("", "end", values=(b["nombre_trabajador"], correo))
+            texto_archivos = "⚠ 0" if sin_archivos else str(len(b["archivos"]))
+            self.tabla.insert("", "end", values=(b["nombre_trabajador"], correo, texto_archivos))
 
         if self.sin_correo:
             ttk.Label(
                 marco,
-                text=f"⚠ {len(self.sin_correo)} trabajador(es) sin correo configurado — se van a omitir.",
+                text=f"⚠ {len(self.sin_correo)} trabajador(es) se van a omitir (sin correo o sin PDF) — revisa la tabla.",
                 foreground="#b45309"
             ).pack(anchor="w", pady=(0, 5))
 
@@ -296,19 +300,24 @@ class AppBoletas:
         for indice, boleta in enumerate(self.pendientes):
             nombre = boleta["nombre_trabajador"]
 
-            if not boleta["correo_destino"]:
+            if not boleta["correo_destino"] or not boleta["archivos"]:
                 continue
 
             self._log(f"[{indice + 1}/{len(self.pendientes)}] {nombre}...")
 
             try:
-                contenido_pdf = base64.b64decode(boleta["archivo_base64"])
-                ruta_temp = os.path.join(carpeta_temporal, boleta["archivo_nombre"])
-                with open(ruta_temp, "wb") as archivo_temp:
-                    archivo_temp.write(contenido_pdf)
+                rutas_temp = []
+                for archivo in boleta["archivos"]:
+                    contenido_pdf = base64.b64decode(archivo["contenido_base64"])
+                    ruta_temp = os.path.join(carpeta_temporal, f"{boleta['id']}_{archivo['nombre']}")
+                    with open(ruta_temp, "wb") as archivo_temp:
+                        archivo_temp.write(contenido_pdf)
+                    rutas_temp.append(ruta_temp)
+
+                destinatarios = [c.strip() for c in boleta["correo_destino"].split(";") if c.strip()]
 
                 mail = outlook.CreateItem(0)
-                mail.To = boleta["correo_destino"]
+                mail.To = "; ".join(destinatarios)
                 mail.Subject = f"Boleta de pago – {self.nombre_periodo}"
                 mail.Body = (
                     f"Estimado/a {nombre},\n\n"
@@ -316,7 +325,8 @@ class AppBoletas:
                     f"Ante cualquier consulta, no dude en contactarnos.\n\n"
                     f"Saludos,\nRecursos Humanos"
                 )
-                mail.Attachments.Add(os.path.abspath(ruta_temp))
+                for ruta_temp in rutas_temp:
+                    mail.Attachments.Add(os.path.abspath(ruta_temp))
                 mail.Send()
 
                 self.sesion.post(

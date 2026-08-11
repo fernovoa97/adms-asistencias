@@ -28,29 +28,41 @@ function renderTabla(trabajadores) {
     const fila = document.createElement('tr');
     fila.dataset.trabajadorId = t.id;
 
-    const opcionesCorreo = [];
-    if (t.email_corporativo) opcionesCorreo.push(t.email_corporativo);
-    if (t.email_personal) opcionesCorreo.push(t.email_personal);
+    // Que correos quedan marcados ahora mismo (separados por ";")
+    const correosMarcados = (t.correo_destino || '').split(';').map((c) => c.trim()).filter(Boolean);
 
     const estadoInfo = t.boleta_id
       ? (ETIQUETA_ESTADO[t.estado_envio] || ETIQUETA_ESTADO.PENDIENTE)
       : null;
 
+    const listaArchivos = (t.archivos || []).map((a) => `
+      <div class="archivo-item" data-archivo-id="${a.id}">
+        <span>${escapeHtml(a.nombre)}</span>
+        <button type="button" class="archivo-quitar" title="Quitar este PDF">×</button>
+      </div>
+    `).join('');
+
+    const opcionesCorreo = [];
+    if (t.email_corporativo) opcionesCorreo.push({ etiqueta: 'Corporativo', valor: t.email_corporativo });
+    if (t.email_personal) opcionesCorreo.push({ etiqueta: 'Personal', valor: t.email_personal });
+
     fila.innerHTML = `
       <td>${escapeHtml(t.nombre)}</td>
       <td>
-        <label class="btn secondary" style="cursor:pointer;font-size:0.82rem;padding:6px 10px;">
-          ${t.archivo_nombre ? 'Reemplazar PDF' : 'Subir PDF'}
-          <input type="file" accept="application/pdf" class="input-archivo" style="display:none;">
+        <div class="archivos-lista">${listaArchivos || '<span class="muted">Sin archivos</span>'}</div>
+        <label class="btn secondary" style="cursor:pointer;font-size:0.82rem;padding:6px 10px;margin-top:4px;display:inline-block;">
+          + Agregar PDF
+          <input type="file" accept="application/pdf" class="input-archivo" multiple style="display:none;">
         </label>
-        <span class="muted archivo-nombre" style="margin-left:6px;">${t.archivo_nombre ? escapeHtml(t.archivo_nombre) : 'Sin archivo'}</span>
       </td>
       <td>
-        ${opcionesCorreo.length > 0 ? `
-          <select class="select-correo">
-            ${opcionesCorreo.map((c) => `<option value="${escapeHtml(c)}" ${c === t.correo_destino ? 'selected' : ''}>${escapeHtml(c)}</option>`).join('')}
-          </select>
-        ` : '<span class="muted" style="font-style:italic;">Sin correo registrado</span>'}
+        ${opcionesCorreo.length > 0 ? opcionesCorreo.map((op) => `
+          <label class="correo-checkbox">
+            <input type="checkbox" class="check-correo" value="${escapeHtml(op.valor)}"
+                   ${correosMarcados.includes(op.valor) ? 'checked' : ''}>
+            ${op.etiqueta} <span class="muted">(${escapeHtml(op.valor)})</span>
+          </label>
+        `).join('') : '<span class="muted" style="font-style:italic;">Sin correo registrado</span>'}
       </td>
       <td class="celda-estado">
         ${estadoInfo
@@ -60,33 +72,31 @@ function renderTabla(trabajadores) {
     `;
 
     const fileInput = fila.querySelector('.input-archivo');
-    fileInput.addEventListener('change', () => subirBoleta(t.id, fila));
+    fileInput.addEventListener('change', () => subirArchivos(t.id, fila));
+
+    fila.querySelectorAll('.archivo-quitar').forEach((boton) => {
+      boton.addEventListener('click', () => {
+        const item = boton.closest('.archivo-item');
+        eliminarArchivo(t.boleta_id, item.dataset.archivoId);
+      });
+    });
+
+    fila.querySelectorAll('.check-correo').forEach((checkbox) => {
+      checkbox.addEventListener('change', () => actualizarCorreo(t.id, fila));
+    });
 
     tablaTrabajadores.appendChild(fila);
   });
 }
 
-async function subirBoleta(trabajadorId, fila) {
+async function subirArchivos(trabajadorId, fila) {
   const fileInput = fila.querySelector('.input-archivo');
-  const file = fileInput.files[0];
-  if (!file) return;
-
-  const selectCorreo = fila.querySelector('.select-correo');
-  const correoDestino = selectCorreo ? selectCorreo.value : '';
-
-  if (!correoDestino) {
-    alert('Este trabajador no tiene ningún correo registrado. Agrégale uno desde su ficha en "Buscar trabajador" antes de subir su boleta.');
-    fileInput.value = '';
-    return;
-  }
+  const archivos = Array.from(fileInput.files);
+  if (archivos.length === 0) return;
 
   const formData = new FormData();
   formData.append('trabajador_id', trabajadorId);
-  formData.append('correo_destino', correoDestino);
-  formData.append('archivo', file);
-
-  const nombreSpan = fila.querySelector('.archivo-nombre');
-  nombreSpan.textContent = 'Subiendo…';
+  archivos.forEach((archivo) => formData.append('archivos', archivo));
 
   try {
     const res = await fetch(`/api/periodos/${PERIODO_ID}/boletas`, {
@@ -97,14 +107,47 @@ async function subirBoleta(trabajadorId, fila) {
 
     if (!res.ok) {
       alert(data.error || 'No se pudo subir el archivo');
-      nombreSpan.textContent = 'Sin archivo';
       return;
     }
 
     cargarTrabajadores();
   } catch (err) {
     alert('Error de conexión con el servidor');
-    nombreSpan.textContent = 'Sin archivo';
+  }
+}
+
+async function eliminarArchivo(boletaId, archivoId) {
+  if (!boletaId) return;
+  if (!confirm('¿Quitar este PDF de la boleta?')) return;
+
+  try {
+    const res = await fetch(`/api/boletas/${boletaId}/archivos/${archivoId}`, { method: 'DELETE' });
+    if (!res.ok) {
+      alert('No se pudo quitar el archivo');
+      return;
+    }
+    cargarTrabajadores();
+  } catch (err) {
+    alert('Error de conexión con el servidor');
+  }
+}
+
+async function actualizarCorreo(trabajadorId, fila) {
+  const checkboxes = Array.from(fila.querySelectorAll('.check-correo'));
+  const correosElegidos = checkboxes.filter((c) => c.checked).map((c) => c.value);
+
+  try {
+    const res = await fetch(`/api/periodos/${PERIODO_ID}/correo`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ trabajadorId, correoDestino: correosElegidos.join(';') })
+    });
+    if (!res.ok) {
+      const data = await res.json();
+      alert(data.error || 'No se pudo actualizar el correo');
+    }
+  } catch (err) {
+    alert('Error de conexión con el servidor');
   }
 }
 
