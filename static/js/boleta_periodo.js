@@ -1,6 +1,4 @@
 const tablaTrabajadores = document.getElementById('tablaTrabajadores');
-const successMsg = document.getElementById('successMsg');
-const errorMsg = document.getElementById('errorMsg');
 
 const ETIQUETA_ESTADO = {
   ENVIADO: { texto: 'Enviado', clase: 'estado-puntual' },
@@ -109,43 +107,6 @@ async function subirBoleta(trabajadorId, fila) {
     nombreSpan.textContent = 'Sin archivo';
   }
 }
-
-document.getElementById('btnEnviarTodo').addEventListener('click', async () => {
-  successMsg.style.display = 'none';
-  errorMsg.style.display = 'none';
-
-  if (!confirm('¿Enviar por correo todas las boletas pendientes de este periodo? Esta acción envía correos reales.')) return;
-
-  const btn = document.getElementById('btnEnviarTodo');
-  btn.disabled = true;
-  btn.textContent = 'Enviando…';
-
-  try {
-    const res = await fetch(`/api/periodos/${PERIODO_ID}/enviar`, { method: 'POST' });
-    const data = await res.json();
-
-    if (!res.ok) {
-      errorMsg.textContent = data.error || 'No se pudieron enviar las boletas';
-      errorMsg.style.display = 'block';
-      return;
-    }
-
-    let resumen = `Se enviaron ${data.enviadas} boleta(s) correctamente.`;
-    if (data.con_error > 0) {
-      resumen += ` ${data.con_error} tuvieron error (revisa el estado de cada trabajador).`;
-    }
-    successMsg.textContent = resumen;
-    successMsg.style.display = 'block';
-
-    cargarTrabajadores();
-  } catch (err) {
-    errorMsg.textContent = 'Error de conexión con el servidor';
-    errorMsg.style.display = 'block';
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Enviar boletas pendientes';
-  }
-});
 
 function escapeHtml(str) {
   const div = document.createElement('div');

@@ -8,14 +8,19 @@
 # El envio SIEMPRE se dispara manualmente (nunca automatico/programado):
 # es informacion sensible (sueldos) y un envio automatico sin revision
 # humana es un riesgo que no vale la pena correr.
+#
+# El correo se envia via Microsoft Graph, usando el token OAuth que
+# maneja microsoft_auth.py (login real de Microsoft + MFA en el celular,
+# nunca usuario/contraseña por SMTP).
 
 from datetime import datetime
 
-from flask import Blueprint, request, render_template, jsonify, session, abort
+from flask import Blueprint, request, render_template, jsonify, session, abort, redirect, url_for
 
 from auth import login_requerido
 from db import obtener_conexion
-from correo import enviar_correo_con_adjunto, ErrorConfiguracionCorreo
+from microsoft_auth import obtener_token_valido, estado_conexion
+from correo_graph import enviar_correo_con_adjunto_graph
 
 boletas_bp = Blueprint("boletas", __name__)
 
@@ -54,7 +59,12 @@ def pagina_periodo(periodo_id):
     cursor.close()
     conexion.close()
 
-    return render_template("boleta_periodo.html", periodo=periodo, active_page="boletas")
+    return render_template(
+        "boleta_periodo.html",
+        periodo=periodo,
+        conexion_microsoft=estado_conexion(),
+        active_page="boletas"
+    )
 
 
 # ==========================================================
@@ -256,22 +266,25 @@ def api_eliminar_boleta(boleta_id):
 
 
 # ==========================================================
-# API: enviar boletas pendientes de un periodo
+# Enviar boletas pendientes de un periodo (via Microsoft Graph)
 # ==========================================================
 
-@boletas_bp.route("/api/periodos/<int:periodo_id>/enviar", methods=["POST"])
-@login_requerido
-def api_enviar_boletas(periodo_id):
+def _enviar_boletas_periodo(periodo_id):
+    """Envia todas las boletas pendientes de un periodo. Asume que ya se
+    verifico que hay un token utilizable -- si por alguna razon ya no lo
+    hay al momento de enviar (ej. se revoco en Microsoft justo en el medio),
+    se corta el lote entero, igual que antes se hacia si faltaba la
+    configuracion de SMTP."""
+    access_token = obtener_token_valido()
+    if not access_token:
+        return {"enviadas": 0, "con_error": 0, "sin_token": True}
+
     conexion = obtener_conexion()
     cursor = conexion.cursor()
 
     cursor.execute("SELECT nombre FROM periodos_pago WHERE id = %s", (periodo_id,))
     fila_periodo = cursor.fetchone()
-    if not fila_periodo:
-        cursor.close()
-        conexion.close()
-        return jsonify({"error": "Periodo no encontrado"}), 404
-    nombre_periodo = fila_periodo[0]
+    nombre_periodo = fila_periodo[0] if fila_periodo else "tu boleta de pago"
 
     cursor.execute("""
         SELECT b.id, b.archivo_nombre, b.archivo_contenido, b.correo_destino,
@@ -282,22 +295,21 @@ def api_enviar_boletas(periodo_id):
     """, (periodo_id,))
     pendientes = cursor.fetchall()
 
-    resultados = {"enviadas": 0, "con_error": 0, "detalle_errores": []}
+    enviadas = 0
+    con_error = 0
 
     for boleta_id, archivo_nombre, contenido, correo_destino, nombres, apellidos in pendientes:
-        nombre_completo = f"{nombres} {apellidos}"
-
         if not correo_destino:
             cursor.execute("""
                 UPDATE boletas_pago SET estado_envio = 'ERROR', error_detalle = %s
                 WHERE id = %s
             """, ("No hay correo de destino configurado", boleta_id))
-            resultados["con_error"] += 1
-            resultados["detalle_errores"].append(f"{nombre_completo}: sin correo de destino")
+            con_error += 1
             continue
 
         try:
-            enviar_correo_con_adjunto(
+            enviar_correo_con_adjunto_graph(
+                access_token=access_token,
                 destino=correo_destino,
                 asunto=f"Boleta de pago - {nombre_periodo}",
                 cuerpo=(
@@ -313,27 +325,40 @@ def api_enviar_boletas(periodo_id):
                 UPDATE boletas_pago SET estado_envio = 'ENVIADO', error_detalle = NULL, enviado_en = %s
                 WHERE id = %s
             """, (datetime.now(), boleta_id))
-            resultados["enviadas"] += 1
-
-        except ErrorConfiguracionCorreo as error:
-            # Si falta la configuracion SMTP, ningun correo se va a poder
-            # enviar -- se corta el lote entero de una vez, en vez de
-            # marcar cada boleta como error una por una.
-            conexion.commit()
-            cursor.close()
-            conexion.close()
-            return jsonify({"error": str(error)}), 500
+            enviadas += 1
 
         except Exception as error:
             cursor.execute("""
                 UPDATE boletas_pago SET estado_envio = 'ERROR', error_detalle = %s
                 WHERE id = %s
             """, (str(error), boleta_id))
-            resultados["con_error"] += 1
-            resultados["detalle_errores"].append(f"{nombre_completo}: {error}")
+            con_error += 1
 
     conexion.commit()
     cursor.close()
     conexion.close()
 
-    return jsonify({"ok": True, **resultados})
+    return {"enviadas": enviadas, "con_error": con_error, "sin_token": False}
+
+
+@boletas_bp.route("/boletas/<int:periodo_id>/enviar")
+@login_requerido
+def enviar_boletas_periodo(periodo_id):
+    """Esto es una navegacion de pagina real (no una llamada AJAX), a
+    proposito: si hace falta iniciar sesion en Microsoft, el navegador
+    tiene que poder seguir la redireccion de verdad hasta login.microsoftonline.com,
+    algo que un fetch() en JavaScript no puede hacer."""
+    access_token = obtener_token_valido()
+
+    if not access_token:
+        # Guardamos que accion retomar apenas vuelva del login, para que
+        # el envio se complete solo sin que la persona tenga que volver
+        # a presionar "Enviar" una segunda vez.
+        session["ms_next_action"] = {"tipo": "enviar_periodo", "periodo_id": periodo_id}
+        return redirect(url_for("microsoft_auth.iniciar_login_microsoft"))
+
+    resultado = _enviar_boletas_periodo(periodo_id)
+    return redirect(url_for(
+        "boletas.pagina_periodo", periodo_id=periodo_id,
+        enviadas=resultado["enviadas"], con_error=resultado["con_error"]
+    ))
