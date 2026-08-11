@@ -151,6 +151,29 @@ async function actualizarCorreo(trabajadorId, fila) {
   }
 }
 
+async function marcarTodosLosCorreos() {
+  const boton = document.getElementById('btnMarcarTodos');
+  boton.disabled = true;
+  boton.textContent = 'Marcando...';
+
+  const filas = Array.from(tablaTrabajadores.querySelectorAll('tr[data-trabajador-id]'));
+
+  for (const fila of filas) {
+    const checkboxes = fila.querySelectorAll('.check-correo');
+    if (checkboxes.length === 0) continue; // este trabajador no tiene ningun correo registrado
+
+    checkboxes.forEach((c) => { c.checked = true; });
+
+    const trabajadorId = fila.dataset.trabajadorId;
+    await actualizarCorreo(trabajadorId, fila);
+  }
+
+  boton.disabled = false;
+  boton.textContent = 'Marcar todos los correos';
+}
+
+document.getElementById('btnMarcarTodos').addEventListener('click', marcarTodosLosCorreos);
+
 function escapeHtml(str) {
   const div = document.createElement('div');
   div.textContent = str;
