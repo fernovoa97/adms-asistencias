@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vehículos · Personal y Asistencias</title>
+<link rel="icon" href="{{ url_for('static', filename='img/logo.png') }}">
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <div class="app-shell">
+    {% include '_sidebar.html' %}
+
+    <main class="main">
+      <h1>Vehículos</h1>
+      <p class="lead">Registro de vehículos propios y alquilados, con sus documentos y fechas de vencimiento.</p>
+
+      <div class="panel">
+        <h2 style="margin-top:0;font-size:1rem;">Nuevo vehículo</h2>
+        <div class="error-msg" id="errorMsg"></div>
+
+        <form id="vehiculoForm">
+          <div class="grid-2">
+            <div class="field">
+              <label for="placa">Placa *</label>
+              <input type="text" id="placa" required style="text-transform:uppercase;">
+            </div>
+            <div class="field">
+              <label for="tipoAdquisicion">Tipo de adquisición</label>
+              <select id="tipoAdquisicion">
+                <option value="COMPRA">Compra (propio)</option>
+                <option value="ALQUILER">Alquiler</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="marca">Marca</label>
+              <input type="text" id="marca" placeholder="Ej. Toyota">
+            </div>
+            <div class="field">
+              <label for="modelo">Modelo</label>
+              <input type="text" id="modelo" placeholder="Ej. Hilux">
+            </div>
+            <div class="field">
+              <label for="anio">Año</label>
+              <input type="number" id="anio" min="1970" max="2100">
+            </div>
+            <div class="field">
+              <label for="color">Color</label>
+              <input type="text" id="color">
+            </div>
+            <div class="field">
+              <label for="tipo">Tipo de vehículo</label>
+              <input type="text" id="tipo" placeholder="Ej. Camioneta, Camión, Auto">
+            </div>
+            <div class="field">
+              <label for="fechaAdquisicion">Fecha de adquisición</label>
+              <input type="date" id="fechaAdquisicion">
+            </div>
+            <div class="field">
+              <label for="conductorId">Conductor asignado</label>
+              <select id="conductorId">
+                <option value="">Sin asignar</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid-2" id="camposAlquiler" style="display:none;">
+            <div class="field">
+              <label for="alquilerProveedor">Empresa / persona que alquila el vehículo</label>
+              <input type="text" id="alquilerProveedor">
+            </div>
+            <div class="field">
+              <label for="alquilerFechaFin">Fecha de fin de contrato de alquiler</label>
+              <input type="date" id="alquilerFechaFin">
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="observaciones">Observaciones</label>
+            <textarea id="observaciones" rows="2"></textarea>
+          </div>
+
+          <button type="submit" class="btn">Crear vehículo</button>
+        </form>
+      </div>
+
+      <div id="vehiculosList"></div>
+    </main>
+  </div>
+
+  <script src="/static/js/vehiculos.js"></script>
+</body>
+</html>

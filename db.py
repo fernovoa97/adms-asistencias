@@ -265,6 +265,44 @@ def inicializar_base_datos():
             )
         """)
 
+        # --- Vehiculos de la empresa (propios o alquilados) ---
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS vehiculos (
+                id SERIAL PRIMARY KEY,
+                placa TEXT NOT NULL UNIQUE,
+                marca TEXT,
+                modelo TEXT,
+                anio INTEGER,
+                color TEXT,
+                tipo TEXT,
+                tipo_adquisicion TEXT NOT NULL DEFAULT 'COMPRA',
+                fecha_adquisicion DATE,
+                conductor_id INTEGER REFERENCES trabajadores(id) ON DELETE SET NULL,
+                estado TEXT NOT NULL DEFAULT 'ACTIVO',
+                alquiler_proveedor TEXT,
+                alquiler_fecha_fin DATE,
+                observaciones TEXT,
+                creado_en TIMESTAMP NOT NULL
+            )
+        """)
+
+        # Documentos del vehiculo (SOAT, revision tecnica, tarjeta de
+        # propiedad, etc.) -- el tipo es texto libre a proposito, para no
+        # limitar a una lista fija. Cada fila es un documento con su
+        # propia fecha de vencimiento, asi se guarda historial (ej. el
+        # SOAT del año pasado y el de este año quedan los dos).
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS vehiculos_documentos (
+                id SERIAL PRIMARY KEY,
+                vehiculo_id INTEGER NOT NULL REFERENCES vehiculos(id) ON DELETE CASCADE,
+                tipo TEXT NOT NULL,
+                fecha_vencimiento DATE,
+                archivo_nombre TEXT NOT NULL,
+                archivo_contenido BYTEA NOT NULL,
+                subido_en TIMESTAMP NOT NULL
+            )
+        """)
+
         # --- Eventos del calendario de la empresa ---
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS eventos (

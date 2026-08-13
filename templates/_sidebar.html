@@ -24,6 +24,7 @@
     </details>
 
     <a href="{{ url_for('calendario.pagina_calendario') }}" class="nav-toplink {{ 'active' if active_page == 'calendario' }}">Calendario</a>
+    <a href="{{ url_for('vehiculos.pagina_vehiculos') }}" class="nav-toplink {{ 'active' if active_page == 'vehiculos' }}">Vehículos</a>
   </nav>
   <div class="user-box">
     {% set username = session.get('username', 'usuario') %}

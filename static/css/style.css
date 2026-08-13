@@ -620,6 +620,12 @@ tr.fila-finde:hover { background: #f3f4f6; }
   vertical-align: middle;
 }
 
+/* ---------- Vehiculos: estado de vencimiento de documentos ---------- */
+.badge.doc-vencido { background: #fee2e2; color: #991b1b; }
+.badge.doc-por-vencer { background: #fef3c7; color: #92400e; }
+.badge.doc-vigente { background: #dcfce7; color: #166534; }
+.badge.doc-sin-fecha { background: #e5e7eb; color: #4b5563; }
+
 .archivos-lista { display: flex; flex-direction: column; gap: 4px; margin-bottom: 4px; }
 
 .archivo-item {

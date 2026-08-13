@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ vehiculo.placa }} · Vehículos</title>
+<link rel="icon" href="{{ url_for('static', filename='img/logo.png') }}">
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <div class="app-shell">
+    {% include '_sidebar.html' %}
+
+    <main class="main">
+      <a href="{{ url_for('vehiculos.pagina_vehiculos') }}" class="muted" style="text-decoration:none;">← Volver a vehículos</a>
+
+      <div id="detalleVehiculo">
+        <p class="muted" style="margin-top:12px;">Cargando…</p>
+      </div>
+
+      <h3 style="font-size:0.95rem;">Documentos</h3>
+      <p class="muted">SOAT, revisión técnica, tarjeta de propiedad, o cualquier otro documento — con su fecha de vencimiento.</p>
+
+      <div class="panel">
+        <div class="error-msg" id="errorDoc"></div>
+        <div class="grid-2">
+          <div class="field">
+            <label for="tipoDocumento">Tipo de documento</label>
+            <input type="text" id="tipoDocumento" list="tiposComunes" placeholder="Ej. SOAT">
+            <datalist id="tiposComunes">
+              <option value="SOAT">
+              <option value="Revisión técnica">
+              <option value="Tarjeta de propiedad">
+              <option value="Póliza de seguro">
+              <option value="Contrato de alquiler">
+            </datalist>
+          </div>
+          <div class="field">
+            <label for="fechaVencimientoDoc">Fecha de vencimiento (opcional)</label>
+            <input type="date" id="fechaVencimientoDoc">
+          </div>
+        </div>
+        <label class="btn secondary" style="cursor:pointer;">
+          Elegir PDF y subir
+          <input type="file" id="archivoDocumento" accept="application/pdf" style="display:none;">
+        </label>
+      </div>
+
+      <div id="documentosList" class="doc-list"></div>
+      <div id="pdfPreviewArea"></div>
+    </main>
+  </div>
+
+  <script>
+    const VEHICULO_ID = {{ vehiculo.id }};
+  </script>
+  <script src="/static/js/vehiculo_detalle.js"></script>
+</body>
+</html>
