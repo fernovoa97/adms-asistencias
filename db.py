@@ -211,6 +211,40 @@ def inicializar_base_datos():
             cursor.execute("ALTER TABLE boletas_pago DROP COLUMN archivo_contenido")
             print("MIGRACIÓN: boletas de pago movidas a tabla de archivos múltiples")
 
+        # --- Actas de entrega: control de items entregados (y devueltos) por trabajador ---
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS actas_entrega (
+                id SERIAL PRIMARY KEY,
+                nombre TEXT NOT NULL,
+                descripcion TEXT,
+                creado_por TEXT,
+                creado_en TIMESTAMP NOT NULL
+            )
+        """)
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS actas_entrega_items (
+                id SERIAL PRIMARY KEY,
+                acta_id INTEGER NOT NULL REFERENCES actas_entrega(id) ON DELETE CASCADE,
+                nombre TEXT NOT NULL,
+                requiere_devolucion BOOLEAN NOT NULL DEFAULT FALSE,
+                orden INTEGER NOT NULL DEFAULT 0
+            )
+        """)
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS actas_entrega_registros (
+                id SERIAL PRIMARY KEY,
+                item_id INTEGER NOT NULL REFERENCES actas_entrega_items(id) ON DELETE CASCADE,
+                trabajador_id INTEGER NOT NULL REFERENCES trabajadores(id) ON DELETE CASCADE,
+                entregado BOOLEAN NOT NULL DEFAULT FALSE,
+                fecha_entrega DATE,
+                fecha_devolucion DATE,
+                actualizado_en TIMESTAMP,
+                UNIQUE(item_id, trabajador_id)
+            )
+        """)
+
         # --- Eventos del calendario de la empresa ---
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS eventos (

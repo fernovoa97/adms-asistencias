@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Actas de entrega · Personal y Asistencias</title>
+<link rel="icon" href="{{ url_for('static', filename='img/logo.png') }}">
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <div class="app-shell">
+    {% include '_sidebar.html' %}
+
+    <main class="main">
+      <h1>Actas de entrega</h1>
+      <p class="lead">Controla qué se le entregó a cada trabajador (y cuándo se devolvió, si corresponde).</p>
+
+      <div class="panel">
+        <h2 style="margin-top:0;font-size:1rem;">Nueva acta</h2>
+        <div class="error-msg" id="errorMsg"></div>
+
+        <form id="actaForm">
+          <div class="field">
+            <label for="nombreActa">Nombre del acta</label>
+            <input type="text" id="nombreActa" placeholder="Ej. Día del trabajador" required>
+          </div>
+          <div class="field">
+            <label for="descripcionActa">Descripción (opcional)</label>
+            <input type="text" id="descripcionActa" placeholder="Ej. Entrega de reconocimiento por el día del trabajador">
+          </div>
+
+          <label style="font-size:0.85rem;font-weight:600;display:block;margin-bottom:6px;">Ítems a entregar</label>
+          <div id="itemsRows"></div>
+          <button type="button" class="btn secondary" id="addItemBtn">+ Agregar ítem</button>
+
+          <div style="margin-top:16px;">
+            <button type="submit" class="btn">Crear acta</button>
+          </div>
+        </form>
+      </div>
+
+      <div id="actasList"></div>
+    </main>
+  </div>
+
+  <script src="/static/js/actas.js"></script>
+</body>
+</html>

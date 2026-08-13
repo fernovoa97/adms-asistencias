@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ acta.nombre }} · Actas de entrega</title>
+<link rel="icon" href="{{ url_for('static', filename='img/logo.png') }}">
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <div class="app-shell">
+    {% include '_sidebar.html' %}
+
+    <main class="main">
+      <a href="{{ url_for('actas.pagina_actas') }}" class="muted" style="text-decoration:none;">← Volver a actas</a>
+
+      <h1 style="margin-top:8px;">{{ acta.nombre }}</h1>
+      {% if acta.descripcion %}<p class="lead">{{ acta.descripcion }}</p>{% endif %}
+
+      <div class="panel" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+        <div class="field" style="flex:1;min-width:200px;margin-bottom:0;">
+          <label for="nuevoItemNombre">Agregar otro ítem</label>
+          <input type="text" id="nuevoItemNombre" placeholder="Ej. Chaleco de seguridad">
+        </div>
+        <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;margin-bottom:2px;">
+          <input type="checkbox" id="nuevoItemDevolucion">
+          Requiere devolución
+        </label>
+        <button type="button" class="btn secondary" id="agregarItemBtn">+ Agregar ítem</button>
+      </div>
+
+      <div class="error-msg" id="errorMsg"></div>
+
+      <div class="tabla-contenedor">
+        <table>
+          <thead id="tablaCabecera">
+            <tr><th>Trabajador</th></tr>
+          </thead>
+          <tbody id="tablaCuerpo">
+            <tr><td class="muted" style="text-align:center;padding:24px;">Cargando…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const ACTA_ID = {{ acta.id }};
+  </script>
+  <script src="/static/js/acta_detalle.js"></script>
+</body>
+</html>

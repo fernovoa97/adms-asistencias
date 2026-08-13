@@ -15,6 +15,7 @@ from resumen import resumen_bp
 from historial import historial_bp
 from calendario import calendario_bp
 from boletas import boletas_bp
+from actas import actas_bp
 from reglas_asistencia import horario_del_trabajador, evaluar_marcaje_entrada
 
 app = Flask(__name__)
@@ -66,6 +67,7 @@ app.register_blueprint(resumen_bp)
 app.register_blueprint(historial_bp)
 app.register_blueprint(calendario_bp)
 app.register_blueprint(boletas_bp)
+app.register_blueprint(actas_bp)
 
 
 # ==========================================
