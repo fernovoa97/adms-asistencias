@@ -19,6 +19,25 @@ from db import obtener_conexion
 trabajadores_bp = Blueprint("trabajadores", __name__)
 
 TAMANO_MAXIMO_PDF = 25 * 1024 * 1024  # 25 MB
+TAMANO_MAXIMO_FOTO = 5 * 1024 * 1024  # 5 MB
+TIPOS_FOTO_PERMITIDOS = {"image/jpeg", "image/png", "image/webp"}
+
+
+def _guardar_foto(cursor, worker_id, archivo_foto):
+    """Valida y guarda (o reemplaza) la foto de perfil de un trabajador.
+    Devuelve None si todo sale bien, o un mensaje de error."""
+    if archivo_foto.mimetype not in TIPOS_FOTO_PERMITIDOS:
+        return "La foto debe ser JPG, PNG o WEBP"
+
+    contenido = archivo_foto.read()
+    if len(contenido) > TAMANO_MAXIMO_FOTO:
+        return "La foto supera los 5MB"
+
+    cursor.execute(
+        "UPDATE trabajadores SET foto = %s, foto_mime = %s WHERE id = %s",
+        (psycopg2_binary(contenido), archivo_foto.mimetype, worker_id)
+    )
+    return None
 
 
 # ==========================================================
@@ -75,13 +94,14 @@ COLUMNAS_TRABAJADOR = [
 
 def _obtener_worker(cursor, worker_id):
     cursor.execute(
-        f"SELECT {', '.join(COLUMNAS_TRABAJADOR)} FROM trabajadores WHERE id = %s",
+        f"SELECT {', '.join(COLUMNAS_TRABAJADOR)}, (foto IS NOT NULL) AS tiene_foto "
+        f"FROM trabajadores WHERE id = %s",
         (worker_id,)
     )
     fila = cursor.fetchone()
     if not fila:
         return None
-    return _worker_a_dict(fila, COLUMNAS_TRABAJADOR)
+    return _worker_a_dict(fila, COLUMNAS_TRABAJADOR + ["tiene_foto"])
 
 
 def _obtener_carpetas(cursor, worker_id):
@@ -261,6 +281,13 @@ def api_crear_trabajador():
             conexion.rollback()
             return jsonify({"error": error_doc}), 400
 
+        archivo_foto = request.files.get("foto")
+        if archivo_foto and archivo_foto.filename:
+            error_foto = _guardar_foto(cursor, worker_id, archivo_foto)
+            if error_foto:
+                conexion.rollback()
+                return jsonify({"error": error_foto}), 400
+
         conexion.commit()
 
         worker = _obtener_worker(cursor, worker_id)
@@ -293,7 +320,7 @@ def api_buscar():
         # Sin texto de busqueda: se listan todos los trabajadores, para que
         # la pantalla no empiece vacia. Activos primero, luego inactivos.
         cursor.execute("""
-            SELECT id, nombres, apellidos, dni, cargo, area, estado
+            SELECT id, nombres, apellidos, dni, cargo, area, estado, (foto IS NOT NULL)
             FROM trabajadores
             ORDER BY (estado = 'INACTIVO'), nombres
             LIMIT 200
@@ -301,7 +328,7 @@ def api_buscar():
     else:
         patron = f"%{q}%"
         cursor.execute("""
-            SELECT id, nombres, apellidos, dni, cargo, area, estado
+            SELECT id, nombres, apellidos, dni, cargo, area, estado, (foto IS NOT NULL)
             FROM trabajadores
             WHERE (nombres || ' ' || apellidos) ILIKE %s
                OR dni ILIKE %s
@@ -313,7 +340,7 @@ def api_buscar():
     resultados = [
         {
             "id": f[0], "nombres": f[1], "apellidos": f[2], "dni": f[3],
-            "cargo": f[4], "area": f[5], "estado": f[6] or "ACTIVO"
+            "cargo": f[4], "area": f[5], "estado": f[6] or "ACTIVO", "tiene_foto": f[7]
         }
         for f in cursor.fetchall()
     ]
@@ -687,3 +714,74 @@ def servir_documento(doc_id):
         mimetype=tipo_mime or "application/pdf",
         headers={"Content-Disposition": f'inline; filename="{nombre}.pdf"'}
     )
+
+
+# ==========================================================
+# FOTO DE PERFIL
+# ==========================================================
+
+@trabajadores_bp.route("/api/trabajadores/<int:worker_id>/foto", methods=["POST"])
+@login_requerido
+def api_subir_foto(worker_id):
+    archivo_foto = request.files.get("foto")
+
+    if not archivo_foto or not archivo_foto.filename:
+        return jsonify({"error": "No se recibió ninguna foto"}), 400
+
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    try:
+        cursor.execute("SELECT id FROM trabajadores WHERE id = %s", (worker_id,))
+        if not cursor.fetchone():
+            return jsonify({"error": "Trabajador no encontrado"}), 404
+
+        error_foto = _guardar_foto(cursor, worker_id, archivo_foto)
+        if error_foto:
+            conexion.rollback()
+            return jsonify({"error": error_foto}), 400
+
+        conexion.commit()
+        return jsonify({"ok": True})
+    except Exception as error:
+        conexion.rollback()
+        print("ERROR SUBIENDO FOTO:", error)
+        return jsonify({"error": "No se pudo subir la foto"}), 500
+    finally:
+        cursor.close()
+        conexion.close()
+
+
+@trabajadores_bp.route("/api/trabajadores/<int:worker_id>/foto", methods=["DELETE"])
+@login_requerido
+def api_eliminar_foto(worker_id):
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    cursor.execute(
+        "UPDATE trabajadores SET foto = NULL, foto_mime = NULL WHERE id = %s",
+        (worker_id,)
+    )
+    encontrado = cursor.rowcount > 0
+    conexion.commit()
+    cursor.close()
+    conexion.close()
+
+    if not encontrado:
+        return jsonify({"error": "Trabajador no encontrado"}), 404
+    return jsonify({"ok": True})
+
+
+@trabajadores_bp.route("/foto/<int:worker_id>")
+@login_requerido
+def servir_foto(worker_id):
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    cursor.execute("SELECT foto, foto_mime FROM trabajadores WHERE id = %s", (worker_id,))
+    fila = cursor.fetchone()
+    cursor.close()
+    conexion.close()
+
+    if not fila or not fila[0]:
+        abort(404)
+
+    contenido, tipo_mime = fila
+    return Response(bytes(contenido), mimetype=tipo_mime or "image/jpeg")

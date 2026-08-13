@@ -77,6 +77,25 @@ function clearPreview(rowId) {
 document.getElementById('addFileBtn').addEventListener('click', createUploadRow);
 createUploadRow();
 
+// Vista previa de la foto de perfil al elegirla
+document.getElementById('foto').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  const preview = document.getElementById('avatarPreview');
+  if (!file) return;
+  const url = URL.createObjectURL(file);
+  preview.innerHTML = `<img src="${url}" alt="Vista previa">`;
+});
+
+// Mientras no se elija foto, mostrar las iniciales del nombre que se va escribiendo
+function actualizarIniciales() {
+  const preview = document.getElementById('avatarPreview');
+  if (preview.querySelector('img')) return; // ya hay foto elegida, no pisar
+  const nombres = document.getElementById('nombres').value.trim();
+  const inicial = nombres ? nombres[0].toUpperCase() : '?';
+  preview.innerHTML = `<span id="avatarPreviewIniciales">${inicial}</span>`;
+}
+document.getElementById('nombres').addEventListener('input', actualizarIniciales);
+
 document.getElementById('workerForm').addEventListener('submit', async (e) => {
   e.preventDefault();
 
@@ -91,6 +110,10 @@ document.getElementById('workerForm').addEventListener('submit', async (e) => {
   formData.append('dni', document.getElementById('dni').value.trim());
   formData.append('telefono', document.getElementById('telefono').value.trim());
   formData.append('email', document.getElementById('email').value.trim());
+  const fotoInput = document.getElementById('foto');
+  if (fotoInput.files[0]) {
+    formData.append('foto', fotoInput.files[0]);
+  }
   formData.append('emailCorporativo', document.getElementById('emailCorporativo').value.trim());
   formData.append('fechaIngreso', document.getElementById('fechaIngreso').value);
   formData.append('fechaNacimiento', document.getElementById('fechaNacimiento').value);
@@ -135,6 +158,7 @@ document.getElementById('workerForm').addEventListener('submit', async (e) => {
     document.getElementById('workerForm').reset();
     document.getElementById('uploadRows').innerHTML = '';
     document.getElementById('previewArea').innerHTML = '';
+    document.getElementById('avatarPreview').innerHTML = '<span id="avatarPreviewIniciales">?</span>';
     createUploadRow();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   } catch (err) {

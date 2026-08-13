@@ -20,6 +20,20 @@
 
       <form id="workerForm">
         <div class="panel">
+          <h2 style="margin-top:0;font-size:1rem;">Foto de perfil</h2>
+          <p class="muted">Opcional. Se muestra como avatar en la ficha del trabajador.</p>
+          <div style="display:flex;align-items:center;gap:16px;">
+            <div class="avatar-preview" id="avatarPreview">
+              <span id="avatarPreviewIniciales">?</span>
+            </div>
+            <label class="btn secondary" style="cursor:pointer;">
+              Elegir foto
+              <input type="file" id="foto" name="foto" accept="image/jpeg,image/png,image/webp" style="display:none;">
+            </label>
+          </div>
+        </div>
+
+        <div class="panel">
           <h2 style="margin-top:0;font-size:1rem;">Datos personales</h2>
           <div class="grid-2">
             <div class="field">

@@ -560,6 +560,33 @@ tr.fila-finde:hover { background: #f3f4f6; }
   max-width: 220px;
 }
 
+/* ---------- Avatar / foto de perfil de trabajadores ---------- */
+.avatar-preview,
+.avatar-trabajador,
+.avatar-trabajador-chico {
+  border-radius: 50%;
+  background: linear-gradient(135deg, #fbbf24, #9333ea);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.avatar-preview img,
+.avatar-trabajador img,
+.avatar-trabajador-chico img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-preview { width: 64px; height: 64px; font-size: 1.5rem; }
+.avatar-trabajador { width: 72px; height: 72px; font-size: 1.7rem; }
+.avatar-trabajador-chico { width: 36px; height: 36px; font-size: 0.95rem; }
+
 .archivos-lista { display: flex; flex-direction: column; gap: 4px; margin-bottom: 4px; }
 
 .archivo-item {

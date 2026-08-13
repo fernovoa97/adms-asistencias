@@ -37,13 +37,20 @@ function renderResults(results) {
     const inactivo = w.estado === 'INACTIVO';
     const item = document.createElement('div');
     item.className = 'result-item';
+    const inicial = (w.nombres || '?')[0].toUpperCase();
+    const avatarHtml = w.tiene_foto
+      ? `<img src="/foto/${w.id}" alt="">`
+      : `<span>${inicial}</span>`;
     item.innerHTML = `
-      <div>
-        <div class="name">
-          ${escapeHtml(w.nombres)} ${escapeHtml(w.apellidos)}
-          ${inactivo ? '<span class="tag-inactivo">Inactivo</span>' : ''}
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div class="avatar-trabajador-chico">${avatarHtml}</div>
+        <div>
+          <div class="name">
+            ${escapeHtml(w.nombres)} ${escapeHtml(w.apellidos)}
+            ${inactivo ? '<span class="tag-inactivo">Inactivo</span>' : ''}
+          </div>
+          <div class="meta">DNI: ${escapeHtml(w.dni || '—')} ${w.cargo ? '· ' + escapeHtml(w.cargo) : ''}</div>
         </div>
-        <div class="meta">DNI: ${escapeHtml(w.dni || '—')} ${w.cargo ? '· ' + escapeHtml(w.cargo) : ''}</div>
       </div>
       <span class="tag">${w.area ? escapeHtml(w.area) : 'Ver detalle'}</span>
     `;
@@ -147,13 +154,30 @@ function renderViewMode(w) {
     .map((c) => `<option value="${c.id}">${escapeHtml(c.nombre)}</option>`)
     .join('');
 
+  const inicial = (w.nombres || '?')[0].toUpperCase();
+  const avatarHtml = w.tiene_foto
+    ? `<img src="/foto/${w.id}?v=${Date.now()}" alt="">`
+    : `<span>${inicial}</span>`;
+
   workerDetail.innerHTML = `
     <div class="panel">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
-        <h2 style="margin-top:0;font-size:1.1rem;">${escapeHtml(w.nombres)} ${escapeHtml(w.apellidos)}</h2>
+        <div style="display:flex;align-items:center;gap:14px;">
+          <div class="avatar-trabajador" id="avatarFicha">${avatarHtml}</div>
+          <div>
+            <h2 style="margin:0;font-size:1.1rem;">${escapeHtml(w.nombres)} ${escapeHtml(w.apellidos)}</h2>
+            <div style="display:flex;gap:8px;margin-top:6px;">
+              <label class="btn secondary" style="cursor:pointer;font-size:0.8rem;padding:5px 10px;">
+                ${w.tiene_foto ? 'Cambiar foto' : 'Agregar foto'}
+                <input type="file" id="inputFoto" accept="image/jpeg,image/png,image/webp" style="display:none;">
+              </label>
+              ${w.tiene_foto ? `<button type="button" class="btn danger" id="quitarFotoBtn" style="font-size:0.8rem;padding:5px 10px;">Quitar foto</button>` : ''}
+            </div>
+          </div>
+        </div>
         <button class="btn secondary" id="editWorkerBtn">Editar información</button>
       </div>
-      <div class="detail-grid">${fieldsHtml}</div>
+      <div class="detail-grid" style="margin-top:18px;">${fieldsHtml}</div>
       ${w.observaciones ? `<div class="detail-item" style="margin-bottom:16px;"><div class="label">Observaciones</div><div class="value">${escapeHtml(w.observaciones)}</div></div>` : ''}
 
       <h3 style="font-size:0.95rem;">Documentos</h3>
@@ -202,6 +226,47 @@ function renderViewMode(w) {
   bindContratoForm(w.id);
   bindCarpetas(w);
   bindUploadDocs(w);
+  bindFoto(w);
+}
+
+function bindFoto(w) {
+  const inputFoto = document.getElementById('inputFoto');
+  inputFoto.addEventListener('change', async () => {
+    const file = inputFoto.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('foto', file);
+
+    try {
+      const res = await fetch(`/api/trabajadores/${w.id}/foto`, { method: 'POST', body: formData });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'No se pudo subir la foto');
+        return;
+      }
+      loadDetail(w.id);
+    } catch (err) {
+      alert('Error de conexión con el servidor');
+    }
+  });
+
+  const quitarBtn = document.getElementById('quitarFotoBtn');
+  if (quitarBtn) {
+    quitarBtn.addEventListener('click', async () => {
+      if (!confirm('¿Quitar la foto de perfil de este trabajador?')) return;
+      try {
+        const res = await fetch(`/api/trabajadores/${w.id}/foto`, { method: 'DELETE' });
+        if (!res.ok) {
+          alert('No se pudo quitar la foto');
+          return;
+        }
+        loadDetail(w.id);
+      } catch (err) {
+        alert('Error de conexión con el servidor');
+      }
+    });
+  }
 }
 
 function renderEditForm(w) {
