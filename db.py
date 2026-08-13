@@ -245,6 +245,26 @@ def inicializar_base_datos():
             )
         """)
 
+        # --- Vacaciones: ajuste manual del acumulado, y registro de dias tomados ---
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS vacaciones_ajustes (
+                trabajador_id INTEGER PRIMARY KEY REFERENCES trabajadores(id) ON DELETE CASCADE,
+                dias_acumulados_manual NUMERIC(6,2),
+                actualizado_en TIMESTAMP
+            )
+        """)
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS vacaciones_tomadas (
+                id SERIAL PRIMARY KEY,
+                trabajador_id INTEGER NOT NULL REFERENCES trabajadores(id) ON DELETE CASCADE,
+                fecha DATE NOT NULL,
+                dias NUMERIC(5,2) NOT NULL,
+                observacion TEXT,
+                creado_en TIMESTAMP NOT NULL
+            )
+        """)
+
         # --- Eventos del calendario de la empresa ---
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS eventos (

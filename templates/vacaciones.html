@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vacaciones · Personal y Asistencias</title>
+<link rel="icon" href="{{ url_for('static', filename='img/logo.png') }}">
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <div class="app-shell">
+    {% include '_sidebar.html' %}
+
+    <main class="main">
+      <h1>Vacaciones</h1>
+      <p class="lead">2.5 días por cada mes cumplido desde la fecha de ingreso. Haz clic en un trabajador para ver el detalle o ajustarlo.</p>
+
+      <div class="tabla-contenedor">
+        <table>
+          <thead>
+            <tr>
+              <th>Trabajador</th>
+              <th>Fecha de ingreso</th>
+              <th>Meses cumplidos</th>
+              <th>Acumulado</th>
+              <th>Tomadas</th>
+              <th>Saldo</th>
+            </tr>
+          </thead>
+          <tbody id="tablaVacaciones">
+            <tr><td colspan="6" class="muted" style="text-align:center;padding:24px;">Cargando…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+
+  <script src="/static/js/vacaciones.js"></script>
+</body>
+</html>
