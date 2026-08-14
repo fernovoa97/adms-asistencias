@@ -357,6 +357,74 @@ def debug_diagnostico():
 
 
 # ==========================================
+# ALERTA DE INASISTENCIA (sedes remotas, ej. Lurin)
+# ==========================================
+
+def _trabajadores_faltantes_hoy(hoy):
+    """Trabajadores activos, de una sede marcada con 'alerta_inasistencia',
+    que a esta hora ya deberian haber marcado su entrada (paso su
+    tolerancia de 30 min) y no lo hicieron -- sin contar feriados ni
+    trabajadores con una justificacion ya cargada para hoy en Ajustes."""
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+
+    cursor.execute("SELECT 1 FROM feriados WHERE fecha = %s", (hoy,))
+    if cursor.fetchone():
+        cursor.close()
+        conexion.close()
+        return []  # hoy es feriado: no aplica ninguna alerta
+
+    cursor.execute("""
+        SELECT t.id, t.nombres, t.apellidos, t.codigo_empleado, t.dni,
+               t.hora_entrada, t.hora_salida, s.nombre
+        FROM trabajadores t
+        JOIN sedes s ON s.id = t.sede_id
+        WHERE t.estado IS DISTINCT FROM 'INACTIVO'
+          AND s.alerta_inasistencia = TRUE
+    """)
+    candidatos = cursor.fetchall()
+
+    if not candidatos:
+        cursor.close()
+        conexion.close()
+        return []
+
+    ahora = datetime.now(ZONA_HORARIA_LOCAL)
+    faltantes = []
+
+    for (t_id, nombres, apellidos, codigo, dni, hora_ent_cfg,
+         hora_sal_cfg, sede_nombre) in candidatos:
+
+        hora_entrada_prog, _ = horario_del_trabajador(hora_ent_cfg, hora_sal_cfg)
+        limite = datetime.combine(hoy, hora_entrada_prog, tzinfo=ZONA_HORARIA_LOCAL) + timedelta(minutes=30)
+
+        if ahora < limite:
+            continue  # todavia no vence ni siquiera la tolerancia
+
+        cursor.execute("""
+            SELECT 1 FROM asistencias
+            WHERE (codigo_empleado = %s OR codigo_empleado = %s)
+              AND fecha = %s AND tipo_marcaje = '0'
+            LIMIT 1
+        """, (codigo, dni, hoy))
+        if cursor.fetchone():
+            continue  # ya marco entrada hoy
+
+        cursor.execute(
+            "SELECT 1 FROM ajustes_asistencia WHERE trabajador_id = %s AND fecha = %s",
+            (t_id, hoy)
+        )
+        if cursor.fetchone():
+            continue  # ya tiene justificacion cargada para hoy
+
+        faltantes.append({"id": t_id, "nombre": f"{nombres} {apellidos}", "sede": sede_nombre})
+
+    cursor.close()
+    conexion.close()
+    return faltantes
+
+
+# ==========================================
 # PANEL WEB (protegido con login)
 # ==========================================
 
@@ -517,6 +585,8 @@ def inicio():
     cursor.close()
     conexion.close()
 
+    faltantes_hoy = _trabajadores_faltantes_hoy(hoy)
+
     return render_template(
         "index.html",
         grupos=grupos,
@@ -527,6 +597,7 @@ def inicio():
         entradas_hoy=entradas_hoy,
         salidas_hoy=salidas_hoy,
         ultimo_marcaje=(ultimo_marcaje[0] if ultimo_marcaje else "Sin registros"),
+        faltantes_hoy=faltantes_hoy,
         active_page="inicio"
     )
 

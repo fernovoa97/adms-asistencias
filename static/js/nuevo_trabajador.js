@@ -77,6 +77,79 @@ function clearPreview(rowId) {
 document.getElementById('addFileBtn').addEventListener('click', createUploadRow);
 createUploadRow();
 
+// ---------- Sedes ----------
+
+async function cargarSedes(seleccionarId) {
+  const select = document.getElementById('sedeId');
+  try {
+    const res = await fetch('/api/sedes');
+    const data = await res.json();
+    select.innerHTML = '<option value="">Sin asignar</option>';
+    (data.sedes || []).forEach((s) => {
+      const opt = document.createElement('option');
+      opt.value = s.id;
+      opt.textContent = s.nombre;
+      select.appendChild(opt);
+    });
+    if (seleccionarId) select.value = seleccionarId;
+  } catch (err) {
+    // si falla, se queda solo la opcion "Sin asignar"
+  }
+}
+cargarSedes();
+
+const nuevaSedeModalOverlay = document.getElementById('nuevaSedeModalOverlay');
+
+document.getElementById('nuevaSedeBtn').addEventListener('click', () => {
+  document.getElementById('nuevaSedeErrorMsg').style.display = 'none';
+  document.getElementById('nuevaSedeNombre').value = '';
+  document.getElementById('nuevaSedeAlerta').checked = false;
+  nuevaSedeModalOverlay.style.display = 'flex';
+});
+
+document.getElementById('nuevaSedeCancelarBtn').addEventListener('click', () => {
+  nuevaSedeModalOverlay.style.display = 'none';
+});
+
+nuevaSedeModalOverlay.addEventListener('click', (e) => {
+  if (e.target === nuevaSedeModalOverlay) nuevaSedeModalOverlay.style.display = 'none';
+});
+
+document.getElementById('nuevaSedeGuardarBtn').addEventListener('click', async () => {
+  const errorMsg = document.getElementById('nuevaSedeErrorMsg');
+  errorMsg.style.display = 'none';
+
+  const nombre = document.getElementById('nuevaSedeNombre').value.trim();
+  const alertaInasistencia = document.getElementById('nuevaSedeAlerta').checked;
+
+  if (!nombre) {
+    errorMsg.textContent = 'Escribe el nombre de la sede.';
+    errorMsg.style.display = 'block';
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/sedes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre, alertaInasistencia })
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      errorMsg.textContent = data.error || 'No se pudo crear la sede';
+      errorMsg.style.display = 'block';
+      return;
+    }
+
+    await cargarSedes(data.id);
+    nuevaSedeModalOverlay.style.display = 'none';
+  } catch (err) {
+    errorMsg.textContent = 'Error de conexión con el servidor';
+    errorMsg.style.display = 'block';
+  }
+});
+
 // Vista previa de la foto de perfil al elegirla
 document.getElementById('foto').addEventListener('change', (e) => {
   const file = e.target.files[0];
@@ -110,6 +183,7 @@ document.getElementById('workerForm').addEventListener('submit', async (e) => {
   formData.append('dni', document.getElementById('dni').value.trim());
   formData.append('telefono', document.getElementById('telefono').value.trim());
   formData.append('email', document.getElementById('email').value.trim());
+  formData.append('sedeId', document.getElementById('sedeId').value);
   const fotoInput = document.getElementById('foto');
   if (fotoInput.files[0]) {
     formData.append('foto', fotoInput.files[0]);

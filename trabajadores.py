@@ -88,20 +88,21 @@ COLUMNAS_TRABAJADOR = [
     "estado", "supervisor", "sueldo_neto", "telefono", "email", "email_corporativo",
     "fecha_ingreso", "fecha_fin_contrato", "fecha_renovacion", "fecha_nacimiento",
     "direccion", "observaciones", "historial_renovaciones", "hora_entrada",
-    "hora_salida", "fecha_registro"
+    "hora_salida", "sede_id", "fecha_registro"
 ]
 
 
 def _obtener_worker(cursor, worker_id):
+    columnas_calificadas = ", ".join(f"t.{c}" for c in COLUMNAS_TRABAJADOR)
     cursor.execute(
-        f"SELECT {', '.join(COLUMNAS_TRABAJADOR)}, (foto IS NOT NULL) AS tiene_foto "
-        f"FROM trabajadores WHERE id = %s",
+        f"SELECT {columnas_calificadas}, (t.foto IS NOT NULL) AS tiene_foto, s.nombre AS sede_nombre "
+        f"FROM trabajadores t LEFT JOIN sedes s ON s.id = t.sede_id WHERE t.id = %s",
         (worker_id,)
     )
     fila = cursor.fetchone()
     if not fila:
         return None
-    return _worker_a_dict(fila, COLUMNAS_TRABAJADOR + ["tiene_foto"])
+    return _worker_a_dict(fila, COLUMNAS_TRABAJADOR + ["tiene_foto", "sede_nombre"])
 
 
 def _obtener_carpetas(cursor, worker_id):
@@ -187,6 +188,63 @@ def _guardar_documentos(cursor, worker_id, archivos, nombres_docs, carpetas_ids=
 
 
 # ==========================================================
+# SEDES (combo administrable)
+# ==========================================================
+
+@trabajadores_bp.route("/api/sedes")
+@login_requerido
+def api_listar_sedes():
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    cursor.execute("""
+        SELECT id, nombre, alerta_inasistencia
+        FROM sedes
+        ORDER BY nombre
+    """)
+    sedes = [
+        {"id": f[0], "nombre": f[1], "alertaInasistencia": f[2]}
+        for f in cursor.fetchall()
+    ]
+    cursor.close()
+    conexion.close()
+    return jsonify({"sedes": sedes})
+
+
+@trabajadores_bp.route("/api/sedes", methods=["POST"])
+@login_requerido
+def api_crear_sede():
+    datos = request.get_json(silent=True) or {}
+    nombre = (datos.get("nombre") or "").strip()
+    alerta_inasistencia = bool(datos.get("alertaInasistencia"))
+
+    if not nombre:
+        return jsonify({"error": "El nombre de la sede es obligatorio"}), 400
+
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    try:
+        cursor.execute("SELECT id FROM sedes WHERE nombre ILIKE %s", (nombre,))
+        if cursor.fetchone():
+            return jsonify({"error": "Ya existe una sede con ese nombre"}), 400
+
+        cursor.execute("""
+            INSERT INTO sedes (nombre, alerta_inasistencia, creado_en)
+            VALUES (%s, %s, %s)
+            RETURNING id
+        """, (nombre, alerta_inasistencia, datetime.now()))
+        sede_id = cursor.fetchone()[0]
+        conexion.commit()
+        return jsonify({"ok": True, "id": sede_id, "nombre": nombre}), 201
+    except Exception as error:
+        conexion.rollback()
+        print("ERROR CREANDO SEDE:", error)
+        return jsonify({"error": "No se pudo crear la sede"}), 500
+    finally:
+        cursor.close()
+        conexion.close()
+
+
+# ==========================================================
 # PAGINAS
 # ==========================================================
 
@@ -243,6 +301,7 @@ def api_crear_trabajador():
     fecha_fin = _fecha_o_none(request.form.get("fechaFinContrato"))
     fecha_renovacion = _fecha_o_none(request.form.get("fechaRenovacion"))
     fecha_nacimiento = _fecha_o_none(request.form.get("fechaNacimiento"))
+    sede_id = request.form.get("sedeId", type=int)
     direccion = request.form.get("direccion", "").strip()
     observaciones = request.form.get("observaciones", "").strip()
 
@@ -258,15 +317,15 @@ def api_crear_trabajador():
             INSERT INTO trabajadores (
                 dni, nombres, apellidos, cargo, area, supervisor, sueldo_neto,
                 telefono, email, email_corporativo, fecha_ingreso, fecha_fin_contrato,
-                fecha_renovacion, fecha_nacimiento, direccion, observaciones,
+                fecha_renovacion, fecha_nacimiento, sede_id, direccion, observaciones,
                 estado, fecha_registro
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'ACTIVO', %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'ACTIVO', %s)
             RETURNING id
         """, (
             dni, nombres, apellidos, cargo, area, supervisor, sueldo_neto,
             telefono, email, email_corporativo, fecha_ingreso, fecha_fin,
-            fecha_renovacion, fecha_nacimiento, direccion, observaciones, datetime.now()
+            fecha_renovacion, fecha_nacimiento, sede_id, direccion, observaciones, datetime.now()
         ))
         worker_id = cursor.fetchone()[0]
 
@@ -320,27 +379,32 @@ def api_buscar():
         # Sin texto de busqueda: se listan todos los trabajadores, para que
         # la pantalla no empiece vacia. Activos primero, luego inactivos.
         cursor.execute("""
-            SELECT id, nombres, apellidos, dni, cargo, area, estado, (foto IS NOT NULL)
-            FROM trabajadores
-            ORDER BY (estado = 'INACTIVO'), nombres
+            SELECT t.id, t.nombres, t.apellidos, t.dni, t.cargo, t.area, t.estado,
+                   (t.foto IS NOT NULL), s.nombre
+            FROM trabajadores t
+            LEFT JOIN sedes s ON s.id = t.sede_id
+            ORDER BY (t.estado = 'INACTIVO'), t.nombres
             LIMIT 200
         """)
     else:
         patron = f"%{q}%"
         cursor.execute("""
-            SELECT id, nombres, apellidos, dni, cargo, area, estado, (foto IS NOT NULL)
-            FROM trabajadores
-            WHERE (nombres || ' ' || apellidos) ILIKE %s
-               OR dni ILIKE %s
-               OR codigo_empleado ILIKE %s
-            ORDER BY (estado = 'INACTIVO'), nombres
+            SELECT t.id, t.nombres, t.apellidos, t.dni, t.cargo, t.area, t.estado,
+                   (t.foto IS NOT NULL), s.nombre
+            FROM trabajadores t
+            LEFT JOIN sedes s ON s.id = t.sede_id
+            WHERE (t.nombres || ' ' || t.apellidos) ILIKE %s
+               OR t.dni ILIKE %s
+               OR t.codigo_empleado ILIKE %s
+            ORDER BY (t.estado = 'INACTIVO'), t.nombres
             LIMIT 50
         """, (patron, patron, patron))
 
     resultados = [
         {
             "id": f[0], "nombres": f[1], "apellidos": f[2], "dni": f[3],
-            "cargo": f[4], "area": f[5], "estado": f[6] or "ACTIVO", "tiene_foto": f[7]
+            "cargo": f[4], "area": f[5], "estado": f[6] or "ACTIVO", "tiene_foto": f[7],
+            "sede": f[8]
         }
         for f in cursor.fetchall()
     ]
@@ -453,7 +517,7 @@ def api_actualizar(worker_id):
                 nombres = %s, apellidos = %s, dni = %s, cargo = %s, area = %s,
                 supervisor = %s, sueldo_neto = %s, estado = %s,
                 telefono = %s, email = %s, email_corporativo = %s,
-                fecha_ingreso = %s, fecha_nacimiento = %s,
+                fecha_ingreso = %s, fecha_nacimiento = %s, sede_id = %s,
                 direccion = %s, observaciones = %s,
                 hora_entrada = %s, hora_salida = %s
             WHERE id = %s
@@ -469,6 +533,7 @@ def api_actualizar(worker_id):
             (datos.get("emailCorporativo") or "").strip(),
             _fecha_o_none(datos.get("fechaIngreso")),
             _fecha_o_none(datos.get("fechaNacimiento")),
+            datos.get("sedeId") or None,
             (datos.get("direccion") or "").strip(),
             (datos.get("observaciones") or "").strip(),
             (datos.get("horaEntrada") or "").strip() or None,

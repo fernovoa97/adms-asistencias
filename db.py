@@ -303,6 +303,17 @@ def inicializar_base_datos():
             )
         """)
 
+        # --- Sedes (combo administrable, con alerta opcional de inasistencia) ---
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS sedes (
+                id SERIAL PRIMARY KEY,
+                nombre TEXT NOT NULL UNIQUE,
+                alerta_inasistencia BOOLEAN NOT NULL DEFAULT FALSE,
+                creado_en TIMESTAMP NOT NULL
+            )
+        """)
+        _agregar_columna_si_falta(cursor, "trabajadores", "sede_id", "INTEGER REFERENCES sedes(id) ON DELETE SET NULL")
+
         # --- Eventos del calendario de la empresa ---
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS eventos (

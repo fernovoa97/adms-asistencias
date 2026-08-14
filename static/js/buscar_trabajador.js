@@ -109,6 +109,7 @@ function renderViewMode(w) {
     ['Código de empleado', w.codigo_empleado || '— (no enrolado en el biométrico)'],
     ['Cargo', w.cargo || '—'],
     ['Área', w.area || '—'],
+    ['Sede', w.sede_nombre || '—'],
     ['Supervisor', w.supervisor || '—'],
     ['Sueldo neto', w.sueldo_neto != null ? formatearSueldo(w.sueldo_neto) : '—'],
     ['Teléfono', w.telefono || '—'],
@@ -353,6 +354,15 @@ function renderEditForm(w) {
             <input type="text" id="editArea" value="${escapeAttr(w.area || '')}">
           </div>
           <div class="field">
+            <label for="editSedeId">Sede</label>
+            <div style="display:flex;gap:8px;">
+              <select id="editSedeId" style="flex:1;">
+                <option value="">Sin asignar</option>
+              </select>
+              <button type="button" class="btn secondary" id="nuevaSedeBtn" style="white-space:nowrap;">+ Nueva</button>
+            </div>
+          </div>
+          <div class="field">
             <label for="editSupervisor">Supervisor</label>
             <input type="text" id="editSupervisor" value="${escapeAttr(w.supervisor || '')}">
           </div>
@@ -379,6 +389,9 @@ function renderEditForm(w) {
 
   document.getElementById('editCancelBtn').addEventListener('click', () => renderViewMode(w));
 
+  cargarSedesEnEdicion(w.sede_id);
+  bindNuevaSedeModal();
+
   document.getElementById('editForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const errorMsg = document.getElementById('editErrorMsg');
@@ -398,6 +411,7 @@ function renderEditForm(w) {
       horaSalida: document.getElementById('editHoraSalida').value,
       cargo: document.getElementById('editCargo').value.trim(),
       area: document.getElementById('editArea').value.trim(),
+      sedeId: document.getElementById('editSedeId').value,
       supervisor: document.getElementById('editSupervisor').value.trim(),
       sueldoNeto: document.getElementById('editSueldoNeto').value,
       direccion: document.getElementById('editDireccion').value.trim(),
@@ -684,6 +698,83 @@ function formatearSueldo(monto) {
   const numero = Number(monto);
   if (Number.isNaN(numero)) return '—';
   return 'S/ ' + numero.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// ---------- Sedes ----------
+
+async function cargarSedesEnEdicion(sedeIdActual) {
+  const select = document.getElementById('editSedeId');
+  if (!select) return;
+  try {
+    const res = await fetch('/api/sedes');
+    const data = await res.json();
+    select.innerHTML = '<option value="">Sin asignar</option>';
+    (data.sedes || []).forEach((s) => {
+      const opt = document.createElement('option');
+      opt.value = s.id;
+      opt.textContent = s.nombre;
+      select.appendChild(opt);
+    });
+    if (sedeIdActual) select.value = sedeIdActual;
+  } catch (err) {
+    // si falla, se queda solo la opcion "Sin asignar"
+  }
+}
+
+function bindNuevaSedeModal() {
+  const overlay = document.getElementById('nuevaSedeModalOverlay');
+  const btnAbrir = document.getElementById('nuevaSedeBtn');
+  if (!overlay || !btnAbrir) return;
+
+  btnAbrir.addEventListener('click', () => {
+    document.getElementById('nuevaSedeErrorMsg').style.display = 'none';
+    document.getElementById('nuevaSedeNombre').value = '';
+    document.getElementById('nuevaSedeAlerta').checked = false;
+    overlay.style.display = 'flex';
+  });
+
+  document.getElementById('nuevaSedeCancelarBtn').addEventListener('click', () => {
+    overlay.style.display = 'none';
+  });
+
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) overlay.style.display = 'none';
+  });
+
+  document.getElementById('nuevaSedeGuardarBtn').addEventListener('click', async () => {
+    const errorMsg = document.getElementById('nuevaSedeErrorMsg');
+    errorMsg.style.display = 'none';
+
+    const nombre = document.getElementById('nuevaSedeNombre').value.trim();
+    const alertaInasistencia = document.getElementById('nuevaSedeAlerta').checked;
+
+    if (!nombre) {
+      errorMsg.textContent = 'Escribe el nombre de la sede.';
+      errorMsg.style.display = 'block';
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/sedes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre, alertaInasistencia })
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        errorMsg.textContent = data.error || 'No se pudo crear la sede';
+        errorMsg.style.display = 'block';
+        return;
+      }
+
+      await cargarSedesEnEdicion(data.id);
+      overlay.style.display = 'none';
+    } catch (err) {
+      errorMsg.textContent = 'Error de conexión con el servidor';
+      errorMsg.style.display = 'block';
+    }
+  });
 }
 
 function escapeHtml(str) {

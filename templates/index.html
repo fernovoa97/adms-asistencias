@@ -15,6 +15,21 @@
       <h1>📋 Control de Asistencias</h1>
       <p class="lead">Marcajes recibidos desde el dispositivo biométrico.</p>
 
+      {% if faltantes_hoy %}
+      <div class="alerta-faltantes">
+        <div class="alerta-faltantes-titulo">⚠ {{ faltantes_hoy|length }} trabajador(es) sin marcar hoy en sede remota</div>
+        <div class="alerta-faltantes-lista">
+          {% for f in faltantes_hoy %}
+          <span class="badge doc-vencido">{{ f.nombre }} — {{ f.sede }}</span>
+          {% endfor %}
+        </div>
+        <p class="muted" style="margin:8px 0 0;font-size:0.8rem;">
+          Si entraron sin marcar, avísales. Si ya tienen una justificación válida, agrégala en
+          <a href="{{ url_for('ajustes.pagina_ajustes') }}">Ajustes</a> y desaparecen de aquí solos.
+        </p>
+      </div>
+      {% endif %}
+
       <div class="kpis">
         <div class="card azul">
           <h3>Total marcajes</h3>

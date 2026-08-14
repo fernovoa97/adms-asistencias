@@ -26,6 +26,25 @@
 
       <div id="resultList" class="result-list"></div>
       <div id="workerDetail"></div>
+
+      <div id="nuevaSedeModalOverlay" class="modal-overlay" style="display:none;">
+        <div class="modal-box">
+          <h2 style="margin-top:0;font-size:1.05rem;">Nueva sede</h2>
+          <div class="error-msg" id="nuevaSedeErrorMsg"></div>
+          <div class="field">
+            <label for="nuevaSedeNombre">Nombre de la sede</label>
+            <input type="text" id="nuevaSedeNombre" placeholder="Ej. Lurín">
+          </div>
+          <label style="display:flex;align-items:center;gap:8px;font-size:0.85rem;margin-bottom:16px;">
+            <input type="checkbox" id="nuevaSedeAlerta">
+            Avisar si un trabajador de esta sede no marca asistencia (sedes remotas)
+          </label>
+          <div style="display:flex;gap:10px;">
+            <button type="button" class="btn secondary" id="nuevaSedeCancelarBtn">Cancelar</button>
+            <button type="button" class="btn" id="nuevaSedeGuardarBtn">Guardar sede</button>
+          </div>
+        </div>
+      </div>
     </main>
   </div>
 
