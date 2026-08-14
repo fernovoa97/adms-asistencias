@@ -134,6 +134,37 @@ def api_listar_ajustes_trabajador(trabajador_id):
     return jsonify({"ajustes": ajustes})
 
 
+@ajustes_bp.route("/api/ajustes")
+@login_requerido
+def api_listar_todos_los_ajustes():
+    """Todas las justificaciones de todos los trabajadores, para verlas de
+    un vistazo sin tener que buscar persona por persona (igual que ya se
+    puede con los feriados)."""
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    cursor.execute("""
+        SELECT a.id, a.fecha, a.motivo, a.creado_por, a.trabajador_id,
+               t.nombres, t.apellidos
+        FROM ajustes_asistencia a
+        JOIN trabajadores t ON t.id = a.trabajador_id
+        ORDER BY a.fecha DESC
+    """)
+    ajustes = [
+        {
+            "id": fila[0],
+            "fecha": str(fila[1]),
+            "motivo": fila[2],
+            "creado_por": fila[3],
+            "trabajadorId": fila[4],
+            "trabajadorNombre": f"{fila[5]} {fila[6]}"
+        }
+        for fila in cursor.fetchall()
+    ]
+    cursor.close()
+    conexion.close()
+    return jsonify({"ajustes": ajustes})
+
+
 @ajustes_bp.route("/api/ajustes", methods=["POST"])
 @login_requerido
 def api_crear_ajuste():

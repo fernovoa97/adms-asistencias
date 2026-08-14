@@ -4,6 +4,8 @@ const workerDetail = document.getElementById('workerDetail');
 
 let debounceTimer = null;
 let uploadRowCount = 0;
+let ultimosResultados = [];
+let tabActual = 'activos';
 
 searchInput.addEventListener('input', () => {
   clearTimeout(debounceTimer);
@@ -11,11 +13,22 @@ searchInput.addEventListener('input', () => {
   debounceTimer = setTimeout(() => doSearch(q), 180);
 });
 
+document.querySelectorAll('#tabsEstado a').forEach((tab) => {
+  tab.addEventListener('click', (e) => {
+    e.preventDefault();
+    tabActual = tab.dataset.tab;
+    document.querySelectorAll('#tabsEstado a').forEach((t) => t.classList.remove('active'));
+    tab.classList.add('active');
+    renderResults(ultimosResultados);
+  });
+});
+
 async function doSearch(q) {
   try {
     const res = await fetch(`/api/trabajadores/buscar?q=${encodeURIComponent(q)}`);
     const data = await res.json();
-    renderResults(data.results || []);
+    ultimosResultados = data.results || [];
+    renderResults(ultimosResultados);
   } catch (err) {
     resultList.innerHTML = '<div class="empty-state">Error al buscar</div>';
   }
@@ -26,9 +39,17 @@ async function doSearch(q) {
 // filtrando esa misma lista.
 doSearch('');
 
-function renderResults(results) {
+function renderResults(todosLosResultados) {
+  const activos = todosLosResultados.filter((w) => w.estado !== 'INACTIVO');
+  const inactivos = todosLosResultados.filter((w) => w.estado === 'INACTIVO');
+
+  document.getElementById('contadorActivos').textContent = activos.length ? `(${activos.length})` : '';
+  document.getElementById('contadorInactivos').textContent = inactivos.length ? `(${inactivos.length})` : '';
+
+  const results = tabActual === 'inactivos' ? inactivos : activos;
+
   if (results.length === 0) {
-    resultList.innerHTML = '<div class="empty-state">No se encontraron trabajadores</div>';
+    resultList.innerHTML = `<div class="empty-state">No se encontraron trabajadores ${tabActual === 'inactivos' ? 'inactivos' : 'activos'}</div>`;
     return;
   }
 

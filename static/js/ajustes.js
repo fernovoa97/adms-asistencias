@@ -124,6 +124,7 @@ function renderFormularioAjuste(w) {
       successMsg.style.display = 'block';
       document.getElementById('ajusteForm').reset();
       cargarAjustesDeTrabajador(w.id);
+      cargarTodosLosAjustes();
     } catch (err) {
       errorMsg.textContent = 'Error de conexión con el servidor';
       errorMsg.style.display = 'block';
@@ -181,6 +182,7 @@ async function eliminarAjuste(ajusteId, trabajadorId) {
       return;
     }
     cargarAjustesDeTrabajador(trabajadorId);
+    cargarTodosLosAjustes();
   } catch (err) {
     alert('Error de conexión con el servidor');
   }
@@ -271,6 +273,42 @@ async function eliminarFeriado(fecha) {
   }
 }
 
+// ---------- Todas las justificaciones (vista general) ----------
+
+async function cargarTodosLosAjustes() {
+  const lista = document.getElementById('listaTodosLosAjustes');
+  try {
+    const res = await fetch('/api/ajustes');
+    const data = await res.json();
+    renderTodosLosAjustes(data.ajustes || []);
+  } catch (err) {
+    lista.innerHTML = '<p class="muted">Error al cargar</p>';
+  }
+}
+
+function renderTodosLosAjustes(ajustes) {
+  const lista = document.getElementById('listaTodosLosAjustes');
+
+  if (ajustes.length === 0) {
+    lista.innerHTML = '<p class="muted">Todavía no hay ninguna justificación registrada.</p>';
+    return;
+  }
+
+  lista.innerHTML = ajustes
+    .map((a) => `
+      <div class="doc-item">
+        <div>
+          <div class="doc-name">${a.fecha} — ${escapeHtml(a.trabajadorNombre)}</div>
+          <div class="muted" style="font-size:0.78rem;">${escapeHtml(a.motivo)} · registrado por ${escapeHtml(a.creado_por || 'admin')}</div>
+        </div>
+        <div class="doc-actions">
+          <button class="btn danger" onclick="eliminarAjuste(${a.id}, ${a.trabajadorId})">Eliminar</button>
+        </div>
+      </div>
+    `)
+    .join('');
+}
+
 function escapeHtml(str) {
   const div = document.createElement('div');
   div.textContent = str;
@@ -278,3 +316,4 @@ function escapeHtml(str) {
 }
 
 cargarFeriados();
+cargarTodosLosAjustes();
