@@ -105,13 +105,15 @@ def pagina_resumen():
     # Solo tiene sentido mostrar trabajadores que tengan codigo de empleado
     # (sin eso, nunca van a tener marcajes que evaluar).
     cursor.execute("""
-        SELECT id, nombres, apellidos, hora_entrada, hora_salida
-        FROM trabajadores
-        WHERE codigo_empleado IS NOT NULL
-          AND estado IS DISTINCT FROM 'INACTIVO'
-        ORDER BY nombres, apellidos
+        SELECT t.id, t.nombres, t.apellidos, t.hora_entrada, t.hora_salida,
+               COALESCE(s.alerta_inasistencia, FALSE)
+        FROM trabajadores t
+        LEFT JOIN sedes s ON s.id = t.sede_id
+        WHERE t.codigo_empleado IS NOT NULL
+          AND t.estado IS DISTINCT FROM 'INACTIVO'
+        ORDER BY t.nombres, t.apellidos
     """)
-    columnas_t = ["id", "nombres", "apellidos", "hora_entrada", "hora_salida"]
+    columnas_t = ["id", "nombres", "apellidos", "hora_entrada", "hora_salida", "alerta_inasistencia"]
     trabajadores = [dict(zip(columnas_t, f)) for f in cursor.fetchall()]
 
     # Entradas del mes, unidas a su trabajador por codigo de empleado o DNI
@@ -165,6 +167,40 @@ def pagina_resumen():
             )
 
             totales_min[numero_semana] += evaluacion["minutos_tarde"]
+
+        # Trabajadores de una sede "remota" (con la alerta de inasistencia
+        # activada): los dias de la semana (lunes a viernes) en los que NO
+        # marcaron nada, no fueron feriado, y no tienen justificacion,
+        # cuentan como si hubieran llegado tarde toda su jornada completa.
+        # Para el dia de hoy especificamente, se respeta la misma
+        # tolerancia de 30 min que usa el Panel antes de darlo por faltado.
+        if t["alerta_inasistencia"]:
+            hora_entrada_prog, hora_salida_prog = horario_del_trabajador(t["hora_entrada"], t["hora_salida"])
+            minutos_jornada = (
+                (hora_salida_prog.hour * 60 + hora_salida_prog.minute)
+                - (hora_entrada_prog.hour * 60 + hora_entrada_prog.minute)
+            )
+            if minutos_jornada <= 0:
+                minutos_jornada = 480  # respaldo razonable (8h) si el horario quedo mal configurado
+
+            for semana in semanas:
+                for i in range(5):
+                    dia = semana["inicio"] + timedelta(days=i)
+
+                    if dia > hoy:
+                        continue  # dia futuro, todavia no aplica
+                    if dia in dias_marcados:
+                        continue  # ya marco ese dia
+                    if dia in feriados_set:
+                        continue
+                    if (t["id"], dia) in ajustes_map:
+                        continue
+                    if dia == hoy:
+                        limite = datetime.combine(hoy, hora_entrada_prog, tzinfo=ZONA_HORARIA_LOCAL) + timedelta(minutes=30)
+                        if datetime.now(ZONA_HORARIA_LOCAL) < limite:
+                            continue  # hoy, pero todavia no vence la tolerancia
+
+                    totales_min[semana["numero"]] += minutos_jornada
 
         totales = {}
         for numero, minutos in totales_min.items():
