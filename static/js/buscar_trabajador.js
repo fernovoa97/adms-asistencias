@@ -69,6 +69,7 @@ function renderResults(todosLosResultados) {
           <div class="name">
             ${escapeHtml(w.nombres)} ${escapeHtml(w.apellidos)}
             ${inactivo ? '<span class="tag-inactivo">Inactivo</span>' : ''}
+            ${w.excluido_asistencia ? '<span class="tag-inactivo" style="background:#e0e7ff;color:#3730a3;">Sin control asistencia</span>' : ''}
           </div>
           <div class="meta">DNI: ${escapeHtml(w.dni || '—')} ${w.cargo ? '· ' + escapeHtml(w.cargo) : ''}</div>
         </div>
@@ -110,6 +111,7 @@ function renderViewMode(w) {
     ['Cargo', w.cargo || '—'],
     ['Área', w.area || '—'],
     ['Sede', w.sede_nombre || '—'],
+    ['Control de asistencias', w.excluido_asistencia ? 'Excluido (no se le calculan tardanzas/faltas)' : 'Normal'],
     ['Supervisor', w.supervisor || '—'],
     ['Sueldo neto', w.sueldo_neto != null ? formatearSueldo(w.sueldo_neto) : '—'],
     ['Teléfono', w.telefono || '—'],
@@ -362,6 +364,13 @@ function renderEditForm(w) {
               <button type="button" class="btn secondary" id="nuevaSedeBtn" style="white-space:nowrap;">+ Nueva</button>
             </div>
           </div>
+          <div class="field" style="display:flex;flex-direction:column;justify-content:flex-end;">
+            <label style="display:flex;align-items:center;gap:8px;font-weight:400;margin-bottom:2px;">
+              <input type="checkbox" id="editExcluidoAsistencia" ${w.excluido_asistencia ? 'checked' : ''}>
+              Excluir de control de asistencias (ej. jefatura, gerencia)
+            </label>
+            <span class="muted" style="font-size:0.75rem;">Su marcaje se sigue registrando igual, solo no se le calculan tardanzas, descuentos ni faltas.</span>
+          </div>
           <div class="field">
             <label for="editSupervisor">Supervisor</label>
             <input type="text" id="editSupervisor" value="${escapeAttr(w.supervisor || '')}">
@@ -412,6 +421,7 @@ function renderEditForm(w) {
       cargo: document.getElementById('editCargo').value.trim(),
       area: document.getElementById('editArea').value.trim(),
       sedeId: document.getElementById('editSedeId').value,
+      excluidoAsistencia: document.getElementById('editExcluidoAsistencia').checked,
       supervisor: document.getElementById('editSupervisor').value.trim(),
       sueldoNeto: document.getElementById('editSueldoNeto').value,
       direccion: document.getElementById('editDireccion').value.trim(),

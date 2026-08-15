@@ -381,6 +381,7 @@ def _trabajadores_faltantes_hoy(hoy):
         JOIN sedes s ON s.id = t.sede_id
         WHERE t.estado IS DISTINCT FROM 'INACTIVO'
           AND s.alerta_inasistencia = TRUE
+          AND t.excluido_asistencia IS NOT TRUE
     """)
     candidatos = cursor.fetchall()
 
@@ -452,7 +453,7 @@ def inicio():
         SELECT a.codigo_empleado, a.fecha, a.hora, a.tipo_marcaje,
                t.id AS trabajador_id, t.nombres AS nombres_trabajador,
                t.apellidos AS apellidos_trabajador,
-               t.hora_entrada, t.hora_salida
+               t.hora_entrada, t.hora_salida, t.excluido_asistencia
         FROM asistencias a
         LEFT JOIN trabajadores t
             ON t.codigo_empleado = a.codigo_empleado
@@ -472,7 +473,8 @@ def inicio():
 
     columnas = [
         "codigo_empleado", "fecha", "hora", "tipo_marcaje", "trabajador_id",
-        "nombres_trabajador", "apellidos_trabajador", "hora_entrada", "hora_salida"
+        "nombres_trabajador", "apellidos_trabajador", "hora_entrada", "hora_salida",
+        "excluido_asistencia"
     ]
     filas = [dict(zip(columnas, fila)) for fila in cursor.fetchall()]
 
@@ -505,6 +507,7 @@ def inicio():
                 "apellidos_trabajador": marcaje["apellidos_trabajador"],
                 "hora_entrada_config": marcaje["hora_entrada"],
                 "hora_salida_config": marcaje["hora_salida"],
+                "excluido_asistencia": marcaje["excluido_asistencia"],
                 "entrada": None,
                 "salida": None
             }
@@ -533,7 +536,7 @@ def inicio():
         for clave in orden_por_fecha[fecha]:
             registro = registros[clave]
 
-            if registro["entrada"] is not None and registro["trabajador_id"]:
+            if registro["entrada"] is not None and registro["trabajador_id"] and not registro["excluido_asistencia"]:
                 hora_entrada_prog, _ = horario_del_trabajador(
                     registro["hora_entrada_config"], registro["hora_salida_config"]
                 )

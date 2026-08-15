@@ -23,11 +23,24 @@
 
       <div class="barra">
         <h2 style="margin:0;">{{ mes_nombre }} {{ anio }}</h2>
+        {% if not inactivo %}
+        <span class="badge {{ 'estado-tardanza' if total_texto != '0:00:00' else 'estado-puntual' }}" style="font-size:0.85rem;">
+          Total del mes: {{ total_texto }}
+        </span>
         <div style="display:flex;gap:8px;">
           <a class="btn secondary" href="{{ url_for('historial.pagina_historial', trabajador_id=trabajador.id, anio=anio_prev, mes=mes_prev) }}">← Mes anterior</a>
           <a class="btn secondary" href="{{ url_for('historial.pagina_historial', trabajador_id=trabajador.id, anio=anio_next, mes=mes_next) }}">Mes siguiente →</a>
         </div>
+        {% else %}
+        <div style="display:flex;gap:8px;">
+          <a class="btn secondary" href="{{ url_for('historial.pagina_historial', trabajador_id=trabajador.id, anio=anio_prev, mes=mes_prev) }}">← Mes anterior</a>
+          <a class="btn secondary" href="{{ url_for('historial.pagina_historial', trabajador_id=trabajador.id, anio=anio_next, mes=mes_next) }}">Mes siguiente →</a>
+        </div>
+        {% endif %}
       </div>
+      <p class="muted" style="margin-top:-8px;font-size:0.8rem;">
+        Este total debe coincidir con la suma de las semanas de este trabajador en el <a href="{{ url_for('resumen.pagina_resumen', anio=anio, mes=mes) }}">Resumen mensual</a>.
+      </p>
 
       <div class="tabla-contenedor">
         {% if inactivo %}

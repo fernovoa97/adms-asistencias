@@ -1,10 +1,12 @@
 # historial.py
-# Historial de asistencia de UN trabajador, mes por mes. Solo muestra los
-# dias que tienen algun marcaje real (entrada y/o salida) -- no se listan
-# dias vacios, para evitar desorden en la tabla.
+# Historial de asistencia de UN trabajador, mes por mes. Muestra los dias
+# con marcaje real, y ademas los dias de "Falta" (para trabajadores de una
+# sede con alerta de inasistencia activada) -- usa el MISMO rango de
+# fechas y el MISMO criterio que resumen.py, para que la suma total de
+# minutos de este mes coincida exactamente con la fila de ese trabajador
+# en el Resumen mensual.
 
-from calendar import monthrange
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from flask import Blueprint, render_template, request, abort
@@ -12,6 +14,7 @@ from flask import Blueprint, render_template, request, abort
 from auth import login_requerido
 from db import obtener_conexion
 from reglas_asistencia import horario_del_trabajador, evaluar_marcaje_entrada
+from resumen import _construir_semanas, _formatear_duracion
 
 historial_bp = Blueprint("historial", __name__)
 
@@ -38,10 +41,12 @@ def pagina_historial(trabajador_id):
     cursor = conexion.cursor()
 
     cursor.execute("""
-        SELECT id, nombres, apellidos, dni, codigo_empleado, cargo, area,
-               estado, hora_entrada, hora_salida
-        FROM trabajadores
-        WHERE id = %s
+        SELECT t.id, t.nombres, t.apellidos, t.dni, t.codigo_empleado, t.cargo, t.area,
+               t.estado, t.hora_entrada, t.hora_salida, COALESCE(s.alerta_inasistencia, FALSE),
+               t.excluido_asistencia
+        FROM trabajadores t
+        LEFT JOIN sedes s ON s.id = t.sede_id
+        WHERE t.id = %s
     """, (trabajador_id,))
     fila_trabajador = cursor.fetchone()
 
@@ -52,7 +57,8 @@ def pagina_historial(trabajador_id):
 
     columnas_t = [
         "id", "nombres", "apellidos", "dni", "codigo_empleado", "cargo",
-        "area", "estado", "hora_entrada", "hora_salida"
+        "area", "estado", "hora_entrada", "hora_salida", "alerta_inasistencia",
+        "excluido_asistencia"
     ]
     trabajador = dict(zip(columnas_t, fila_trabajador))
 
@@ -76,8 +82,12 @@ def pagina_historial(trabajador_id):
             active_page="resumen"
         )
 
-    primer_dia = date(anio, mes, 1)
-    ultimo_dia = date(anio, mes, monthrange(anio, mes)[1])
+    # Mismo rango de fechas que usa resumen.py para este mes (semanas
+    # lunes-viernes, que pueden extenderse a los meses vecinos) -- asi la
+    # suma de este historial coincide exacto con la fila del Resumen.
+    semanas = _construir_semanas(anio, mes)
+    primer_dia = semanas[0]["inicio"]
+    ultimo_dia = semanas[-1]["fin"]
 
     # Un trabajador puede tener marcajes bajo su codigo_empleado o (en casos
     # viejos, antes de vincularse) bajo un codigo que coincide con su DNI.
@@ -113,9 +123,15 @@ def pagina_historial(trabajador_id):
     cursor.close()
     conexion.close()
 
-    hora_entrada_prog, _ = horario_del_trabajador(
+    hora_entrada_prog, hora_salida_prog = horario_del_trabajador(
         trabajador["hora_entrada"], trabajador["hora_salida"]
     )
+    minutos_jornada = (
+        (hora_salida_prog.hour * 60 + hora_salida_prog.minute)
+        - (hora_entrada_prog.hour * 60 + hora_entrada_prog.minute)
+    )
+    if minutos_jornada <= 0:
+        minutos_jornada = 480  # respaldo razonable (8h) si el horario quedo mal configurado
 
     # Solo se muestran los dias que realmente tienen algun marcaje (entrada
     # y/o salida). No se listan dias vacios, sea entre semana o fin de
@@ -126,7 +142,7 @@ def pagina_historial(trabajador_id):
         es_feriado = fecha in feriados_set
         motivo_ajuste = ajustes_map.get(fecha)
 
-        if marca["entrada"] is not None:
+        if marca["entrada"] is not None and not trabajador["excluido_asistencia"]:
             evaluacion = evaluar_marcaje_entrada(
                 marca["entrada"], hora_entrada_prog, es_feriado, motivo_ajuste
             )
@@ -142,6 +158,53 @@ def pagina_historial(trabajador_id):
             "evaluacion": evaluacion
         })
 
+    # Dias de "Falta": mismo criterio EXACTO que usa resumen.py -- solo
+    # para trabajadores de una sede con la alerta de inasistencia activada,
+    # de lunes a viernes, sin marcaje, sin feriado, sin justificacion, y
+    # que ya paso (si es hoy, respetando la tolerancia de 30 min). Nunca
+    # aplica si el trabajador esta excluido de las reglas de asistencia.
+    if trabajador["alerta_inasistencia"] and not trabajador["excluido_asistencia"]:
+        ahora = datetime.now(ZONA_HORARIA_LOCAL)
+
+        for semana in semanas:
+            for i in range(5):
+                dia_fecha = semana["inicio"] + timedelta(days=i)
+
+                if dia_fecha > hoy:
+                    continue  # dia futuro, todavia no aplica
+                if dia_fecha in marcas_por_dia:
+                    continue  # ya tiene marcaje ese dia
+                if dia_fecha in feriados_set:
+                    continue
+                if dia_fecha in ajustes_map:
+                    continue
+                if dia_fecha == hoy:
+                    limite = datetime.combine(hoy, hora_entrada_prog, tzinfo=ZONA_HORARIA_LOCAL) + timedelta(minutes=30)
+                    if ahora < limite:
+                        continue  # hoy, pero todavia no vence la tolerancia
+
+                dias.append({
+                    "fecha": dia_fecha,
+                    "dia_semana": DIAS_ES[dia_fecha.weekday()],
+                    "es_feriado": False,
+                    "entrada": None,
+                    "salida": None,
+                    "evaluacion": {
+                        "estado": "falta",
+                        "etiqueta": "Falta",
+                        "descuento_min": minutos_jornada,
+                        "minutos_tarde": minutos_jornada,
+                        "detalle": "No marcó asistencia"
+                    }
+                })
+
+    dias.sort(key=lambda d: d["fecha"])
+
+    total_minutos_mes = sum(
+        d["evaluacion"]["minutos_tarde"] for d in dias if d["evaluacion"]
+    )
+    total_texto = _formatear_duracion(total_minutos_mes)
+
     anio_prev, mes_prev = (anio, mes - 1) if mes > 1 else (anio - 1, 12)
     anio_next, mes_next = (anio, mes + 1) if mes < 12 else (anio + 1, 1)
 
@@ -150,6 +213,7 @@ def pagina_historial(trabajador_id):
         trabajador=trabajador,
         dias=dias,
         inactivo=False,
+        total_texto=total_texto,
         anio=anio, mes=mes, mes_nombre=MESES_ES[mes],
         anio_prev=anio_prev, mes_prev=mes_prev,
         anio_next=anio_next, mes_next=mes_next,

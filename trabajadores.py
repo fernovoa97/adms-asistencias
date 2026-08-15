@@ -88,7 +88,7 @@ COLUMNAS_TRABAJADOR = [
     "estado", "supervisor", "sueldo_neto", "telefono", "email", "email_corporativo",
     "fecha_ingreso", "fecha_fin_contrato", "fecha_renovacion", "fecha_nacimiento",
     "direccion", "observaciones", "historial_renovaciones", "hora_entrada",
-    "hora_salida", "sede_id", "fecha_registro"
+    "hora_salida", "sede_id", "excluido_asistencia", "fecha_registro"
 ]
 
 
@@ -302,6 +302,7 @@ def api_crear_trabajador():
     fecha_renovacion = _fecha_o_none(request.form.get("fechaRenovacion"))
     fecha_nacimiento = _fecha_o_none(request.form.get("fechaNacimiento"))
     sede_id = request.form.get("sedeId", type=int)
+    excluido_asistencia = request.form.get("excluidoAsistencia") == "true"
     direccion = request.form.get("direccion", "").strip()
     observaciones = request.form.get("observaciones", "").strip()
 
@@ -317,15 +318,16 @@ def api_crear_trabajador():
             INSERT INTO trabajadores (
                 dni, nombres, apellidos, cargo, area, supervisor, sueldo_neto,
                 telefono, email, email_corporativo, fecha_ingreso, fecha_fin_contrato,
-                fecha_renovacion, fecha_nacimiento, sede_id, direccion, observaciones,
-                estado, fecha_registro
+                fecha_renovacion, fecha_nacimiento, sede_id, excluido_asistencia,
+                direccion, observaciones, estado, fecha_registro
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'ACTIVO', %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'ACTIVO', %s)
             RETURNING id
         """, (
             dni, nombres, apellidos, cargo, area, supervisor, sueldo_neto,
             telefono, email, email_corporativo, fecha_ingreso, fecha_fin,
-            fecha_renovacion, fecha_nacimiento, sede_id, direccion, observaciones, datetime.now()
+            fecha_renovacion, fecha_nacimiento, sede_id, excluido_asistencia,
+            direccion, observaciones, datetime.now()
         ))
         worker_id = cursor.fetchone()[0]
 
@@ -380,7 +382,7 @@ def api_buscar():
         # la pantalla no empiece vacia. Activos primero, luego inactivos.
         cursor.execute("""
             SELECT t.id, t.nombres, t.apellidos, t.dni, t.cargo, t.area, t.estado,
-                   (t.foto IS NOT NULL), s.nombre
+                   (t.foto IS NOT NULL), s.nombre, t.excluido_asistencia
             FROM trabajadores t
             LEFT JOIN sedes s ON s.id = t.sede_id
             ORDER BY (t.estado = 'INACTIVO'), t.nombres
@@ -390,7 +392,7 @@ def api_buscar():
         patron = f"%{q}%"
         cursor.execute("""
             SELECT t.id, t.nombres, t.apellidos, t.dni, t.cargo, t.area, t.estado,
-                   (t.foto IS NOT NULL), s.nombre
+                   (t.foto IS NOT NULL), s.nombre, t.excluido_asistencia
             FROM trabajadores t
             LEFT JOIN sedes s ON s.id = t.sede_id
             WHERE (t.nombres || ' ' || t.apellidos) ILIKE %s
@@ -404,7 +406,7 @@ def api_buscar():
         {
             "id": f[0], "nombres": f[1], "apellidos": f[2], "dni": f[3],
             "cargo": f[4], "area": f[5], "estado": f[6] or "ACTIVO", "tiene_foto": f[7],
-            "sede": f[8]
+            "sede": f[8], "excluido_asistencia": f[9]
         }
         for f in cursor.fetchall()
     ]
@@ -518,6 +520,7 @@ def api_actualizar(worker_id):
                 supervisor = %s, sueldo_neto = %s, estado = %s,
                 telefono = %s, email = %s, email_corporativo = %s,
                 fecha_ingreso = %s, fecha_nacimiento = %s, sede_id = %s,
+                excluido_asistencia = %s,
                 direccion = %s, observaciones = %s,
                 hora_entrada = %s, hora_salida = %s
             WHERE id = %s
@@ -534,6 +537,7 @@ def api_actualizar(worker_id):
             _fecha_o_none(datos.get("fechaIngreso")),
             _fecha_o_none(datos.get("fechaNacimiento")),
             datos.get("sedeId") or None,
+            bool(datos.get("excluidoAsistencia")),
             (datos.get("direccion") or "").strip(),
             (datos.get("observaciones") or "").strip(),
             (datos.get("horaEntrada") or "").strip() or None,

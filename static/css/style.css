@@ -466,6 +466,7 @@ tr:hover { background: #f9fafb; }
 .badge.estado-tardanza { background: #fef3c7; color: #92400e; }
 .badge.estado-justificado { background: #dbeafe; color: #1e40af; cursor: help; }
 .badge.estado-feriado { background: #e5e7eb; color: #4b5563; }
+.badge.estado-falta { background: #fee2e2; color: #991b1b; }
 .sin-registrar { color: #9ca3af; font-style: italic; }
 
 .tag-feriado {

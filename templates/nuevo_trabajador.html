@@ -93,6 +93,13 @@
                 <button type="button" class="btn secondary" id="nuevaSedeBtn" style="white-space:nowrap;">+ Nueva</button>
               </div>
             </div>
+            <div class="field" style="display:flex;flex-direction:column;justify-content:flex-end;">
+              <label style="display:flex;align-items:center;gap:8px;font-weight:400;margin-bottom:2px;">
+                <input type="checkbox" id="excluidoAsistencia">
+                Excluir de control de asistencias (ej. jefatura, gerencia)
+              </label>
+              <span class="muted" style="font-size:0.75rem;">Su marcaje se sigue registrando igual, solo no se le calculan tardanzas, descuentos ni faltas.</span>
+            </div>
             <div class="field">
               <label for="supervisor">Supervisor</label>
               <input type="text" id="supervisor" name="supervisor">

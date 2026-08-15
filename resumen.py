@@ -111,6 +111,7 @@ def pagina_resumen():
         LEFT JOIN sedes s ON s.id = t.sede_id
         WHERE t.codigo_empleado IS NOT NULL
           AND t.estado IS DISTINCT FROM 'INACTIVO'
+          AND t.excluido_asistencia IS NOT TRUE
         ORDER BY t.nombres, t.apellidos
     """)
     columnas_t = ["id", "nombres", "apellidos", "hora_entrada", "hora_salida", "alerta_inasistencia"]

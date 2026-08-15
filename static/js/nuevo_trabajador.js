@@ -184,6 +184,7 @@ document.getElementById('workerForm').addEventListener('submit', async (e) => {
   formData.append('telefono', document.getElementById('telefono').value.trim());
   formData.append('email', document.getElementById('email').value.trim());
   formData.append('sedeId', document.getElementById('sedeId').value);
+  formData.append('excluidoAsistencia', document.getElementById('excluidoAsistencia').checked);
   const fotoInput = document.getElementById('foto');
   if (fotoInput.files[0]) {
     formData.append('foto', fotoInput.files[0]);

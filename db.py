@@ -98,6 +98,7 @@ def inicializar_base_datos():
         _agregar_columna_si_falta(cursor, "trabajadores", "fecha_nacimiento", "DATE")
         _agregar_columna_si_falta(cursor, "trabajadores", "foto", "BYTEA")
         _agregar_columna_si_falta(cursor, "trabajadores", "foto_mime", "TEXT")
+        _agregar_columna_si_falta(cursor, "trabajadores", "excluido_asistencia", "BOOLEAN NOT NULL DEFAULT FALSE")
 
         # La columna "estado" ya existia desde la version original, pero
         # nunca se expuso en pantalla. Por las dudas, si algun registro
