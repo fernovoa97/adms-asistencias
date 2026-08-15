@@ -363,8 +363,12 @@ def debug_diagnostico():
 def _trabajadores_faltantes_hoy(hoy):
     """Trabajadores activos, de una sede marcada con 'alerta_inasistencia',
     que a esta hora ya deberian haber marcado su entrada (paso su
-    tolerancia de 30 min) y no lo hicieron -- sin contar feriados ni
-    trabajadores con una justificacion ya cargada para hoy en Ajustes."""
+    tolerancia de 30 min) y no lo hicieron -- sin contar feriados, fines
+    de semana, ni trabajadores con una justificacion ya cargada para hoy
+    en Ajustes."""
+    if hoy.weekday() >= 5:  # 5=sabado, 6=domingo
+        return []  # fin de semana: no aplica ninguna alerta
+
     conexion = obtener_conexion()
     cursor = conexion.cursor()
 
