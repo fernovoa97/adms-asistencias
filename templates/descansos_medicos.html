@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Descansos médicos · Personal y Asistencias</title>
+<link rel="icon" href="{{ url_for('static', filename='img/logo.png') }}">
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <div class="app-shell">
+    {% include '_sidebar.html' %}
+
+    <main class="main">
+      <h1>Descansos médicos</h1>
+      <p class="lead">Total de días de descanso médico acumulados por trabajador. Haz clic para ver el detalle y agregar periodos.</p>
+
+      <div class="barra">
+        <h2 style="margin:0;" id="tituloAnio">Cargando…</h2>
+        <div style="display:flex;gap:8px;">
+          <a class="btn secondary" id="anioAnteriorBtn" href="#">← Año anterior</a>
+          <a class="btn secondary" id="anioSiguienteBtn" href="#">Año siguiente →</a>
+        </div>
+      </div>
+
+      <div class="tabla-contenedor">
+        <table>
+          <thead>
+            <tr>
+              <th>Trabajador</th>
+              <th>Periodos registrados</th>
+              <th>Total de días</th>
+            </tr>
+          </thead>
+          <tbody id="tablaDescansos">
+            <tr><td colspan="3" class="muted" style="text-align:center;padding:24px;">Cargando…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+
+  <script src="/static/js/descansos_medicos.js"></script>
+</body>
+</html>

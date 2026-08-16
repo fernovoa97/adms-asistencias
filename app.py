@@ -17,6 +17,7 @@ from calendario import calendario_bp
 from boletas import boletas_bp
 from actas import actas_bp
 from vacaciones import vacaciones_bp
+from descansos_medicos import descansos_medicos_bp
 from vehiculos import vehiculos_bp
 from reglas_asistencia import horario_del_trabajador, evaluar_marcaje_entrada
 
@@ -71,6 +72,7 @@ app.register_blueprint(calendario_bp)
 app.register_blueprint(boletas_bp)
 app.register_blueprint(actas_bp)
 app.register_blueprint(vacaciones_bp)
+app.register_blueprint(descansos_medicos_bp)
 app.register_blueprint(vehiculos_bp)
 
 

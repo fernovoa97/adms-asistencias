@@ -75,6 +75,12 @@ function clearPreview(rowId) {
 }
 
 document.getElementById('addFileBtn').addEventListener('click', createUploadRow);
+
+// Mostrar/ocultar la cantidad de hijos segun el checkbox
+document.getElementById('tieneHijos').addEventListener('change', (e) => {
+  document.getElementById('cantidadHijos').style.display = e.target.checked ? 'block' : 'none';
+  if (!e.target.checked) document.getElementById('cantidadHijos').value = '';
+});
 createUploadRow();
 
 // ---------- Sedes ----------
@@ -183,6 +189,11 @@ document.getElementById('workerForm').addEventListener('submit', async (e) => {
   formData.append('dni', document.getElementById('dni').value.trim());
   formData.append('telefono', document.getElementById('telefono').value.trim());
   formData.append('email', document.getElementById('email').value.trim());
+  formData.append('telefonoCorporativo', document.getElementById('telefonoCorporativo').value.trim());
+  formData.append('estadoCivil', document.getElementById('estadoCivil').value);
+  const tieneHijos = document.getElementById('tieneHijos').checked;
+  formData.append('tieneHijos', tieneHijos);
+  formData.append('cantidadHijos', tieneHijos ? document.getElementById('cantidadHijos').value : '');
   formData.append('sedeId', document.getElementById('sedeId').value);
   formData.append('excluidoAsistencia', document.getElementById('excluidoAsistencia').checked);
   const fotoInput = document.getElementById('foto');
@@ -234,6 +245,7 @@ document.getElementById('workerForm').addEventListener('submit', async (e) => {
     document.getElementById('uploadRows').innerHTML = '';
     document.getElementById('previewArea').innerHTML = '';
     document.getElementById('avatarPreview').innerHTML = '<span id="avatarPreviewIniciales">?</span>';
+    document.getElementById('cantidadHijos').style.display = 'none';
     createUploadRow();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   } catch (err) {

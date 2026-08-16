@@ -85,10 +85,11 @@ def _worker_a_dict(fila, columnas):
 
 COLUMNAS_TRABAJADOR = [
     "id", "codigo_empleado", "dni", "nombres", "apellidos", "cargo", "area",
-    "estado", "supervisor", "sueldo_neto", "telefono", "email", "email_corporativo",
-    "fecha_ingreso", "fecha_fin_contrato", "fecha_renovacion", "fecha_nacimiento",
-    "direccion", "observaciones", "historial_renovaciones", "hora_entrada",
-    "hora_salida", "sede_id", "excluido_asistencia", "fecha_registro"
+    "estado", "supervisor", "sueldo_neto", "telefono", "telefono_corporativo",
+    "email", "email_corporativo", "fecha_ingreso", "fecha_fin_contrato",
+    "fecha_renovacion", "fecha_nacimiento", "estado_civil", "tiene_hijos",
+    "cantidad_hijos", "direccion", "observaciones", "historial_renovaciones",
+    "hora_entrada", "hora_salida", "sede_id", "excluido_asistencia", "fecha_registro"
 ]
 
 
@@ -295,12 +296,16 @@ def api_crear_trabajador():
     supervisor = request.form.get("supervisor", "").strip()
     sueldo_neto = _sueldo_o_none(request.form.get("sueldoNeto"))
     telefono = request.form.get("telefono", "").strip()
+    telefono_corporativo = request.form.get("telefonoCorporativo", "").strip()
     email = request.form.get("email", "").strip()
     email_corporativo = request.form.get("emailCorporativo", "").strip()
     fecha_ingreso = _fecha_o_none(request.form.get("fechaIngreso"))
     fecha_fin = _fecha_o_none(request.form.get("fechaFinContrato"))
     fecha_renovacion = _fecha_o_none(request.form.get("fechaRenovacion"))
     fecha_nacimiento = _fecha_o_none(request.form.get("fechaNacimiento"))
+    estado_civil = request.form.get("estadoCivil", "").strip()
+    tiene_hijos = request.form.get("tieneHijos") == "true"
+    cantidad_hijos = request.form.get("cantidadHijos", type=int) if tiene_hijos else None
     sede_id = request.form.get("sedeId", type=int)
     excluido_asistencia = request.form.get("excluidoAsistencia") == "true"
     direccion = request.form.get("direccion", "").strip()
@@ -317,16 +322,18 @@ def api_crear_trabajador():
         cursor.execute("""
             INSERT INTO trabajadores (
                 dni, nombres, apellidos, cargo, area, supervisor, sueldo_neto,
-                telefono, email, email_corporativo, fecha_ingreso, fecha_fin_contrato,
-                fecha_renovacion, fecha_nacimiento, sede_id, excluido_asistencia,
+                telefono, telefono_corporativo, email, email_corporativo,
+                fecha_ingreso, fecha_fin_contrato, fecha_renovacion, fecha_nacimiento,
+                estado_civil, tiene_hijos, cantidad_hijos, sede_id, excluido_asistencia,
                 direccion, observaciones, estado, fecha_registro
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'ACTIVO', %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'ACTIVO', %s)
             RETURNING id
         """, (
             dni, nombres, apellidos, cargo, area, supervisor, sueldo_neto,
-            telefono, email, email_corporativo, fecha_ingreso, fecha_fin,
-            fecha_renovacion, fecha_nacimiento, sede_id, excluido_asistencia,
+            telefono, telefono_corporativo, email, email_corporativo,
+            fecha_ingreso, fecha_fin, fecha_renovacion, fecha_nacimiento,
+            estado_civil, tiene_hijos, cantidad_hijos, sede_id, excluido_asistencia,
             direccion, observaciones, datetime.now()
         ))
         worker_id = cursor.fetchone()[0]
@@ -518,8 +525,9 @@ def api_actualizar(worker_id):
             UPDATE trabajadores SET
                 nombres = %s, apellidos = %s, dni = %s, cargo = %s, area = %s,
                 supervisor = %s, sueldo_neto = %s, estado = %s,
-                telefono = %s, email = %s, email_corporativo = %s,
-                fecha_ingreso = %s, fecha_nacimiento = %s, sede_id = %s,
+                telefono = %s, telefono_corporativo = %s, email = %s, email_corporativo = %s,
+                fecha_ingreso = %s, fecha_nacimiento = %s, estado_civil = %s,
+                tiene_hijos = %s, cantidad_hijos = %s, sede_id = %s,
                 excluido_asistencia = %s,
                 direccion = %s, observaciones = %s,
                 hora_entrada = %s, hora_salida = %s
@@ -532,10 +540,14 @@ def api_actualizar(worker_id):
             _sueldo_o_none(datos.get("sueldoNeto")),
             estado,
             (datos.get("telefono") or "").strip(),
+            (datos.get("telefonoCorporativo") or "").strip(),
             (datos.get("email") or "").strip(),
             (datos.get("emailCorporativo") or "").strip(),
             _fecha_o_none(datos.get("fechaIngreso")),
             _fecha_o_none(datos.get("fechaNacimiento")),
+            (datos.get("estadoCivil") or "").strip(),
+            bool(datos.get("tieneHijos")),
+            datos.get("cantidadHijos") if bool(datos.get("tieneHijos")) else None,
             datos.get("sedeId") or None,
             bool(datos.get("excluidoAsistencia")),
             (datos.get("direccion") or "").strip(),

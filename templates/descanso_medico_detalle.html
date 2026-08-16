@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Descansos médicos de {{ trabajador.nombre }} · Personal y Asistencias</title>
+<link rel="icon" href="{{ url_for('static', filename='img/logo.png') }}">
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <div class="app-shell">
+    {% include '_sidebar.html' %}
+
+    <main class="main">
+      <a href="{{ url_for('descansos_medicos.pagina_descansos_medicos') }}" class="muted" style="text-decoration:none;">← Volver a descansos médicos</a>
+
+      <h1 style="margin-top:8px;">{{ trabajador.nombre }}</h1>
+
+      <div class="panel">
+        <h2 style="margin-top:0;font-size:1rem;">Registrar un periodo</h2>
+        <div class="error-msg" id="errorPeriodo"></div>
+        <div class="grid-2">
+          <div class="field">
+            <label for="fechaInicio">Fecha de inicio</label>
+            <input type="date" id="fechaInicio">
+          </div>
+          <div class="field">
+            <label for="fechaFin">Fecha de fin</label>
+            <input type="date" id="fechaFin">
+          </div>
+        </div>
+        <div class="field">
+          <label for="observacionPeriodo">Observación / diagnóstico (opcional)</label>
+          <input type="text" id="observacionPeriodo" placeholder="Ej. Descanso post operatorio">
+        </div>
+        <button type="button" class="btn" id="agregarPeriodoBtn">Agregar periodo</button>
+      </div>
+
+      <h3 style="font-size:0.95rem;">Historial completo</h3>
+      <div class="tabla-contenedor">
+        <table>
+          <thead>
+            <tr>
+              <th>Desde</th>
+              <th>Hasta</th>
+              <th>Días</th>
+              <th>Observación</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="tablaPeriodos">
+            <tr><td colspan="5" class="muted" style="text-align:center;padding:20px;">Cargando…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const TRABAJADOR_ID = {{ trabajador.id }};
+  </script>
+  <script src="/static/js/descanso_medico_detalle.js"></script>
+</body>
+</html>

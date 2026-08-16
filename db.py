@@ -100,6 +100,10 @@ def inicializar_base_datos():
         _agregar_columna_si_falta(cursor, "trabajadores", "foto", "BYTEA")
         _agregar_columna_si_falta(cursor, "trabajadores", "foto_mime", "TEXT")
         _agregar_columna_si_falta(cursor, "trabajadores", "excluido_asistencia", "BOOLEAN NOT NULL DEFAULT FALSE")
+        _agregar_columna_si_falta(cursor, "trabajadores", "telefono_corporativo", "TEXT")
+        _agregar_columna_si_falta(cursor, "trabajadores", "estado_civil", "TEXT")
+        _agregar_columna_si_falta(cursor, "trabajadores", "tiene_hijos", "BOOLEAN NOT NULL DEFAULT FALSE")
+        _agregar_columna_si_falta(cursor, "trabajadores", "cantidad_hijos", "INTEGER")
 
         # La columna "estado" ya existia desde la version original, pero
         # nunca se expuso en pantalla. Por las dudas, si algun registro
@@ -262,6 +266,19 @@ def inicializar_base_datos():
                 trabajador_id INTEGER NOT NULL REFERENCES trabajadores(id) ON DELETE CASCADE,
                 fecha DATE NOT NULL,
                 dias NUMERIC(5,2) NOT NULL,
+                observacion TEXT,
+                creado_en TIMESTAMP NOT NULL
+            )
+        """)
+
+        # --- Descansos medicos: periodos (fecha inicio/fin) por trabajador ---
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS descansos_medicos (
+                id SERIAL PRIMARY KEY,
+                trabajador_id INTEGER NOT NULL REFERENCES trabajadores(id) ON DELETE CASCADE,
+                fecha_inicio DATE NOT NULL,
+                fecha_fin DATE NOT NULL,
+                dias INTEGER NOT NULL,
                 observacion TEXT,
                 creado_en TIMESTAMP NOT NULL
             )

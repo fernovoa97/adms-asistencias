@@ -114,11 +114,14 @@ function renderViewMode(w) {
     ['Control de asistencias', w.excluido_asistencia ? 'Excluido (no se le calculan tardanzas/faltas)' : 'Normal'],
     ['Supervisor', w.supervisor || '—'],
     ['Sueldo neto', w.sueldo_neto != null ? formatearSueldo(w.sueldo_neto) : '—'],
-    ['Teléfono', w.telefono || '—'],
+    ['Teléfono personal', w.telefono || '—'],
+    ['Teléfono corporativo', w.telefono_corporativo || '—'],
     ['Correo personal', w.email || '—'],
     ['Correo corporativo', w.email_corporativo || '—'],
     ['Fecha de ingreso', w.fecha_ingreso || '—'],
     ['Fecha de nacimiento', w.fecha_nacimiento || '—'],
+    ['Estado civil', w.estado_civil || '—'],
+    ['Hijos', w.tiene_hijos ? `Sí (${w.cantidad_hijos || '—'})` : 'No'],
     ['Horario', (w.hora_entrada || '08:00') + ' a ' + (w.hora_salida || '17:00') + (w.hora_entrada ? ' (personalizado)' : ' (estándar)')],
     ['Fecha de fin de contrato', w.fecha_fin_contrato || '—'],
     ['Última renovación', w.fecha_renovacion || '—'],
@@ -309,7 +312,7 @@ function renderEditForm(w) {
             <input type="text" id="editApellidos" value="${escapeAttr(w.apellidos)}" required>
           </div>
           <div class="field">
-            <label for="editDni">DNI *</label>
+            <label for="editDni">DNI/CE *</label>
             <input type="text" id="editDni" value="${escapeAttr(w.dni || '')}" required>
           </div>
           <div class="field">
@@ -320,8 +323,12 @@ function renderEditForm(w) {
             </select>
           </div>
           <div class="field">
-            <label for="editTelefono">Teléfono</label>
+            <label for="editTelefono">Teléfono personal</label>
             <input type="text" id="editTelefono" value="${escapeAttr(w.telefono || '')}">
+          </div>
+          <div class="field">
+            <label for="editTelefonoCorporativo">Teléfono corporativo</label>
+            <input type="text" id="editTelefonoCorporativo" value="${escapeAttr(w.telefono_corporativo || '')}">
           </div>
           <div class="field">
             <label for="editEmail">Correo personal</label>
@@ -338,6 +345,25 @@ function renderEditForm(w) {
           <div class="field">
             <label for="editFechaNacimiento">Fecha de nacimiento</label>
             <input type="date" id="editFechaNacimiento" value="${w.fecha_nacimiento || ''}">
+          </div>
+          <div class="field">
+            <label for="editEstadoCivil">Estado civil</label>
+            <select id="editEstadoCivil">
+              <option value="" ${!w.estado_civil ? 'selected' : ''}>Sin especificar</option>
+              <option value="Soltero/a" ${w.estado_civil === 'Soltero/a' ? 'selected' : ''}>Soltero/a</option>
+              <option value="Casado/a" ${w.estado_civil === 'Casado/a' ? 'selected' : ''}>Casado/a</option>
+              <option value="Conviviente" ${w.estado_civil === 'Conviviente' ? 'selected' : ''}>Conviviente</option>
+              <option value="Divorciado/a" ${w.estado_civil === 'Divorciado/a' ? 'selected' : ''}>Divorciado/a</option>
+              <option value="Viudo/a" ${w.estado_civil === 'Viudo/a' ? 'selected' : ''}>Viudo/a</option>
+            </select>
+          </div>
+          <div class="field" style="display:flex;flex-direction:column;justify-content:flex-end;">
+            <label style="display:flex;align-items:center;gap:8px;font-weight:400;margin-bottom:8px;">
+              <input type="checkbox" id="editTieneHijos" ${w.tiene_hijos ? 'checked' : ''}>
+              ¿Tiene hijos?
+            </label>
+            <input type="number" id="editCantidadHijos" min="1" placeholder="Cantidad de hijos"
+                   value="${w.cantidad_hijos || ''}" style="${w.tiene_hijos ? '' : 'display:none;'}">
           </div>
           <div class="field">
             <label for="editHoraEntrada">Hora de entrada (dejar vacío = 08:00 estándar)</label>
@@ -401,6 +427,10 @@ function renderEditForm(w) {
   cargarSedesEnEdicion(w.sede_id);
   bindNuevaSedeModal();
 
+  document.getElementById('editTieneHijos').addEventListener('change', (e) => {
+    document.getElementById('editCantidadHijos').style.display = e.target.checked ? 'block' : 'none';
+  });
+
   document.getElementById('editForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const errorMsg = document.getElementById('editErrorMsg');
@@ -416,6 +446,10 @@ function renderEditForm(w) {
       emailCorporativo: document.getElementById('editEmailCorporativo').value.trim(),
       fechaIngreso: document.getElementById('editFechaIngreso').value,
       fechaNacimiento: document.getElementById('editFechaNacimiento').value,
+      telefonoCorporativo: document.getElementById('editTelefonoCorporativo').value.trim(),
+      estadoCivil: document.getElementById('editEstadoCivil').value,
+      tieneHijos: document.getElementById('editTieneHijos').checked,
+      cantidadHijos: document.getElementById('editTieneHijos').checked ? document.getElementById('editCantidadHijos').value : '',
       horaEntrada: document.getElementById('editHoraEntrada').value,
       horaSalida: document.getElementById('editHoraSalida').value,
       cargo: document.getElementById('editCargo').value.trim(),

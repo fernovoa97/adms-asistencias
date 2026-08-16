@@ -49,8 +49,12 @@
               <input type="text" id="dni" name="dni" required>
             </div>
             <div class="field">
-              <label for="telefono">Teléfono</label>
+              <label for="telefono">Teléfono personal</label>
               <input type="text" id="telefono" name="telefono">
+            </div>
+            <div class="field">
+              <label for="telefonoCorporativo">Teléfono corporativo</label>
+              <input type="text" id="telefonoCorporativo" name="telefonoCorporativo">
             </div>
             <div class="field">
               <label for="email">Correo personal</label>
@@ -67,6 +71,24 @@
             <div class="field">
               <label for="fechaNacimiento">Fecha de nacimiento</label>
               <input type="date" id="fechaNacimiento" name="fechaNacimiento">
+            </div>
+            <div class="field">
+              <label for="estadoCivil">Estado civil</label>
+              <select id="estadoCivil" name="estadoCivil">
+                <option value="">Sin especificar</option>
+                <option value="Soltero/a">Soltero/a</option>
+                <option value="Casado/a">Casado/a</option>
+                <option value="Conviviente">Conviviente</option>
+                <option value="Divorciado/a">Divorciado/a</option>
+                <option value="Viudo/a">Viudo/a</option>
+              </select>
+            </div>
+            <div class="field" style="display:flex;flex-direction:column;justify-content:flex-end;">
+              <label style="display:flex;align-items:center;gap:8px;font-weight:400;margin-bottom:8px;">
+                <input type="checkbox" id="tieneHijos">
+                ¿Tiene hijos?
+              </label>
+              <input type="number" id="cantidadHijos" min="1" placeholder="Cantidad de hijos" style="display:none;">
             </div>
             <div class="field">
               <label for="fechaFinContrato">Fecha de fin de contrato</label>
