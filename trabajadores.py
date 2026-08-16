@@ -88,8 +88,11 @@ COLUMNAS_TRABAJADOR = [
     "estado", "supervisor", "sueldo_neto", "telefono", "telefono_corporativo",
     "email", "email_corporativo", "fecha_ingreso", "fecha_fin_contrato",
     "fecha_renovacion", "fecha_nacimiento", "estado_civil", "tiene_hijos",
-    "cantidad_hijos", "direccion", "observaciones", "historial_renovaciones",
-    "hora_entrada", "hora_salida", "sede_id", "excluido_asistencia", "fecha_registro"
+    "cantidad_hijos", "conyuge_nombres", "conyuge_dni",
+    "contacto_emergencia_nombres", "contacto_emergencia_telefono",
+    "contacto_emergencia_direccion", "direccion", "observaciones",
+    "historial_renovaciones", "hora_entrada", "hora_salida", "sede_id",
+    "excluido_asistencia", "fecha_registro"
 ]
 
 
@@ -144,9 +147,29 @@ def _obtener_documentos(cursor, worker_id):
     return documentos
 
 
+def _obtener_hijos(cursor, worker_id):
+    cursor.execute("""
+        SELECT id, nombres_completos, dni, fecha_nacimiento
+        FROM trabajadores_hijos
+        WHERE trabajador_id = %s
+        ORDER BY fecha_nacimiento NULLS LAST, id
+    """, (worker_id,))
+
+    hijos = []
+    for fila in cursor.fetchall():
+        hijos.append({
+            "id": fila[0],
+            "nombres_completos": fila[1],
+            "dni": fila[2],
+            "fecha_nacimiento": str(fila[3]) if fila[3] else None
+        })
+    return hijos
+
+
 def _agregar_datos_completos(cursor, worker):
     worker["documentos"] = _obtener_documentos(cursor, worker["id"])
     worker["carpetas"] = _obtener_carpetas(cursor, worker["id"])
+    worker["hijos"] = _obtener_hijos(cursor, worker["id"])
     return worker
 
 
@@ -306,6 +329,11 @@ def api_crear_trabajador():
     estado_civil = request.form.get("estadoCivil", "").strip()
     tiene_hijos = request.form.get("tieneHijos") == "true"
     cantidad_hijos = request.form.get("cantidadHijos", type=int) if tiene_hijos else None
+    conyuge_nombres = request.form.get("conyugeNombres", "").strip()
+    conyuge_dni = request.form.get("conyugeDni", "").strip()
+    contacto_emergencia_nombres = request.form.get("contactoEmergenciaNombres", "").strip()
+    contacto_emergencia_telefono = request.form.get("contactoEmergenciaTelefono", "").strip()
+    contacto_emergencia_direccion = request.form.get("contactoEmergenciaDireccion", "").strip()
     sede_id = request.form.get("sedeId", type=int)
     excluido_asistencia = request.form.get("excluidoAsistencia") == "true"
     direccion = request.form.get("direccion", "").strip()
@@ -324,19 +352,41 @@ def api_crear_trabajador():
                 dni, nombres, apellidos, cargo, area, supervisor, sueldo_neto,
                 telefono, telefono_corporativo, email, email_corporativo,
                 fecha_ingreso, fecha_fin_contrato, fecha_renovacion, fecha_nacimiento,
-                estado_civil, tiene_hijos, cantidad_hijos, sede_id, excluido_asistencia,
+                estado_civil, tiene_hijos, cantidad_hijos, conyuge_nombres, conyuge_dni,
+                contacto_emergencia_nombres, contacto_emergencia_telefono,
+                contacto_emergencia_direccion, sede_id, excluido_asistencia,
                 direccion, observaciones, estado, fecha_registro
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'ACTIVO', %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'ACTIVO', %s)
             RETURNING id
         """, (
             dni, nombres, apellidos, cargo, area, supervisor, sueldo_neto,
             telefono, telefono_corporativo, email, email_corporativo,
             fecha_ingreso, fecha_fin, fecha_renovacion, fecha_nacimiento,
-            estado_civil, tiene_hijos, cantidad_hijos, sede_id, excluido_asistencia,
+            estado_civil, tiene_hijos, cantidad_hijos, conyuge_nombres, conyuge_dni,
+            contacto_emergencia_nombres, contacto_emergencia_telefono,
+            contacto_emergencia_direccion, sede_id, excluido_asistencia,
             direccion, observaciones, datetime.now()
         ))
         worker_id = cursor.fetchone()[0]
+
+        try:
+            hijos_lista = json.loads(request.form.get("hijos") or "[]")
+        except (ValueError, TypeError):
+            hijos_lista = []
+        for hijo in hijos_lista:
+            nombres_hijo = (hijo.get("nombresCompletos") or "").strip()
+            if not nombres_hijo:
+                continue
+            cursor.execute("""
+                INSERT INTO trabajadores_hijos (trabajador_id, nombres_completos, dni, fecha_nacimiento, creado_en)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (
+                worker_id, nombres_hijo,
+                (hijo.get("dni") or "").strip() or None,
+                (hijo.get("fechaNacimiento") or "").strip() or None,
+                datetime.now()
+            ))
 
         try:
             nombres_docs = json.loads(request.form.get("documentosNombres") or "[]")
@@ -527,8 +577,11 @@ def api_actualizar(worker_id):
                 supervisor = %s, sueldo_neto = %s, estado = %s,
                 telefono = %s, telefono_corporativo = %s, email = %s, email_corporativo = %s,
                 fecha_ingreso = %s, fecha_nacimiento = %s, estado_civil = %s,
-                tiene_hijos = %s, cantidad_hijos = %s, sede_id = %s,
-                excluido_asistencia = %s,
+                tiene_hijos = %s, cantidad_hijos = %s,
+                conyuge_nombres = %s, conyuge_dni = %s,
+                contacto_emergencia_nombres = %s, contacto_emergencia_telefono = %s,
+                contacto_emergencia_direccion = %s,
+                sede_id = %s, excluido_asistencia = %s,
                 direccion = %s, observaciones = %s,
                 hora_entrada = %s, hora_salida = %s
             WHERE id = %s
@@ -548,6 +601,11 @@ def api_actualizar(worker_id):
             (datos.get("estadoCivil") or "").strip(),
             bool(datos.get("tieneHijos")),
             datos.get("cantidadHijos") if bool(datos.get("tieneHijos")) else None,
+            (datos.get("conyugeNombres") or "").strip(),
+            (datos.get("conyugeDni") or "").strip(),
+            (datos.get("contactoEmergenciaNombres") or "").strip(),
+            (datos.get("contactoEmergenciaTelefono") or "").strip(),
+            (datos.get("contactoEmergenciaDireccion") or "").strip(),
             datos.get("sedeId") or None,
             bool(datos.get("excluidoAsistencia")),
             (datos.get("direccion") or "").strip(),
@@ -795,6 +853,64 @@ def servir_documento(doc_id):
         mimetype=tipo_mime or "application/pdf",
         headers={"Content-Disposition": f'inline; filename="{nombre}.pdf"'}
     )
+
+
+# ==========================================================
+# HIJOS
+# ==========================================================
+
+@trabajadores_bp.route("/api/trabajadores/<int:worker_id>/hijos", methods=["POST"])
+@login_requerido
+def api_agregar_hijo(worker_id):
+    datos = request.get_json(silent=True) or {}
+    nombres_completos = (datos.get("nombresCompletos") or "").strip()
+
+    if not nombres_completos:
+        return jsonify({"error": "El nombre completo del hijo es obligatorio"}), 400
+
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    try:
+        cursor.execute("SELECT id FROM trabajadores WHERE id = %s", (worker_id,))
+        if not cursor.fetchone():
+            return jsonify({"error": "Trabajador no encontrado"}), 404
+
+        cursor.execute("""
+            INSERT INTO trabajadores_hijos (trabajador_id, nombres_completos, dni, fecha_nacimiento, creado_en)
+            VALUES (%s, %s, %s, %s, %s)
+            RETURNING id
+        """, (
+            worker_id, nombres_completos,
+            (datos.get("dni") or "").strip() or None,
+            (datos.get("fechaNacimiento") or "").strip() or None,
+            datetime.now()
+        ))
+        hijo_id = cursor.fetchone()[0]
+        conexion.commit()
+        return jsonify({"ok": True, "id": hijo_id}), 201
+    except Exception as error:
+        conexion.rollback()
+        print("ERROR AGREGANDO HIJO:", error)
+        return jsonify({"error": "No se pudo agregar el hijo"}), 500
+    finally:
+        cursor.close()
+        conexion.close()
+
+
+@trabajadores_bp.route("/api/trabajadores/hijos/<int:hijo_id>", methods=["DELETE"])
+@login_requerido
+def api_eliminar_hijo(hijo_id):
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    cursor.execute("DELETE FROM trabajadores_hijos WHERE id = %s", (hijo_id,))
+    eliminado = cursor.rowcount > 0
+    conexion.commit()
+    cursor.close()
+    conexion.close()
+
+    if not eliminado:
+        return jsonify({"error": "Registro no encontrado"}), 404
+    return jsonify({"ok": True})
 
 
 # ==========================================================

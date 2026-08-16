@@ -75,13 +75,47 @@ function clearPreview(rowId) {
 }
 
 document.getElementById('addFileBtn').addEventListener('click', createUploadRow);
-
-// Mostrar/ocultar la cantidad de hijos segun el checkbox
-document.getElementById('tieneHijos').addEventListener('change', (e) => {
-  document.getElementById('cantidadHijos').style.display = e.target.checked ? 'block' : 'none';
-  if (!e.target.checked) document.getElementById('cantidadHijos').value = '';
-});
 createUploadRow();
+
+// ---------- Estado civil -> mostrar datos del conyuge ----------
+
+function actualizarVisibilidadConyuge() {
+  const valor = document.getElementById('estadoCivil').value;
+  const mostrar = valor === 'Casado/a' || valor === 'Conviviente';
+  document.getElementById('conyugeCampos').style.display = mostrar ? 'grid' : 'none';
+}
+document.getElementById('estadoCivil').addEventListener('change', actualizarVisibilidadConyuge);
+
+// ---------- Hijos (filas repetibles: nombre, DNI, fecha de nacimiento) ----------
+
+let hijoRowCount = 0;
+
+function crearFilaHijo() {
+  hijoRowCount += 1;
+  const wrapper = document.createElement('div');
+  wrapper.className = 'upload-row';
+  wrapper.innerHTML = `
+    <input type="text" placeholder="Nombres completos del hijo/a" class="hijo-nombres" style="flex:1.5;">
+    <input type="text" placeholder="DNI (opcional)" class="hijo-dni" style="flex:1;">
+    <input type="date" class="hijo-fecha-nacimiento" style="flex:1;">
+    <button type="button" class="btn danger remove-row-btn">Quitar</button>
+  `;
+  wrapper.querySelector('.remove-row-btn').addEventListener('click', () => wrapper.remove());
+  document.getElementById('hijosRows').appendChild(wrapper);
+}
+
+document.getElementById('addHijoBtn').addEventListener('click', crearFilaHijo);
+
+document.getElementById('tieneHijos').addEventListener('change', (e) => {
+  const mostrar = e.target.checked;
+  document.getElementById('addHijoBtn').style.display = mostrar ? 'inline-block' : 'none';
+  if (mostrar && document.querySelectorAll('#hijosRows .upload-row').length === 0) {
+    crearFilaHijo();
+  }
+  if (!mostrar) {
+    document.getElementById('hijosRows').innerHTML = '';
+  }
+});
 
 // ---------- Sedes ----------
 
@@ -193,7 +227,26 @@ document.getElementById('workerForm').addEventListener('submit', async (e) => {
   formData.append('estadoCivil', document.getElementById('estadoCivil').value);
   const tieneHijos = document.getElementById('tieneHijos').checked;
   formData.append('tieneHijos', tieneHijos);
-  formData.append('cantidadHijos', tieneHijos ? document.getElementById('cantidadHijos').value : '');
+  formData.append('conyugeNombres', document.getElementById('conyugeNombres').value.trim());
+  formData.append('conyugeDni', document.getElementById('conyugeDni').value.trim());
+  formData.append('contactoEmergenciaNombres', document.getElementById('contactoEmergenciaNombres').value.trim());
+  formData.append('contactoEmergenciaTelefono', document.getElementById('contactoEmergenciaTelefono').value.trim());
+  formData.append('contactoEmergenciaDireccion', document.getElementById('contactoEmergenciaDireccion').value.trim());
+
+  const hijos = [];
+  if (tieneHijos) {
+    document.querySelectorAll('#hijosRows .upload-row').forEach((fila) => {
+      const nombresCompletos = fila.querySelector('.hijo-nombres').value.trim();
+      if (!nombresCompletos) return;
+      hijos.push({
+        nombresCompletos,
+        dni: fila.querySelector('.hijo-dni').value.trim(),
+        fechaNacimiento: fila.querySelector('.hijo-fecha-nacimiento').value
+      });
+    });
+  }
+  formData.append('hijos', JSON.stringify(hijos));
+  formData.append('cantidadHijos', hijos.length);
   formData.append('sedeId', document.getElementById('sedeId').value);
   formData.append('excluidoAsistencia', document.getElementById('excluidoAsistencia').checked);
   const fotoInput = document.getElementById('foto');
@@ -245,7 +298,9 @@ document.getElementById('workerForm').addEventListener('submit', async (e) => {
     document.getElementById('uploadRows').innerHTML = '';
     document.getElementById('previewArea').innerHTML = '';
     document.getElementById('avatarPreview').innerHTML = '<span id="avatarPreviewIniciales">?</span>';
-    document.getElementById('cantidadHijos').style.display = 'none';
+    document.getElementById('hijosRows').innerHTML = '';
+    document.getElementById('addHijoBtn').style.display = 'none';
+    document.getElementById('conyugeCampos').style.display = 'none';
     createUploadRow();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   } catch (err) {

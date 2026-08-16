@@ -121,7 +121,9 @@ function renderViewMode(w) {
     ['Fecha de ingreso', w.fecha_ingreso || '—'],
     ['Fecha de nacimiento', w.fecha_nacimiento || '—'],
     ['Estado civil', w.estado_civil || '—'],
-    ['Hijos', w.tiene_hijos ? `Sí (${w.cantidad_hijos || '—'})` : 'No'],
+    ['Cónyuge', (w.estado_civil === 'Casado/a' || w.estado_civil === 'Conviviente') ? (w.conyuge_nombres ? `${w.conyuge_nombres} (DNI: ${w.conyuge_dni || '—'})` : '—') : 'No aplica'],
+    ['¿Tiene hijos?', w.tiene_hijos ? `Sí (${(w.hijos || []).length})` : 'No'],
+    ['Contacto de emergencia', w.contacto_emergencia_nombres ? `${w.contacto_emergencia_nombres} · ${w.contacto_emergencia_telefono || '—'} · ${w.contacto_emergencia_direccion || '—'}` : '—'],
     ['Horario', (w.hora_entrada || '08:00') + ' a ' + (w.hora_salida || '17:00') + (w.hora_entrada ? ' (personalizado)' : ' (estándar)')],
     ['Fecha de fin de contrato', w.fecha_fin_contrato || '—'],
     ['Última renovación', w.fecha_renovacion || '—'],
@@ -153,6 +155,20 @@ function renderViewMode(w) {
     if (b === 'Sin carpeta') return -1;
     return a.localeCompare(b);
   });
+
+  const hijos = w.hijos || [];
+  const hijosHtml = hijos.length === 0
+    ? '<p class="muted">Todavía no se registró ningún hijo.</p>'
+    : hijos.map((h) => `
+        <div class="doc-item">
+          <div>
+            <div class="doc-name">${escapeHtml(h.nombres_completos)}</div>
+            <div class="muted" style="font-size:0.78rem;">
+              ${h.dni ? 'DNI: ' + escapeHtml(h.dni) : 'Sin DNI'} · ${h.fecha_nacimiento ? h.fecha_nacimiento : 'Sin fecha de nacimiento'}
+            </div>
+          </div>
+          <button class="btn danger" style="font-size:0.8rem;padding:5px 10px;" onclick="eliminarHijo(${w.id}, ${h.id})">Quitar</button>
+        </div>`).join('');
 
   const docsHtml =
     documentos.length === 0
@@ -207,6 +223,17 @@ function renderViewMode(w) {
       <div class="detail-grid" style="margin-top:18px;">${fieldsHtml}</div>
       ${w.observaciones ? `<div class="detail-item" style="margin-bottom:16px;"><div class="label">Observaciones</div><div class="value">${escapeHtml(w.observaciones)}</div></div>` : ''}
 
+      ${w.tiene_hijos ? `
+      <h3 style="font-size:0.95rem;">Hijos</h3>
+      <div id="hijosListaArea" class="doc-list" style="margin-bottom:12px;">${hijosHtml}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+        <input type="text" id="nuevoHijoNombres" placeholder="Nombres completos" style="flex:1.5;min-width:160px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;">
+        <input type="text" id="nuevoHijoDni" placeholder="DNI (opcional)" style="flex:1;min-width:100px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;">
+        <input type="date" id="nuevoHijoFecha" style="flex:1;min-width:140px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;">
+        <button type="button" class="btn secondary" id="agregarHijoBtn">+ Agregar hijo</button>
+      </div>
+      ` : ''}
+
       <h3 style="font-size:0.95rem;">Documentos</h3>
       ${docsHtml}
       <div id="pdfPreviewArea"></div>
@@ -254,6 +281,55 @@ function renderViewMode(w) {
   bindCarpetas(w);
   bindUploadDocs(w);
   bindFoto(w);
+  bindHijos(w);
+}
+
+function bindHijos(w) {
+  const btn = document.getElementById('agregarHijoBtn');
+  if (!btn) return;
+
+  btn.addEventListener('click', async () => {
+    const nombresCompletos = document.getElementById('nuevoHijoNombres').value.trim();
+    const dni = document.getElementById('nuevoHijoDni').value.trim();
+    const fechaNacimiento = document.getElementById('nuevoHijoFecha').value;
+
+    if (!nombresCompletos) {
+      alert('Escribe el nombre completo del hijo.');
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/trabajadores/${w.id}/hijos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombresCompletos, dni, fechaNacimiento })
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.error || 'No se pudo agregar el hijo');
+        return;
+      }
+
+      loadDetail(w.id);
+    } catch (err) {
+      alert('Error de conexión con el servidor');
+    }
+  });
+}
+
+async function eliminarHijo(workerId, hijoId) {
+  if (!confirm('¿Quitar este hijo de la ficha?')) return;
+  try {
+    const res = await fetch(`/api/trabajadores/hijos/${hijoId}`, { method: 'DELETE' });
+    if (!res.ok) {
+      alert('No se pudo quitar el registro');
+      return;
+    }
+    loadDetail(workerId);
+  } catch (err) {
+    alert('Error de conexión con el servidor');
+  }
 }
 
 function bindFoto(w) {
@@ -312,7 +388,7 @@ function renderEditForm(w) {
             <input type="text" id="editApellidos" value="${escapeAttr(w.apellidos)}" required>
           </div>
           <div class="field">
-            <label for="editDni">DNI/CE *</label>
+            <label for="editDni">DNI *</label>
             <input type="text" id="editDni" value="${escapeAttr(w.dni || '')}" required>
           </div>
           <div class="field">
@@ -357,14 +433,42 @@ function renderEditForm(w) {
               <option value="Viudo/a" ${w.estado_civil === 'Viudo/a' ? 'selected' : ''}>Viudo/a</option>
             </select>
           </div>
-          <div class="field" style="display:flex;flex-direction:column;justify-content:flex-end;">
-            <label style="display:flex;align-items:center;gap:8px;font-weight:400;margin-bottom:8px;">
+          <div class="field" style="display:flex;align-items:flex-end;">
+            <label style="display:flex;align-items:center;gap:8px;font-weight:400;margin-bottom:10px;">
               <input type="checkbox" id="editTieneHijos" ${w.tiene_hijos ? 'checked' : ''}>
-              ¿Tiene hijos?
+              ¿Tiene hijos? <span class="muted">(gestiona la lista desde la ficha)</span>
             </label>
-            <input type="number" id="editCantidadHijos" min="1" placeholder="Cantidad de hijos"
-                   value="${w.cantidad_hijos || ''}" style="${w.tiene_hijos ? '' : 'display:none;'}">
           </div>
+        </div>
+
+        <div id="editConyugeCampos" class="grid-2" style="${(w.estado_civil === 'Casado/a' || w.estado_civil === 'Conviviente') ? '' : 'display:none;'}">
+          <div class="field">
+            <label for="editConyugeNombres">Nombres completos del cónyuge</label>
+            <input type="text" id="editConyugeNombres" value="${escapeAttr(w.conyuge_nombres || '')}">
+          </div>
+          <div class="field">
+            <label for="editConyugeDni">DNI del cónyuge</label>
+            <input type="text" id="editConyugeDni" value="${escapeAttr(w.conyuge_dni || '')}">
+          </div>
+        </div>
+
+        <h3 style="font-size:0.9rem;">Contacto de emergencia</h3>
+        <div class="grid-2">
+          <div class="field">
+            <label for="editContactoEmergenciaNombres">Nombres</label>
+            <input type="text" id="editContactoEmergenciaNombres" value="${escapeAttr(w.contacto_emergencia_nombres || '')}">
+          </div>
+          <div class="field">
+            <label for="editContactoEmergenciaTelefono">Teléfono</label>
+            <input type="text" id="editContactoEmergenciaTelefono" value="${escapeAttr(w.contacto_emergencia_telefono || '')}">
+          </div>
+        </div>
+        <div class="field">
+          <label for="editContactoEmergenciaDireccion">Dirección</label>
+          <input type="text" id="editContactoEmergenciaDireccion" value="${escapeAttr(w.contacto_emergencia_direccion || '')}">
+        </div>
+
+        <div class="grid-2">
           <div class="field">
             <label for="editHoraEntrada">Hora de entrada (dejar vacío = 08:00 estándar)</label>
             <input type="time" id="editHoraEntrada" value="${w.hora_entrada || ''}">
@@ -427,8 +531,9 @@ function renderEditForm(w) {
   cargarSedesEnEdicion(w.sede_id);
   bindNuevaSedeModal();
 
-  document.getElementById('editTieneHijos').addEventListener('change', (e) => {
-    document.getElementById('editCantidadHijos').style.display = e.target.checked ? 'block' : 'none';
+  document.getElementById('editEstadoCivil').addEventListener('change', (e) => {
+    const mostrar = e.target.value === 'Casado/a' || e.target.value === 'Conviviente';
+    document.getElementById('editConyugeCampos').style.display = mostrar ? 'grid' : 'none';
   });
 
   document.getElementById('editForm').addEventListener('submit', async (e) => {
@@ -449,7 +554,11 @@ function renderEditForm(w) {
       telefonoCorporativo: document.getElementById('editTelefonoCorporativo').value.trim(),
       estadoCivil: document.getElementById('editEstadoCivil').value,
       tieneHijos: document.getElementById('editTieneHijos').checked,
-      cantidadHijos: document.getElementById('editTieneHijos').checked ? document.getElementById('editCantidadHijos').value : '',
+      conyugeNombres: document.getElementById('editConyugeNombres').value.trim(),
+      conyugeDni: document.getElementById('editConyugeDni').value.trim(),
+      contactoEmergenciaNombres: document.getElementById('editContactoEmergenciaNombres').value.trim(),
+      contactoEmergenciaTelefono: document.getElementById('editContactoEmergenciaTelefono').value.trim(),
+      contactoEmergenciaDireccion: document.getElementById('editContactoEmergenciaDireccion').value.trim(),
       horaEntrada: document.getElementById('editHoraEntrada').value,
       horaSalida: document.getElementById('editHoraSalida').value,
       cargo: document.getElementById('editCargo').value.trim(),

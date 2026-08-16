@@ -83,12 +83,11 @@
                 <option value="Viudo/a">Viudo/a</option>
               </select>
             </div>
-            <div class="field" style="display:flex;flex-direction:column;justify-content:flex-end;">
-              <label style="display:flex;align-items:center;gap:8px;font-weight:400;margin-bottom:8px;">
+            <div class="field">
+              <label style="display:flex;align-items:center;gap:8px;font-weight:400;margin-top:22px;">
                 <input type="checkbox" id="tieneHijos">
                 ¿Tiene hijos?
               </label>
-              <input type="number" id="cantidadHijos" min="1" placeholder="Cantidad de hijos" style="display:none;">
             </div>
             <div class="field">
               <label for="fechaFinContrato">Fecha de fin de contrato</label>
@@ -138,6 +137,41 @@
           <div class="field">
             <label for="observaciones">Observaciones</label>
             <textarea id="observaciones" name="observaciones" rows="3"></textarea>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2 style="margin-top:0;font-size:1rem;">Familia y contacto de emergencia</h2>
+
+          <div id="conyugeCampos" class="grid-2" style="display:none;">
+            <div class="field">
+              <label for="conyugeNombres">Nombres completos del cónyuge</label>
+              <input type="text" id="conyugeNombres">
+            </div>
+            <div class="field">
+              <label for="conyugeDni">DNI del cónyuge</label>
+              <input type="text" id="conyugeDni">
+            </div>
+          </div>
+
+          <p class="muted" style="margin-top:16px;">Datos de los hijos (para navidad, seguro, etc.)</p>
+          <div id="hijosRows"></div>
+          <button type="button" class="btn secondary" id="addHijoBtn" style="display:none;">+ Agregar hijo</button>
+
+          <h3 style="font-size:0.9rem;margin-top:20px;">Contacto de emergencia</h3>
+          <div class="grid-2">
+            <div class="field">
+              <label for="contactoEmergenciaNombres">Nombres</label>
+              <input type="text" id="contactoEmergenciaNombres">
+            </div>
+            <div class="field">
+              <label for="contactoEmergenciaTelefono">Teléfono</label>
+              <input type="text" id="contactoEmergenciaTelefono">
+            </div>
+          </div>
+          <div class="field">
+            <label for="contactoEmergenciaDireccion">Dirección</label>
+            <input type="text" id="contactoEmergenciaDireccion">
           </div>
         </div>
 

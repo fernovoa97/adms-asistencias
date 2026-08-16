@@ -104,6 +104,11 @@ def inicializar_base_datos():
         _agregar_columna_si_falta(cursor, "trabajadores", "estado_civil", "TEXT")
         _agregar_columna_si_falta(cursor, "trabajadores", "tiene_hijos", "BOOLEAN NOT NULL DEFAULT FALSE")
         _agregar_columna_si_falta(cursor, "trabajadores", "cantidad_hijos", "INTEGER")
+        _agregar_columna_si_falta(cursor, "trabajadores", "conyuge_nombres", "TEXT")
+        _agregar_columna_si_falta(cursor, "trabajadores", "conyuge_dni", "TEXT")
+        _agregar_columna_si_falta(cursor, "trabajadores", "contacto_emergencia_nombres", "TEXT")
+        _agregar_columna_si_falta(cursor, "trabajadores", "contacto_emergencia_telefono", "TEXT")
+        _agregar_columna_si_falta(cursor, "trabajadores", "contacto_emergencia_direccion", "TEXT")
 
         # La columna "estado" ya existia desde la version original, pero
         # nunca se expuso en pantalla. Por las dudas, si algun registro
@@ -155,6 +160,18 @@ def inicializar_base_datos():
                 nombre TEXT NOT NULL,
                 creado_en TIMESTAMP NOT NULL,
                 UNIQUE(trabajador_id, nombre)
+            )
+        """)
+
+        # --- Hijos de cada trabajador (para navidad, seguro, etc.) ---
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS trabajadores_hijos (
+                id SERIAL PRIMARY KEY,
+                trabajador_id INTEGER NOT NULL REFERENCES trabajadores(id) ON DELETE CASCADE,
+                nombres_completos TEXT NOT NULL,
+                dni TEXT,
+                fecha_nacimiento DATE,
+                creado_en TIMESTAMP NOT NULL
             )
         """)
 
