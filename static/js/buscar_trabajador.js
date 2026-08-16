@@ -39,6 +39,13 @@ async function doSearch(q) {
 // filtrando esa misma lista.
 doSearch('');
 
+// Si se llega con ?id=123 en la URL (ej. desde el Resumen de personal),
+// se abre directo la ficha de ese trabajador, sin tener que buscarlo.
+const idDesdeUrl = new URLSearchParams(window.location.search).get('id');
+if (idDesdeUrl) {
+  loadDetail(Number(idDesdeUrl));
+}
+
 function renderResults(todosLosResultados) {
   const activos = todosLosResultados.filter((w) => w.estado !== 'INACTIVO');
   const inactivos = todosLosResultados.filter((w) => w.estado === 'INACTIVO');

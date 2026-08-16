@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Resumen de personal · Personal y Asistencias</title>
+<link rel="icon" href="{{ url_for('static', filename='img/logo.png') }}">
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <div class="app-shell">
+    {% include '_sidebar.html' %}
+
+    <main class="main">
+      <div class="barra">
+        <div>
+          <h1 style="margin:0;">Resumen de personal</h1>
+          <p class="lead" style="margin-top:4px;">Datos clave de todos los trabajadores activos, a la mano.</p>
+        </div>
+        <div class="vista-toggle" id="vistaToggle">
+          <a href="#" data-vista="tabla" class="active">📋 Tabla</a>
+          <a href="#" data-vista="tarjetas">🗂️ Tarjetas</a>
+        </div>
+      </div>
+
+      <div id="vistaTabla" class="tabla-contenedor">
+        <table>
+          <thead>
+            <tr>
+              <th>Nombre completo</th>
+              <th>DNI</th>
+              <th>Fecha de ingreso</th>
+              <th>Fecha de nacimiento</th>
+              <th>Correo personal</th>
+              <th>Teléfono personal</th>
+              <th>Dirección</th>
+              <th>Contacto de emergencia</th>
+            </tr>
+          </thead>
+          <tbody id="tablaCuerpo">
+            <tr><td colspan="8" class="muted" style="text-align:center;padding:24px;">Cargando…</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div id="vistaTarjetas" class="tarjetas-personal" style="display:none;"></div>
+    </main>
+  </div>
+
+  <script src="/static/js/resumen_personal.js"></script>
+</body>
+</html>

@@ -596,6 +596,48 @@ tr.fila-finde:hover { background: #f3f4f6; }
 .avatar-trabajador { width: 72px; height: 72px; font-size: 1.7rem; }
 .avatar-trabajador-chico { width: 36px; height: 36px; font-size: 0.95rem; }
 
+/* ---------- Resumen de personal: vista de tarjetas ---------- */
+.tarjetas-personal {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.tarjeta-personal {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.tarjeta-personal-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.tarjeta-personal-nombre { font-weight: 700; font-size: 0.95rem; }
+
+.tarjeta-personal-datos {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.83rem;
+  color: var(--text);
+}
+
+.label-chico {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
 /* ---------- Actas de entrega ---------- */
 .entrega-celda {
   display: flex;

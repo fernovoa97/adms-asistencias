@@ -284,6 +284,58 @@ def pagina_buscar_trabajador():
     return render_template("buscar_trabajador.html", active_page="buscar_trabajador")
 
 
+@trabajadores_bp.route("/resumen-personal")
+@login_requerido
+def pagina_resumen_personal():
+    return render_template("resumen_personal.html", active_page="resumen_personal")
+
+
+# ==========================================================
+# API: resumen de personal (tabla/tarjetas con datos clave)
+# ==========================================================
+
+@trabajadores_bp.route("/api/trabajadores/resumen")
+@login_requerido
+def api_resumen_personal():
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    cursor.execute("""
+        SELECT
+            id, nombres, apellidos, dni, fecha_ingreso, fecha_nacimiento,
+            email, telefono, direccion,
+            contacto_emergencia_nombres, contacto_emergencia_telefono,
+            contacto_emergencia_direccion, (foto IS NOT NULL) AS tiene_foto
+        FROM trabajadores
+        WHERE estado IS DISTINCT FROM 'INACTIVO'
+        ORDER BY nombres, apellidos
+    """)
+
+    trabajadores = []
+    for fila in cursor.fetchall():
+        (t_id, nombres, apellidos, dni, fecha_ingreso, fecha_nacimiento,
+         email, telefono, direccion, contacto_nombres, contacto_telefono,
+         contacto_direccion, tiene_foto) = fila
+
+        trabajadores.append({
+            "id": t_id,
+            "nombreCompleto": f"{nombres} {apellidos}",
+            "dni": dni,
+            "fechaIngreso": str(fecha_ingreso) if fecha_ingreso else None,
+            "fechaNacimiento": str(fecha_nacimiento) if fecha_nacimiento else None,
+            "email": email,
+            "telefono": telefono,
+            "direccion": direccion,
+            "contactoEmergenciaNombres": contacto_nombres,
+            "contactoEmergenciaTelefono": contacto_telefono,
+            "contactoEmergenciaDireccion": contacto_direccion,
+            "tieneFoto": tiene_foto
+        })
+
+    cursor.close()
+    conexion.close()
+    return jsonify({"trabajadores": trabajadores})
+
+
 # ==========================================================
 # ESTADISTICAS
 # ==========================================================
