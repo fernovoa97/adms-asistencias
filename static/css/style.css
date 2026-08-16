@@ -533,6 +533,14 @@ td.descuento-alto {
 
 .leyenda-punto.leyenda-alto { background: #fee2e2; border: 1px solid #991b1b; }
 
+.celda-justificacion {
+  font-size: 0.68rem;
+  color: #1e40af;
+  font-weight: 600;
+  margin-top: 2px;
+  cursor: help;
+}
+
 .tag-inactivo {
   margin-left: 6px;
   background: #f3f4f6;

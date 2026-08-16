@@ -3,6 +3,7 @@
 # Se ejecuta una sola vez al arrancar la app (ver inicializar_base_datos()).
 
 import os
+from datetime import datetime
 import psycopg2
 from werkzeug.security import generate_password_hash
 
@@ -314,6 +315,29 @@ def inicializar_base_datos():
             )
         """)
         _agregar_columna_si_falta(cursor, "trabajadores", "sede_id", "INTEGER REFERENCES sedes(id) ON DELETE SET NULL")
+
+        # --- Catalogo administrable de motivos de justificacion ---
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS motivos_justificacion (
+                id SERIAL PRIMARY KEY,
+                nombre TEXT NOT NULL UNIQUE,
+                creado_en TIMESTAMP NOT NULL
+            )
+        """)
+
+        cursor.execute("SELECT COUNT(*) FROM motivos_justificacion")
+        if cursor.fetchone()[0] == 0:
+            motivos_por_defecto = [
+                "Cita médica", "Descanso médico", "Permiso personal",
+                "Trabajo remoto", "Olvidó marcar", "Gestión interna",
+                "Capacitación"
+            ]
+            for nombre_motivo in motivos_por_defecto:
+                cursor.execute(
+                    "INSERT INTO motivos_justificacion (nombre, creado_en) VALUES (%s, %s)",
+                    (nombre_motivo, datetime.now())
+                )
+            print("MOTIVOS DE JUSTIFICACIÓN POR DEFECTO CREADOS")
 
         # --- Eventos del calendario de la empresa ---
         cursor.execute("""

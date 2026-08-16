@@ -80,6 +80,55 @@ def api_eliminar_feriado(fecha):
 
 
 # ---------------------------------------------------------------------------
+# Catalogo de motivos de justificacion (combo administrable)
+# ---------------------------------------------------------------------------
+
+@ajustes_bp.route("/api/motivos-justificacion")
+@login_requerido
+def api_listar_motivos():
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    cursor.execute("SELECT id, nombre FROM motivos_justificacion ORDER BY nombre")
+    motivos = [{"id": f[0], "nombre": f[1]} for f in cursor.fetchall()]
+    cursor.close()
+    conexion.close()
+    return jsonify({"motivos": motivos})
+
+
+@ajustes_bp.route("/api/motivos-justificacion", methods=["POST"])
+@login_requerido
+def api_crear_motivo():
+    datos = request.get_json(silent=True) or {}
+    nombre = (datos.get("nombre") or "").strip()
+
+    if not nombre:
+        return jsonify({"error": "El nombre del motivo es obligatorio"}), 400
+
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    try:
+        cursor.execute("SELECT id FROM motivos_justificacion WHERE nombre ILIKE %s", (nombre,))
+        if cursor.fetchone():
+            return jsonify({"error": "Ya existe un motivo con ese nombre"}), 400
+
+        cursor.execute("""
+            INSERT INTO motivos_justificacion (nombre, creado_en)
+            VALUES (%s, %s)
+            RETURNING id
+        """, (nombre, datetime.now()))
+        motivo_id = cursor.fetchone()[0]
+        conexion.commit()
+        return jsonify({"ok": True, "id": motivo_id, "nombre": nombre}), 201
+    except Exception as error:
+        conexion.rollback()
+        print("ERROR CREANDO MOTIVO:", error)
+        return jsonify({"error": "No se pudo crear el motivo"}), 500
+    finally:
+        cursor.close()
+        conexion.close()
+
+
+# ---------------------------------------------------------------------------
 # Justificaciones (ajustes por trabajador y fecha)
 # ---------------------------------------------------------------------------
 

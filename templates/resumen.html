@@ -50,6 +50,11 @@
               {% set total = fila.totales[semana.numero] %}
               <td class="{{ 'descuento-alto' if total.alto else '' }}">
                 {{ total.texto }}
+                {% if total.justificaciones %}
+                <div class="celda-justificacion" title="{{ total.justificaciones | map(attribute='motivo') | join(', ') }}">
+                  ✓ {{ total.justificaciones[0].motivo }}{% if total.justificaciones|length > 1 %} +{{ total.justificaciones|length - 1 }}{% endif %}
+                </div>
+                {% endif %}
               </td>
               {% endfor %}
             </tr>

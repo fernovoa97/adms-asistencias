@@ -74,7 +74,12 @@ function renderFormularioAjuste(w) {
         </div>
         <div class="field">
           <label for="motivoAjuste">Motivo</label>
-          <input type="text" id="motivoAjuste" placeholder="Ej. Cita médica" required>
+          <div style="display:flex;gap:8px;">
+            <select id="motivoAjuste" style="flex:1;" required>
+              <option value="">Elige un motivo...</option>
+            </select>
+            <button type="button" class="btn secondary" id="nuevoMotivoBtn" style="white-space:nowrap;">+ Nuevo</button>
+          </div>
         </div>
         <div class="field" style="grid-column: span 2;">
           <button type="submit" class="btn" id="ajusteSubmitBtn">Guardar justificación</button>
@@ -131,6 +136,83 @@ function renderFormularioAjuste(w) {
     } finally {
       btn.disabled = false;
       btn.textContent = 'Guardar justificación';
+    }
+  });
+
+  cargarMotivos();
+  bindNuevoMotivoModal();
+}
+
+// ---------- Motivos de justificacion (combo administrable) ----------
+
+async function cargarMotivos(seleccionarNombre) {
+  const select = document.getElementById('motivoAjuste');
+  if (!select) return;
+  try {
+    const res = await fetch('/api/motivos-justificacion');
+    const data = await res.json();
+    select.innerHTML = '<option value="">Elige un motivo...</option>';
+    (data.motivos || []).forEach((m) => {
+      const opt = document.createElement('option');
+      opt.value = m.nombre;
+      opt.textContent = m.nombre;
+      select.appendChild(opt);
+    });
+    if (seleccionarNombre) select.value = seleccionarNombre;
+  } catch (err) {
+    // si falla, se queda solo la opcion por defecto
+  }
+}
+
+function bindNuevoMotivoModal() {
+  const overlay = document.getElementById('nuevoMotivoModalOverlay');
+  const btnAbrir = document.getElementById('nuevoMotivoBtn');
+  if (!overlay || !btnAbrir) return;
+
+  btnAbrir.addEventListener('click', () => {
+    document.getElementById('nuevoMotivoErrorMsg').style.display = 'none';
+    document.getElementById('nuevoMotivoNombre').value = '';
+    overlay.style.display = 'flex';
+  });
+
+  document.getElementById('nuevoMotivoCancelarBtn').addEventListener('click', () => {
+    overlay.style.display = 'none';
+  });
+
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) overlay.style.display = 'none';
+  });
+
+  document.getElementById('nuevoMotivoGuardarBtn').addEventListener('click', async () => {
+    const errorMsg = document.getElementById('nuevoMotivoErrorMsg');
+    errorMsg.style.display = 'none';
+
+    const nombre = document.getElementById('nuevoMotivoNombre').value.trim();
+    if (!nombre) {
+      errorMsg.textContent = 'Escribe el nombre del motivo.';
+      errorMsg.style.display = 'block';
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/motivos-justificacion', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre })
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        errorMsg.textContent = data.error || 'No se pudo crear el motivo';
+        errorMsg.style.display = 'block';
+        return;
+      }
+
+      await cargarMotivos(data.nombre);
+      overlay.style.display = 'none';
+    } catch (err) {
+      errorMsg.textContent = 'Error de conexión con el servidor';
+      errorMsg.style.display = 'block';
     }
   });
 }
