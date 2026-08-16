@@ -198,6 +198,33 @@ def pagina_historial(trabajador_id):
                     }
                 })
 
+    # Dias justificados que NO tienen marcaje ese dia (ej. trabajo remoto,
+    # permiso, etc.): antes simplemente no aparecian en ningun lado. Se
+    # muestran como fila "Justificado" con el motivo, para CUALQUIER
+    # trabajador (no depende de la alerta de sede) -- es informacion de su
+    # historial, no solo un criterio de falta.
+    if not trabajador["excluido_asistencia"]:
+        for fecha_ajuste, motivo in ajustes_map.items():
+            if fecha_ajuste in marcas_por_dia:
+                continue  # ese dia ya se muestra como fila normal, con su marcaje real
+            if fecha_ajuste < primer_dia or fecha_ajuste > ultimo_dia:
+                continue
+
+            dias.append({
+                "fecha": fecha_ajuste,
+                "dia_semana": DIAS_ES[fecha_ajuste.weekday()],
+                "es_feriado": fecha_ajuste in feriados_set,
+                "entrada": None,
+                "salida": None,
+                "evaluacion": {
+                    "estado": "justificado",
+                    "etiqueta": "Justificado",
+                    "descuento_min": 0,
+                    "minutos_tarde": 0,
+                    "detalle": motivo
+                }
+            })
+
     dias.sort(key=lambda d: d["fecha"])
 
     total_minutos_mes = sum(
