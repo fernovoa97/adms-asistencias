@@ -74,6 +74,14 @@ a { color: var(--primary); }
   color: var(--text);
 }
 
+.field input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  flex-shrink: 0;
+}
+
 .field input:focus, .field select:focus, .field textarea:focus {
   outline: none;
   border-color: var(--primary);
