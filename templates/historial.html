@@ -82,10 +82,12 @@
               </td>
               <td>
                 {% if dia.evaluacion %}
-                  <span class="badge estado-{{ dia['evaluacion']['estado'] }}"
-                        {% if dia['evaluacion']['detalle'] %}title="{{ dia['evaluacion']['detalle'] }}"{% endif %}>
+                  <span class="badge estado-{{ dia['evaluacion']['estado'] }}">
                     {{ dia["evaluacion"]["etiqueta"] }}
                   </span>
+                  {% if dia['evaluacion']['detalle'] %}
+                  <span class="muted" style="font-size:0.78rem;margin-left:4px;">{{ dia['evaluacion']['detalle'] }}</span>
+                  {% endif %}
                 {% else %}
                   <span class="muted">—</span>
                 {% endif %}

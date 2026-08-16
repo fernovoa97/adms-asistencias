@@ -205,17 +205,10 @@ def pagina_resumen():
 
         totales = {}
         for numero, minutos in totales_min.items():
-            semana_actual = next(s for s in semanas if s["numero"] == numero)
-            justificaciones_semana = [
-                {"fecha": str(fecha), "motivo": motivo}
-                for (t_id, fecha), motivo in ajustes_map.items()
-                if t_id == t["id"] and semana_actual["inicio"] <= fecha <= semana_actual["fin"]
-            ]
             totales[numero] = {
                 "minutos": minutos,
                 "texto": _formatear_duracion(minutos),
-                "alto": minutos >= UMBRAL_DESCUENTO_ALTO_MIN,
-                "justificaciones": sorted(justificaciones_semana, key=lambda j: j["fecha"])
+                "alto": minutos >= UMBRAL_DESCUENTO_ALTO_MIN
             }
 
         filas.append({
