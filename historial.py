@@ -15,6 +15,7 @@ from auth import login_requerido
 from db import obtener_conexion
 from reglas_asistencia import horario_del_trabajador, evaluar_marcaje_entrada
 from resumen import _construir_semanas, _formatear_duracion
+from vacaciones import obtener_rangos_vacaciones, fecha_en_vacaciones
 
 historial_bp = Blueprint("historial", __name__)
 
@@ -120,6 +121,8 @@ def pagina_historial(trabajador_id):
     """, (trabajador_id, primer_dia, ultimo_dia))
     ajustes_map = {f[0]: f[1] for f in cursor.fetchall()}
 
+    rangos_vacaciones = obtener_rangos_vacaciones(cursor, trabajador_id)
+
     cursor.close()
     conexion.close()
 
@@ -142,7 +145,15 @@ def pagina_historial(trabajador_id):
         es_feriado = fecha in feriados_set
         motivo_ajuste = ajustes_map.get(fecha)
 
-        if marca["entrada"] is not None and not trabajador["excluido_asistencia"]:
+        if fecha_en_vacaciones(rangos_vacaciones, fecha):
+            evaluacion = {
+                "estado": "vacaciones",
+                "etiqueta": "Vacaciones",
+                "descuento_min": 0,
+                "minutos_tarde": 0,
+                "detalle": None
+            }
+        elif marca["entrada"] is not None and not trabajador["excluido_asistencia"]:
             evaluacion = evaluar_marcaje_entrada(
                 marca["entrada"], hora_entrada_prog, es_feriado, motivo_ajuste
             )
@@ -178,6 +189,8 @@ def pagina_historial(trabajador_id):
                     continue
                 if dia_fecha in ajustes_map:
                     continue
+                if fecha_en_vacaciones(rangos_vacaciones, dia_fecha):
+                    continue  # esta de vacaciones, no es una falta
                 if dia_fecha == hoy:
                     limite = datetime.combine(hoy, hora_entrada_prog, tzinfo=ZONA_HORARIA_LOCAL) + timedelta(minutes=30)
                     if ahora < limite:
@@ -198,6 +211,35 @@ def pagina_historial(trabajador_id):
                     }
                 })
 
+    # Dias de "Vacaciones": cualquier dia de lunes a viernes dentro del
+    # periodo tomado que NO tenga marcaje (si tiene marcaje, ya se marco
+    # como Vacaciones mas arriba, en la fila normal). Aplica a CUALQUIER
+    # trabajador, sin importar la sede.
+    if not trabajador["excluido_asistencia"]:
+        for semana in semanas:
+            for i in range(5):
+                dia_fecha = semana["inicio"] + timedelta(days=i)
+
+                if dia_fecha in marcas_por_dia:
+                    continue  # ya se muestra como fila normal
+                if not fecha_en_vacaciones(rangos_vacaciones, dia_fecha):
+                    continue
+
+                dias.append({
+                    "fecha": dia_fecha,
+                    "dia_semana": DIAS_ES[dia_fecha.weekday()],
+                    "es_feriado": False,
+                    "entrada": None,
+                    "salida": None,
+                    "evaluacion": {
+                        "estado": "vacaciones",
+                        "etiqueta": "Vacaciones",
+                        "descuento_min": 0,
+                        "minutos_tarde": 0,
+                        "detalle": None
+                    }
+                })
+
     # Dias justificados que NO tienen marcaje ese dia (ej. trabajo remoto,
     # permiso, etc.): antes simplemente no aparecian en ningun lado. Se
     # muestran como fila "Justificado" con el motivo, para CUALQUIER
@@ -209,6 +251,8 @@ def pagina_historial(trabajador_id):
                 continue  # ese dia ya se muestra como fila normal, con su marcaje real
             if fecha_ajuste < primer_dia or fecha_ajuste > ultimo_dia:
                 continue
+            if fecha_en_vacaciones(rangos_vacaciones, fecha_ajuste):
+                continue  # ya se muestra como fila de Vacaciones
 
             dias.append({
                 "fecha": fecha_ajuste,

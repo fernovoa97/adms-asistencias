@@ -12,6 +12,7 @@ from flask import Blueprint, request, render_template
 from auth import login_requerido
 from db import obtener_conexion
 from reglas_asistencia import horario_del_trabajador, evaluar_marcaje_entrada
+from vacaciones import obtener_rangos_vacaciones, fecha_en_vacaciones
 
 resumen_bp = Blueprint("resumen", __name__)
 
@@ -147,6 +148,8 @@ def pagina_resumen():
     """, (primer_dia, ultimo_dia))
     ajustes_map = {(f[0], f[1]): f[2] for f in cursor.fetchall()}
 
+    rangos_vacaciones_map = obtener_rangos_vacaciones(cursor)
+
     cursor.close()
     conexion.close()
 
@@ -154,11 +157,15 @@ def pagina_resumen():
     for t in trabajadores:
         totales_min = {s["numero"]: 0 for s in semanas}
         dias_marcados = entradas_por_trabajador.get(t["id"], {})
+        rangos_vacaciones = rangos_vacaciones_map.get(t["id"], [])
 
         for fecha, hora_entrada_real in dias_marcados.items():
             numero_semana = _semana_de(fecha, semanas)
             if numero_semana is None:
                 continue
+
+            if fecha_en_vacaciones(rangos_vacaciones, fecha):
+                continue  # de vacaciones: no cuenta como tardanza aunque haya marcado
 
             es_feriado = fecha in feriados_set
             motivo_ajuste = ajustes_map.get((t["id"], fecha))
@@ -196,6 +203,8 @@ def pagina_resumen():
                         continue
                     if (t["id"], dia) in ajustes_map:
                         continue
+                    if fecha_en_vacaciones(rangos_vacaciones, dia):
+                        continue  # de vacaciones, no es una falta
                     if dia == hoy:
                         limite = datetime.combine(hoy, hora_entrada_prog, tzinfo=ZONA_HORARIA_LOCAL) + timedelta(minutes=30)
                         if datetime.now(ZONA_HORARIA_LOCAL) < limite:

@@ -288,6 +288,17 @@ def inicializar_base_datos():
             )
         """)
 
+        # --- Documentos de sustento adjuntos a cada periodo de vacaciones ---
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS vacaciones_tomadas_archivos (
+                id SERIAL PRIMARY KEY,
+                periodo_id INTEGER NOT NULL REFERENCES vacaciones_tomadas(id) ON DELETE CASCADE,
+                archivo_nombre TEXT NOT NULL,
+                archivo_contenido BYTEA NOT NULL,
+                subido_en TIMESTAMP NOT NULL
+            )
+        """)
+
         # --- Descansos medicos: periodos (fecha inicio/fin) por trabajador ---
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS descansos_medicos (
@@ -298,6 +309,30 @@ def inicializar_base_datos():
                 dias INTEGER NOT NULL,
                 observacion TEXT,
                 creado_en TIMESTAMP NOT NULL
+            )
+        """)
+
+        # --- Licencias: permisos de unas horas dentro de un dia (ej. medio
+        # dia por cita medica), con su documento de sustento ---
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS licencias (
+                id SERIAL PRIMARY KEY,
+                trabajador_id INTEGER NOT NULL REFERENCES trabajadores(id) ON DELETE CASCADE,
+                fecha DATE NOT NULL,
+                hora_inicio TIME NOT NULL,
+                hora_fin TIME NOT NULL,
+                motivo TEXT,
+                creado_en TIMESTAMP NOT NULL
+            )
+        """)
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS licencias_archivos (
+                id SERIAL PRIMARY KEY,
+                licencia_id INTEGER NOT NULL REFERENCES licencias(id) ON DELETE CASCADE,
+                archivo_nombre TEXT NOT NULL,
+                archivo_contenido BYTEA NOT NULL,
+                subido_en TIMESTAMP NOT NULL
             )
         """)
 

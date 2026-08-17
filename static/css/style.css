@@ -475,6 +475,7 @@ tr:hover { background: #f9fafb; }
 .badge.estado-justificado { background: #dbeafe; color: #1e40af; cursor: help; }
 .badge.estado-feriado { background: #e5e7eb; color: #4b5563; }
 .badge.estado-falta { background: #fee2e2; color: #991b1b; }
+.badge.estado-vacaciones { background: #f3e8ff; color: #6b21a8; }
 .sin-registrar { color: #9ca3af; font-style: italic; }
 
 .tag-feriado {
@@ -722,6 +723,18 @@ tr.fila-finde:hover { background: #f3f4f6; }
 }
 
 .archivo-quitar:hover { font-weight: 700; }
+
+.archivo-ver {
+  background: none;
+  border: none;
+  font-size: 0.85rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+  opacity: 0.8;
+}
+
+.archivo-ver:hover { opacity: 1; }
 
 .correo-checkbox {
   display: flex;

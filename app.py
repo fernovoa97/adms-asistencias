@@ -16,8 +16,9 @@ from historial import historial_bp
 from calendario import calendario_bp
 from boletas import boletas_bp
 from actas import actas_bp
-from vacaciones import vacaciones_bp
+from vacaciones import vacaciones_bp, obtener_rangos_vacaciones, fecha_en_vacaciones
 from descansos_medicos import descansos_medicos_bp
+from licencias import licencias_bp
 from vehiculos import vehiculos_bp
 from reglas_asistencia import horario_del_trabajador, evaluar_marcaje_entrada
 
@@ -82,6 +83,7 @@ app.register_blueprint(boletas_bp)
 app.register_blueprint(actas_bp)
 app.register_blueprint(vacaciones_bp)
 app.register_blueprint(descansos_medicos_bp)
+app.register_blueprint(licencias_bp)
 app.register_blueprint(vehiculos_bp)
 
 
@@ -432,6 +434,10 @@ def _trabajadores_faltantes_hoy(hoy):
         )
         if cursor.fetchone():
             continue  # ya tiene justificacion cargada para hoy
+
+        rangos_vacaciones = obtener_rangos_vacaciones(cursor, t_id)
+        if fecha_en_vacaciones(rangos_vacaciones, hoy):
+            continue  # esta de vacaciones hoy
 
         faltantes.append({"id": t_id, "nombre": f"{nombres} {apellidos}", "sede": sede_nombre})
 

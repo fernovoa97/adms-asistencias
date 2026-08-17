@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Licencias · Personal y Asistencias</title>
+<link rel="icon" href="{{ url_for('static', filename='img/logo.png') }}">
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <div class="app-shell">
+    {% include '_sidebar.html' %}
+
+    <main class="main">
+      <h1>Licencias</h1>
+      <p class="lead">Permisos de unas horas dentro de un día (ej. medio día por cita médica). Haz clic para ver el detalle y registrar una.</p>
+
+      <div class="barra">
+        <h2 style="margin:0;" id="tituloAnio">Cargando…</h2>
+        <div style="display:flex;gap:8px;">
+          <a class="btn secondary" id="anioAnteriorBtn" href="#">← Año anterior</a>
+          <a class="btn secondary" id="anioSiguienteBtn" href="#">Año siguiente →</a>
+        </div>
+      </div>
+
+      <div class="tabla-contenedor">
+        <table>
+          <thead>
+            <tr>
+              <th>Trabajador</th>
+              <th>Licencias registradas</th>
+              <th>Total de horas</th>
+            </tr>
+          </thead>
+          <tbody id="tablaLicencias">
+            <tr><td colspan="3" class="muted" style="text-align:center;padding:24px;">Cargando…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+
+  <script src="/static/js/licencias.js"></script>
+</body>
+</html>
