@@ -23,6 +23,15 @@ from reglas_asistencia import horario_del_trabajador, evaluar_marcaje_entrada
 
 app = Flask(__name__)
 
+# Sin esto, los navegadores pueden quedarse usando una version vieja de
+# los archivos .js/.css despues de un deploy (porque Flask por defecto le
+# dice al navegador "guarda esto por 12 horas sin preguntar"). Con esto en
+# 0, el navegador SIEMPRE le pregunta al servidor "¿cambio este archivo?"
+# antes de usar su copia guardada -- si no cambio, la respuesta es
+# instantanea (304); si cambio (por un deploy nuevo), baja la version
+# nueva sola, sin que el usuario tenga que hacer Ctrl+Shift+R.
+app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
+
 # El servidor (Railway) corre con reloj en UTC, pero la empresa opera en
 # hora de Peru. Sin esto, "hoy" se calcularia mal cada vez que sean las
 # 7pm o mas tarde en Peru (porque en UTC ya seria el dia siguiente),

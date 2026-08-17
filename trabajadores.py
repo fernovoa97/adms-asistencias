@@ -938,6 +938,11 @@ def api_agregar_hijo(worker_id):
             datetime.now()
         ))
         hijo_id = cursor.fetchone()[0]
+
+        # Si se agrega un hijo, el trabajador "tiene hijos" por definicion
+        # -- no hace falta que el admin se acuerde de tildar el check aparte.
+        cursor.execute("UPDATE trabajadores SET tiene_hijos = TRUE WHERE id = %s", (worker_id,))
+
         conexion.commit()
         return jsonify({"ok": True, "id": hijo_id}), 201
     except Exception as error:

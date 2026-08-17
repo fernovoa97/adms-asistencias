@@ -230,7 +230,6 @@ function renderViewMode(w) {
       <div class="detail-grid" style="margin-top:18px;">${fieldsHtml}</div>
       ${w.observaciones ? `<div class="detail-item" style="margin-bottom:16px;"><div class="label">Observaciones</div><div class="value">${escapeHtml(w.observaciones)}</div></div>` : ''}
 
-      ${w.tiene_hijos ? `
       <h3 style="font-size:0.95rem;">Hijos</h3>
       <div id="hijosListaArea" class="doc-list" style="margin-bottom:12px;">${hijosHtml}</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
@@ -239,7 +238,6 @@ function renderViewMode(w) {
         <input type="date" id="nuevoHijoFecha" style="flex:1;min-width:140px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;">
         <button type="button" class="btn secondary" id="agregarHijoBtn">+ Agregar hijo</button>
       </div>
-      ` : ''}
 
       <h3 style="font-size:0.95rem;">Documentos</h3>
       ${docsHtml}
