@@ -312,6 +312,18 @@ def inicializar_base_datos():
             )
         """)
 
+        # --- Documentos de sustento (certificado medico) adjuntos a cada
+        # periodo de descanso medico ---
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS descansos_medicos_archivos (
+                id SERIAL PRIMARY KEY,
+                periodo_id INTEGER NOT NULL REFERENCES descansos_medicos(id) ON DELETE CASCADE,
+                archivo_nombre TEXT NOT NULL,
+                archivo_contenido BYTEA NOT NULL,
+                subido_en TIMESTAMP NOT NULL
+            )
+        """)
+
         # --- Licencias: permisos de unas horas dentro de un dia (ej. medio
         # dia por cita medica), con su documento de sustento ---
         cursor.execute("""
