@@ -2,7 +2,7 @@
 # Modulo de Ajustes: feriados (aplican a todos) y justificaciones de
 # tardanza (por trabajador y fecha especifica).
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from flask import Blueprint, request, render_template, jsonify, session
 
@@ -239,6 +239,77 @@ def api_crear_ajuste():
     except Exception as error:
         conexion.rollback()
         print("ERROR AL CREAR AJUSTE:", error)
+        return jsonify({"error": "No se pudo guardar la justificación"}), 500
+    finally:
+        cursor.close()
+        conexion.close()
+
+
+@ajustes_bp.route("/api/ajustes/masivo", methods=["POST"])
+@login_requerido
+def api_crear_ajuste_masivo():
+    """Aplica la misma justificacion a VARIOS trabajadores a la vez, para
+    todos los dias de lunes a viernes dentro de un rango de fechas -- para
+    no tener que justificar uno por uno cuando, por ejemplo, un grupo se
+    va varios dias a una conferencia."""
+    datos = request.get_json(silent=True) or {}
+    trabajador_ids = datos.get("trabajadorIds") or []
+    fecha_inicio_str = (datos.get("fechaInicio") or "").strip()
+    fecha_fin_str = (datos.get("fechaFin") or "").strip()
+    motivo = (datos.get("motivo") or "").strip()
+
+    if not trabajador_ids:
+        return jsonify({"error": "Selecciona al menos un trabajador"}), 400
+    if not fecha_inicio_str or not fecha_fin_str:
+        return jsonify({"error": "La fecha de inicio y de fin son obligatorias"}), 400
+    if not motivo:
+        return jsonify({"error": "El motivo es obligatorio"}), 400
+
+    try:
+        fecha_inicio = datetime.strptime(fecha_inicio_str, "%Y-%m-%d").date()
+        fecha_fin = datetime.strptime(fecha_fin_str, "%Y-%m-%d").date()
+    except ValueError:
+        return jsonify({"error": "Las fechas no son válidas"}), 400
+
+    if fecha_fin < fecha_inicio:
+        return jsonify({"error": "La fecha de fin no puede ser anterior a la de inicio"}), 400
+
+    # Solo los dias de lunes a viernes dentro del rango -- los fines de
+    # semana no tienen evaluacion de tardanza, no hace falta justificarlos.
+    dias = []
+    dia_actual = fecha_inicio
+    while dia_actual <= fecha_fin:
+        if dia_actual.weekday() < 5:
+            dias.append(dia_actual)
+        dia_actual += timedelta(days=1)
+
+    if not dias:
+        return jsonify({"error": "El rango elegido no tiene ningún día de lunes a viernes"}), 400
+
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    try:
+        total_registros = 0
+        for trabajador_id in trabajador_ids:
+            for dia in dias:
+                cursor.execute("""
+                    INSERT INTO ajustes_asistencia (trabajador_id, fecha, motivo, creado_por, creado_en)
+                    VALUES (%s, %s, %s, %s, %s)
+                    ON CONFLICT (trabajador_id, fecha)
+                    DO UPDATE SET motivo = EXCLUDED.motivo, creado_por = EXCLUDED.creado_por, creado_en = EXCLUDED.creado_en
+                """, (trabajador_id, dia, motivo, session.get("username"), datetime.now()))
+                total_registros += 1
+
+        conexion.commit()
+        return jsonify({
+            "ok": True,
+            "totalTrabajadores": len(trabajador_ids),
+            "totalDias": len(dias),
+            "totalRegistros": total_registros
+        })
+    except Exception as error:
+        conexion.rollback()
+        print("ERROR AL CREAR AJUSTE MASIVO:", error)
         return jsonify({"error": "No se pudo guardar la justificación"}), 500
     finally:
         cursor.close()

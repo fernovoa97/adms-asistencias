@@ -1,11 +1,11 @@
-// ---------- Justificar un día ----------
+// ---------- Justificar asistencia (varios trabajadores, rango de fechas) ----------
 
 const searchWorkerInput = document.getElementById('searchWorkerInput');
 const workerResults = document.getElementById('workerResults');
-const workerAjustesArea = document.getElementById('workerAjustesArea');
+const seleccionadosArea = document.getElementById('seleccionadosArea');
 
 let debounceTimerAjustes = null;
-let trabajadorSeleccionado = null;
+let trabajadoresSeleccionados = []; // [{id, nombres, apellidos}, ...]
 
 searchWorkerInput.addEventListener('input', () => {
   clearTimeout(debounceTimerAjustes);
@@ -37,6 +37,7 @@ function renderResultadosBusqueda(results) {
 
   workerResults.innerHTML = '';
   results.forEach((w) => {
+    const yaEsta = trabajadoresSeleccionados.some((s) => s.id === w.id);
     const item = document.createElement('div');
     item.className = 'result-item';
     item.innerHTML = `
@@ -44,104 +45,113 @@ function renderResultadosBusqueda(results) {
         <div class="name">${escapeHtml(w.nombres)} ${escapeHtml(w.apellidos)}</div>
         <div class="meta">DNI: ${escapeHtml(w.dni || '—')} ${w.codigo_empleado ? '· Código: ' + escapeHtml(w.codigo_empleado) : ''}</div>
       </div>
-      <span class="tag">Seleccionar</span>
+      <span class="tag">${yaEsta ? 'Ya agregado' : '+ Agregar'}</span>
     `;
-    item.addEventListener('click', () => seleccionarTrabajador(w));
+    if (!yaEsta) {
+      item.addEventListener('click', () => agregarSeleccionado(w));
+    }
     workerResults.appendChild(item);
   });
 }
 
-function seleccionarTrabajador(w) {
-  trabajadorSeleccionado = w;
-  workerResults.innerHTML = '';
+function agregarSeleccionado(w) {
+  if (trabajadoresSeleccionados.some((s) => s.id === w.id)) return;
+  trabajadoresSeleccionados.push(w);
   searchWorkerInput.value = '';
-  renderFormularioAjuste(w);
-  cargarAjustesDeTrabajador(w.id);
+  workerResults.innerHTML = '';
+  renderSeleccionados();
 }
 
-function renderFormularioAjuste(w) {
-  workerAjustesArea.innerHTML = `
-    <div class="panel" style="background:#f5faf7;margin-top:16px;">
-      <h3 style="margin-top:0;font-size:0.95rem;">
-        Justificando a: ${escapeHtml(w.nombres)} ${escapeHtml(w.apellidos)}
-      </h3>
-      <div class="success-msg" id="ajusteSuccessMsg"></div>
-      <div class="error-msg" id="ajusteErrorMsg"></div>
-      <form id="ajusteForm" class="grid-2" style="align-items:end;">
-        <div class="field">
-          <label for="fechaAjuste">Fecha</label>
-          <input type="date" id="fechaAjuste" required>
-        </div>
-        <div class="field">
-          <label for="motivoAjuste">Motivo</label>
-          <div style="display:flex;gap:8px;">
-            <select id="motivoAjuste" style="flex:1;" required>
-              <option value="">Elige un motivo...</option>
-            </select>
-            <button type="button" class="btn secondary" id="nuevoMotivoBtn" style="white-space:nowrap;">+ Nuevo</button>
-          </div>
-        </div>
-        <div class="field" style="grid-column: span 2;">
-          <button type="submit" class="btn" id="ajusteSubmitBtn">Guardar justificación</button>
-        </div>
-      </form>
-      <h4 style="font-size:0.85rem;margin-bottom:8px;">Justificaciones ya guardadas</h4>
-      <div id="listaAjustesTrabajador" class="doc-list"></div>
+function quitarSeleccionado(id) {
+  trabajadoresSeleccionados = trabajadoresSeleccionados.filter((s) => s.id !== id);
+  renderSeleccionados();
+}
+
+function renderSeleccionados() {
+  if (trabajadoresSeleccionados.length === 0) {
+    seleccionadosArea.innerHTML = '<p class="muted" style="font-size:0.85rem;">Todavía no agregaste a ningún trabajador.</p>';
+    return;
+  }
+
+  seleccionadosArea.innerHTML = `
+    <p class="muted" style="font-size:0.8rem;margin-bottom:6px;">${trabajadoresSeleccionados.length} trabajador(es) seleccionado(s):</p>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;">
+      ${trabajadoresSeleccionados.map((w) => `
+        <span class="tag" style="display:inline-flex;align-items:center;gap:6px;">
+          ${escapeHtml(w.nombres)} ${escapeHtml(w.apellidos)}
+          <button type="button" data-quitar="${w.id}" style="background:none;border:none;cursor:pointer;color:inherit;font-weight:700;line-height:1;padding:0;">×</button>
+        </span>
+      `).join('')}
     </div>
   `;
+  seleccionadosArea.querySelectorAll('[data-quitar]').forEach((boton) => {
+    boton.addEventListener('click', () => quitarSeleccionado(Number(boton.dataset.quitar)));
+  });
+}
 
-  document.getElementById('ajusteForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
+renderSeleccionados();
 
-    const successMsg = document.getElementById('ajusteSuccessMsg');
-    const errorMsg = document.getElementById('ajusteErrorMsg');
-    successMsg.style.display = 'none';
-    errorMsg.style.display = 'none';
+document.getElementById('ajusteForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
 
-    const fecha = document.getElementById('fechaAjuste').value;
-    const motivo = document.getElementById('motivoAjuste').value.trim();
+  const successMsg = document.getElementById('ajusteSuccessMsg');
+  const errorMsg = document.getElementById('ajusteErrorMsg');
+  successMsg.style.display = 'none';
+  errorMsg.style.display = 'none';
 
-    if (!fecha || !motivo) {
-      errorMsg.textContent = 'La fecha y el motivo son obligatorios';
+  const fechaInicio = document.getElementById('fechaInicioAjuste').value;
+  const fechaFin = document.getElementById('fechaFinAjuste').value;
+  const motivo = document.getElementById('motivoAjuste').value.trim();
+
+  if (trabajadoresSeleccionados.length === 0) {
+    errorMsg.textContent = 'Agrega al menos un trabajador.';
+    errorMsg.style.display = 'block';
+    return;
+  }
+  if (!fechaInicio || !fechaFin || !motivo) {
+    errorMsg.textContent = 'El rango de fechas y el motivo son obligatorios.';
+    errorMsg.style.display = 'block';
+    return;
+  }
+
+  const btn = document.getElementById('ajusteSubmitBtn');
+  btn.disabled = true;
+  btn.textContent = 'Guardando...';
+
+  try {
+    const res = await fetch('/api/ajustes/masivo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        trabajadorIds: trabajadoresSeleccionados.map((w) => w.id),
+        fechaInicio, fechaFin, motivo
+      })
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      errorMsg.textContent = data.error || 'No se pudo guardar la justificación';
       errorMsg.style.display = 'block';
       return;
     }
 
-    const btn = document.getElementById('ajusteSubmitBtn');
-    btn.disabled = true;
-    btn.textContent = 'Guardando...';
+    successMsg.textContent = `Se justificaron ${data.totalDias} día(s) para ${data.totalTrabajadores} trabajador(es) (${data.totalRegistros} registro(s) en total).`;
+    successMsg.style.display = 'block';
+    document.getElementById('ajusteForm').reset();
+    trabajadoresSeleccionados = [];
+    renderSeleccionados();
+    cargarTodosLosAjustes();
+  } catch (err) {
+    errorMsg.textContent = 'Error de conexión con el servidor';
+    errorMsg.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Guardar justificación';
+  }
+});
 
-    try {
-      const res = await fetch('/api/ajustes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ trabajadorId: w.id, fecha, motivo })
-      });
-      const data = await res.json();
-
-      if (!res.ok) {
-        errorMsg.textContent = data.error || 'No se pudo guardar la justificación';
-        errorMsg.style.display = 'block';
-        return;
-      }
-
-      successMsg.textContent = 'Justificación guardada.';
-      successMsg.style.display = 'block';
-      document.getElementById('ajusteForm').reset();
-      cargarAjustesDeTrabajador(w.id);
-      cargarTodosLosAjustes();
-    } catch (err) {
-      errorMsg.textContent = 'Error de conexión con el servidor';
-      errorMsg.style.display = 'block';
-    } finally {
-      btn.disabled = false;
-      btn.textContent = 'Guardar justificación';
-    }
-  });
-
-  cargarMotivos();
-  bindNuevoMotivoModal();
-}
+cargarMotivos();
+bindNuevoMotivoModal();
 
 // ---------- Motivos de justificacion (combo administrable) ----------
 
@@ -217,44 +227,7 @@ function bindNuevoMotivoModal() {
   });
 }
 
-async function cargarAjustesDeTrabajador(trabajadorId) {
-  const lista = document.getElementById('listaAjustesTrabajador');
-  if (!lista) return;
-
-  try {
-    const res = await fetch(`/api/ajustes/trabajador/${trabajadorId}`);
-    const data = await res.json();
-    renderListaAjustes(data.ajustes || [], trabajadorId);
-  } catch (err) {
-    lista.innerHTML = '<p class="muted">Error al cargar</p>';
-  }
-}
-
-function renderListaAjustes(ajustes, trabajadorId) {
-  const lista = document.getElementById('listaAjustesTrabajador');
-  if (!lista) return;
-
-  if (ajustes.length === 0) {
-    lista.innerHTML = '<p class="muted">Sin justificaciones registradas.</p>';
-    return;
-  }
-
-  lista.innerHTML = ajustes
-    .map((a) => `
-      <div class="doc-item">
-        <div>
-          <div class="doc-name">${a.fecha} — ${escapeHtml(a.motivo)}</div>
-          <div class="muted" style="font-size:0.75rem;">Registrado por ${escapeHtml(a.creado_por || 'admin')}</div>
-        </div>
-        <div class="doc-actions">
-          <button class="btn danger" onclick="eliminarAjuste(${a.id}, ${trabajadorId})">Eliminar</button>
-        </div>
-      </div>
-    `)
-    .join('');
-}
-
-async function eliminarAjuste(ajusteId, trabajadorId) {
+async function eliminarAjuste(ajusteId) {
   if (!confirm('¿Eliminar esta justificación?')) return;
 
   try {
@@ -263,7 +236,6 @@ async function eliminarAjuste(ajusteId, trabajadorId) {
       alert('No se pudo eliminar');
       return;
     }
-    cargarAjustesDeTrabajador(trabajadorId);
     cargarTodosLosAjustes();
   } catch (err) {
     alert('Error de conexión con el servidor');
@@ -384,7 +356,7 @@ function renderTodosLosAjustes(ajustes) {
           <div class="muted" style="font-size:0.78rem;">${escapeHtml(a.motivo)} · registrado por ${escapeHtml(a.creado_por || 'admin')}</div>
         </div>
         <div class="doc-actions">
-          <button class="btn danger" onclick="eliminarAjuste(${a.id}, ${a.trabajadorId})">Eliminar</button>
+          <button class="btn danger" onclick="eliminarAjuste(${a.id})">Eliminar</button>
         </div>
       </div>
     `)

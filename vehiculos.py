@@ -99,7 +99,9 @@ def api_listar_vehiculos():
 
     cursor.execute("""
         SELECT
-            v.id, v.placa, v.marca, v.modelo, v.tipo, v.tipo_adquisicion, v.estado,
+            v.id, v.placa, v.marca, v.modelo, v.anio, v.color, v.tipo,
+            v.tipo_adquisicion, v.estado, v.fecha_adquisicion,
+            v.alquiler_proveedor, v.alquiler_fecha_fin,
             t.nombres, t.apellidos
         FROM vehiculos v
         LEFT JOIN trabajadores t ON t.id = v.conductor_id
@@ -109,7 +111,9 @@ def api_listar_vehiculos():
 
     vehiculos = []
     for fila in filas_vehiculos:
-        (v_id, placa, marca, modelo, tipo, tipo_adq, estado, cond_nombres, cond_apellidos) = fila
+        (v_id, placa, marca, modelo, anio, color, tipo, tipo_adq, estado,
+         fecha_adquisicion, alquiler_proveedor, alquiler_fecha_fin,
+         cond_nombres, cond_apellidos) = fila
 
         # El documento "mas urgente" del vehiculo, para mostrar un solo
         # indicador en la lista (el resto se ve en el detalle).
@@ -137,9 +141,14 @@ def api_listar_vehiculos():
             "placa": placa,
             "marca": marca,
             "modelo": modelo,
+            "anio": anio,
+            "color": color,
             "tipo": tipo,
             "tipoAdquisicion": tipo_adq,
             "estado": estado,
+            "fechaAdquisicion": str(fecha_adquisicion) if fecha_adquisicion else None,
+            "alquilerProveedor": alquiler_proveedor,
+            "alquilerFechaFin": str(alquiler_fecha_fin) if alquiler_fecha_fin else None,
             "conductor": f"{cond_nombres} {cond_apellidos}" if cond_nombres else None,
             "documentoUrgente": documento_urgente
         })

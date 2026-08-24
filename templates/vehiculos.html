@@ -84,7 +84,19 @@
         </form>
       </div>
 
+      <div class="barra">
+        <div class="vista-toggle" id="tabsTipo">
+          <a href="#" data-tipo="COMPRA" class="active">DRILLCO <span id="contadorDrillco"></span></a>
+          <a href="#" data-tipo="ALQUILER">ALQUILER <span id="contadorAlquiler"></span></a>
+        </div>
+        <div class="vista-toggle" id="vistaToggle">
+          <a href="#" data-vista="lista" class="active">📋 Lista</a>
+          <a href="#" data-vista="tarjetas">🗂️ Tarjetas</a>
+        </div>
+      </div>
+
       <div id="vehiculosList"></div>
+      <div id="vehiculosCards" class="tarjetas-personal" style="display:none;"></div>
     </main>
   </div>
 

@@ -16,15 +16,41 @@
       <p class="lead">Justifica tardanzas puntuales y define los días feriados de la empresa.</p>
 
       <div class="panel">
-        <h2 style="margin-top:0;font-size:1.05rem;">Justificar un día</h2>
-        <p class="muted">Busca al trabajador y agrega una fecha con el motivo (ej. cita médica). Ese día se considerará puntual, sin importar la hora real que marcó.</p>
+        <h2 style="margin-top:0;font-size:1.05rem;">Justificar asistencia</h2>
+        <p class="muted">Busca y agrega a uno o varios trabajadores, elige el rango de fechas y el motivo (ej. "conferencia 3 días"). Se justifican todos los días de lunes a viernes dentro del rango, para cada trabajador seleccionado — sin importar la hora real que marcaron.</p>
 
         <div class="search-box">
           <input type="text" id="searchWorkerInput" placeholder="Buscar trabajador por nombre, DNI o código..." autocomplete="off">
         </div>
         <div id="workerResults" class="result-list"></div>
 
-        <div id="workerAjustesArea"></div>
+        <div id="seleccionadosArea" style="margin-top:10px;"></div>
+
+        <div class="success-msg" id="ajusteSuccessMsg"></div>
+        <div class="error-msg" id="ajusteErrorMsg"></div>
+
+        <form id="ajusteForm" class="grid-2" style="align-items:end;margin-top:12px;">
+          <div class="field">
+            <label for="fechaInicioAjuste">Desde</label>
+            <input type="date" id="fechaInicioAjuste" required>
+          </div>
+          <div class="field">
+            <label for="fechaFinAjuste">Hasta</label>
+            <input type="date" id="fechaFinAjuste" required>
+          </div>
+          <div class="field" style="grid-column: span 2;">
+            <label for="motivoAjuste">Motivo</label>
+            <div style="display:flex;gap:8px;">
+              <select id="motivoAjuste" style="flex:1;" required>
+                <option value="">Elige un motivo...</option>
+              </select>
+              <button type="button" class="btn secondary" id="nuevoMotivoBtn" style="white-space:nowrap;">+ Nuevo</button>
+            </div>
+          </div>
+          <div class="field" style="grid-column: span 2;">
+            <button type="submit" class="btn" id="ajusteSubmitBtn">Guardar justificación</button>
+          </div>
+        </form>
 
         <h3 style="font-size:0.85rem;margin-top:20px;margin-bottom:8px;">Todas las justificaciones registradas</h3>
         <div id="listaTodosLosAjustes" class="doc-list"></div>
