@@ -203,7 +203,7 @@ def api_trabajadores_del_periodo(periodo_id):
         LEFT JOIN boletas_pago b
             ON b.trabajador_id = t.id AND b.periodo_id = %s
         WHERE t.estado IS DISTINCT FROM 'INACTIVO'
-        ORDER BY t.nombres, t.apellidos
+        ORDER BY t.apellidos, t.nombres
     """, (periodo_id,))
     filas_trabajadores = cursor.fetchall()
 
@@ -230,7 +230,7 @@ def api_trabajadores_del_periodo(periodo_id):
 
         trabajadores.append({
             "id": t_id,
-            "nombre": f"{nombres} {apellidos}",
+            "nombre": f"{apellidos} {nombres}",
             "email_personal": email,
             "email_corporativo": email_corp,
             "boleta_id": boleta_id,
@@ -398,7 +398,7 @@ def api_boletas_pendientes(periodo_id):
         FROM boletas_pago b
         JOIN trabajadores t ON t.id = b.trabajador_id
         WHERE b.periodo_id = %s AND b.estado_envio != 'ENVIADO'
-        ORDER BY t.nombres, t.apellidos
+        ORDER BY t.apellidos, t.nombres
     """, (periodo_id,))
     filas_boletas = cursor.fetchall()
 
@@ -420,7 +420,7 @@ def api_boletas_pendientes(periodo_id):
 
         pendientes.append({
             "id": boleta_id,
-            "nombre_trabajador": f"{nombres} {apellidos}",
+            "nombre_trabajador": f"{apellidos} {nombres}",
             "correo_destino": correo_destino,
             "archivos": archivos,
             "periodo_nombre": nombre_periodo

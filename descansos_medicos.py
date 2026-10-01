@@ -56,7 +56,7 @@ def pagina_descanso_medico_detalle(trabajador_id):
     if not fila:
         abort(404)
 
-    trabajador = {"id": fila[0], "nombre": f"{fila[1]} {fila[2]}"}
+    trabajador = {"id": fila[0], "nombre": f"{fila[2]} {fila[1]}"}
     return render_template(
         "descanso_medico_detalle.html", trabajador=trabajador, active_page="descansos_medicos"
     )
@@ -78,7 +78,7 @@ def api_listar_descansos_medicos():
         SELECT id, nombres, apellidos
         FROM trabajadores
         WHERE estado IS DISTINCT FROM 'INACTIVO'
-        ORDER BY nombres, apellidos
+        ORDER BY apellidos, nombres
     """)
     trabajadores = cursor.fetchall()
 
@@ -92,7 +92,7 @@ def api_listar_descansos_medicos():
         total_dias, total_periodos = cursor.fetchone()
         resultado.append({
             "id": trabajador_id,
-            "nombre": f"{nombres} {apellidos}",
+            "nombre": f"{apellidos} {nombres}",
             "totalDias": int(total_dias),
             "totalPeriodos": total_periodos
         })
@@ -149,7 +149,7 @@ def api_detalle_descansos_medicos(trabajador_id):
     conexion.close()
 
     return jsonify({
-        "trabajador": {"id": fila[0], "nombre": f"{fila[1]} {fila[2]}"},
+        "trabajador": {"id": fila[0], "nombre": f"{fila[2]} {fila[1]}"},
         "periodos": periodos
     })
 

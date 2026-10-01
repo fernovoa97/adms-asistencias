@@ -74,7 +74,7 @@ function renderResults(todosLosResultados) {
         <div class="avatar-trabajador-chico">${avatarHtml}</div>
         <div>
           <div class="name">
-            ${escapeHtml(w.nombres)} ${escapeHtml(w.apellidos)}
+            ${escapeHtml(w.apellidos)} ${escapeHtml(w.nombres)}
             ${inactivo ? '<span class="tag-inactivo">Inactivo</span>' : ''}
             ${w.excluido_asistencia ? '<span class="tag-inactivo" style="background:#e0e7ff;color:#3730a3;">Sin control asistencia</span>' : ''}
           </div>
@@ -215,7 +215,7 @@ function renderViewMode(w) {
         <div style="display:flex;align-items:center;gap:14px;">
           <div class="avatar-trabajador" id="avatarFicha">${avatarHtml}</div>
           <div>
-            <h2 style="margin:0;font-size:1.1rem;">${escapeHtml(w.nombres)} ${escapeHtml(w.apellidos)}</h2>
+            <h2 style="margin:0;font-size:1.1rem;">${escapeHtml(w.apellidos)} ${escapeHtml(w.nombres)}</h2>
             <div style="display:flex;gap:8px;margin-top:6px;">
               <label class="btn secondary" style="cursor:pointer;font-size:0.8rem;padding:5px 10px;">
                 ${w.tiene_foto ? 'Cambiar foto' : 'Agregar foto'}

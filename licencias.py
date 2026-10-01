@@ -55,7 +55,7 @@ def pagina_licencia_detalle(trabajador_id):
     if not fila:
         abort(404)
 
-    trabajador = {"id": fila[0], "nombre": f"{fila[1]} {fila[2]}"}
+    trabajador = {"id": fila[0], "nombre": f"{fila[2]} {fila[1]}"}
     return render_template("licencia_detalle.html", trabajador=trabajador, active_page="licencias")
 
 
@@ -75,7 +75,7 @@ def api_listar_licencias():
         SELECT id, nombres, apellidos
         FROM trabajadores
         WHERE estado IS DISTINCT FROM 'INACTIVO'
-        ORDER BY nombres, apellidos
+        ORDER BY apellidos, nombres
     """)
     trabajadores = cursor.fetchall()
 
@@ -92,7 +92,7 @@ def api_listar_licencias():
 
         resultado.append({
             "id": trabajador_id,
-            "nombre": f"{nombres} {apellidos}",
+            "nombre": f"{apellidos} {nombres}",
             "totalHoras": round(total_horas, 2),
             "totalLicencias": len(filas_permiso)
         })
@@ -154,7 +154,7 @@ def api_detalle_licencias(trabajador_id):
     conexion.close()
 
     return jsonify({
-        "trabajador": {"id": fila[0], "nombre": f"{fila[1]} {fila[2]}"},
+        "trabajador": {"id": fila[0], "nombre": f"{fila[2]} {fila[1]}"},
         "licencias": licencias_lista
     })
 

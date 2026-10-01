@@ -133,7 +133,7 @@ def pagina_vacaciones_detalle(trabajador_id):
     if not fila:
         abort(404)
 
-    trabajador = {"id": fila[0], "nombre": f"{fila[1]} {fila[2]}"}
+    trabajador = {"id": fila[0], "nombre": f"{fila[2]} {fila[1]}"}
     return render_template("vacaciones_detalle.html", trabajador=trabajador, active_page="vacaciones")
 
 
@@ -151,7 +151,7 @@ def api_listar_vacaciones():
         SELECT id, nombres, apellidos, fecha_ingreso
         FROM trabajadores
         WHERE estado IS DISTINCT FROM 'INACTIVO'
-        ORDER BY nombres, apellidos
+        ORDER BY apellidos, nombres
     """)
     filas = cursor.fetchall()
 
@@ -160,7 +160,7 @@ def api_listar_vacaciones():
         calculo = _calcular_vacaciones(cursor, trabajador_id, fecha_ingreso)
         resultado.append({
             "id": trabajador_id,
-            "nombre": f"{nombres} {apellidos}",
+            "nombre": f"{apellidos} {nombres}",
             "fechaIngreso": str(fecha_ingreso) if fecha_ingreso else None,
             **calculo
         })
@@ -222,7 +222,7 @@ def api_detalle_vacaciones(trabajador_id):
     return jsonify({
         "trabajador": {
             "id": trabajador_id,
-            "nombre": f"{nombres} {apellidos}",
+            "nombre": f"{apellidos} {nombres}",
             "fechaIngreso": str(fecha_ingreso) if fecha_ingreso else None
         },
         "calculo": calculo,

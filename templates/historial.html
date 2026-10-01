@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Historial de {{ trabajador.nombres }} · Personal y Asistencias</title>
+<title>Historial de {{ trabajador.apellidos }} {{ trabajador.nombres }} · Personal y Asistencias</title>
 <link rel="icon" href="{{ url_for('static', filename='img/logo.png') }}">
 <link rel="stylesheet" href="/static/css/style.css">
 </head>
@@ -14,7 +14,7 @@
     <main class="main">
       <a href="{{ url_for('resumen.pagina_resumen', anio=anio, mes=mes) }}" class="muted" style="text-decoration:none;">← Volver al resumen</a>
 
-      <h1 style="margin-top:8px;">{{ trabajador.nombres }} {{ trabajador.apellidos }}</h1>
+      <h1 style="margin-top:8px;">{{ trabajador.apellidos }} {{ trabajador.nombres }}</h1>
       <p class="lead">
         DNI: {{ trabajador.dni or '—' }}
         {% if trabajador.cargo %} · {{ trabajador.cargo }}{% endif %}

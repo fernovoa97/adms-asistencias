@@ -439,7 +439,7 @@ def _trabajadores_faltantes_hoy(hoy):
         if fecha_en_vacaciones(rangos_vacaciones, hoy):
             continue  # esta de vacaciones hoy
 
-        faltantes.append({"id": t_id, "nombre": f"{nombres} {apellidos}", "sede": sede_nombre})
+        faltantes.append({"id": t_id, "nombre": f"{apellidos} {nombres}", "sede": sede_nombre})
 
     cursor.close()
     conexion.close()
@@ -665,7 +665,7 @@ def exportar():
         (codigo_empleado, nombres, apellidos, fecha_hora, fecha, hora,
          tipo_marcaje, estado, verificacion, sn_dispositivo, fecha_recepcion) = fila
 
-        nombre_completo = " ".join(filter(None, [nombres, apellidos])) or "Sin registrar"
+        nombre_completo = " ".join(filter(None, [apellidos, nombres])) or "Sin registrar"
 
         escritor.writerow([
             codigo_empleado, nombre_completo, fecha_hora, fecha, hora,

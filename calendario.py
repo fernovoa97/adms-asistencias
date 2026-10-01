@@ -76,7 +76,7 @@ def _obtener_cumpleanos_en_rango(desde, hasta):
     cumples_por_mes_dia = {}
     for nombres, apellidos, fecha_nac in cursor.fetchall():
         clave = (fecha_nac.month, fecha_nac.day)
-        cumples_por_mes_dia.setdefault(clave, []).append(f"{nombres} {apellidos}")
+        cumples_por_mes_dia.setdefault(clave, []).append(f"{apellidos} {nombres}")
 
     cursor.close()
     conexion.close()

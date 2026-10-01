@@ -113,7 +113,7 @@ def pagina_resumen():
         WHERE t.codigo_empleado IS NOT NULL
           AND t.estado IS DISTINCT FROM 'INACTIVO'
           AND t.excluido_asistencia IS NOT TRUE
-        ORDER BY t.nombres, t.apellidos
+        ORDER BY t.apellidos, t.nombres
     """)
     columnas_t = ["id", "nombres", "apellidos", "hora_entrada", "hora_salida", "alerta_inasistencia"]
     trabajadores = [dict(zip(columnas_t, f)) for f in cursor.fetchall()]
@@ -222,7 +222,7 @@ def pagina_resumen():
 
         filas.append({
             "trabajador_id": t["id"],
-            "nombre": f"{t['nombres']} {t['apellidos']}",
+            "nombre": f"{t['apellidos']} {t['nombres']}",
             "totales": totales
         })
 

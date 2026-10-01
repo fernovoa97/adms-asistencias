@@ -33,7 +33,7 @@ function renderDetalle(v) {
   const cont = document.getElementById('detalleVehiculo');
 
   const opcionesConductor = conductoresCache.map((c) =>
-    `<option value="${c.id}" ${v.conductorId === c.id ? 'selected' : ''}>${escapeHtml(c.nombres)} ${escapeHtml(c.apellidos)}</option>`
+    `<option value="${c.id}" ${v.conductorId === c.id ? 'selected' : ''}>${escapeHtml(c.apellidos)} ${escapeHtml(c.nombres)}</option>`
   ).join('');
 
   cont.innerHTML = `

@@ -149,7 +149,7 @@ def api_listar_vehiculos():
             "fechaAdquisicion": str(fecha_adquisicion) if fecha_adquisicion else None,
             "alquilerProveedor": alquiler_proveedor,
             "alquilerFechaFin": str(alquiler_fecha_fin) if alquiler_fecha_fin else None,
-            "conductor": f"{cond_nombres} {cond_apellidos}" if cond_nombres else None,
+            "conductor": f"{cond_apellidos} {cond_nombres}" if cond_nombres else None,
             "documentoUrgente": documento_urgente
         })
 
@@ -250,7 +250,7 @@ def api_detalle_vehiculo(vehiculo_id):
         "tipoAdquisicion": tipo_adq,
         "fechaAdquisicion": str(fecha_adq) if fecha_adq else None,
         "conductorId": conductor_id,
-        "conductorNombre": f"{cond_nombres} {cond_apellidos}" if cond_nombres else None,
+        "conductorNombre": f"{cond_apellidos} {cond_nombres}" if cond_nombres else None,
         "estado": estado,
         "alquilerProveedor": alquiler_prov,
         "alquilerFechaFin": str(alquiler_fin) if alquiler_fin else None,

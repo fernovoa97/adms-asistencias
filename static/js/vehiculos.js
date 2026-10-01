@@ -14,7 +14,7 @@ async function cargarConductores() {
       if (t.estado === 'INACTIVO') return;
       const opt = document.createElement('option');
       opt.value = t.id;
-      opt.textContent = `${t.nombres} ${t.apellidos}`;
+      opt.textContent = `${t.apellidos} ${t.nombres}`;
       select.appendChild(opt);
     });
   } catch (err) {

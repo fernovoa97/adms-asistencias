@@ -307,7 +307,7 @@ def api_resumen_personal():
             contacto_emergencia_direccion, (foto IS NOT NULL) AS tiene_foto
         FROM trabajadores
         WHERE estado IS DISTINCT FROM 'INACTIVO'
-        ORDER BY nombres, apellidos
+        ORDER BY apellidos, nombres
     """)
 
     trabajadores = []
@@ -318,7 +318,7 @@ def api_resumen_personal():
 
         trabajadores.append({
             "id": t_id,
-            "nombreCompleto": f"{nombres} {apellidos}",
+            "nombreCompleto": f"{apellidos} {nombres}",
             "dni": dni,
             "fechaIngreso": str(fecha_ingreso) if fecha_ingreso else None,
             "fechaNacimiento": str(fecha_nacimiento) if fecha_nacimiento else None,
@@ -494,7 +494,7 @@ def api_buscar():
                    (t.foto IS NOT NULL), s.nombre, t.excluido_asistencia
             FROM trabajadores t
             LEFT JOIN sedes s ON s.id = t.sede_id
-            ORDER BY (t.estado = 'INACTIVO'), t.nombres
+            ORDER BY (t.estado = 'INACTIVO'), t.apellidos, t.nombres
             LIMIT 200
         """)
     else:
@@ -505,11 +505,12 @@ def api_buscar():
             FROM trabajadores t
             LEFT JOIN sedes s ON s.id = t.sede_id
             WHERE (t.nombres || ' ' || t.apellidos) ILIKE %s
+               OR (t.apellidos || ' ' || t.nombres) ILIKE %s
                OR t.dni ILIKE %s
                OR t.codigo_empleado ILIKE %s
-            ORDER BY (t.estado = 'INACTIVO'), t.nombres
+            ORDER BY (t.estado = 'INACTIVO'), t.apellidos, t.nombres
             LIMIT 50
-        """, (patron, patron, patron))
+        """, (patron, patron, patron, patron))
 
     resultados = [
         {

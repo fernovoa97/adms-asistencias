@@ -292,7 +292,7 @@ document.getElementById('workerForm').addEventListener('submit', async (e) => {
       return;
     }
 
-    successMsg.textContent = `Trabajador "${data.worker.nombres} ${data.worker.apellidos}" guardado correctamente.`;
+    successMsg.textContent = `Trabajador "${data.worker.apellidos} ${data.worker.nombres}" guardado correctamente.`;
     successMsg.style.display = 'block';
     document.getElementById('workerForm').reset();
     document.getElementById('uploadRows').innerHTML = '';

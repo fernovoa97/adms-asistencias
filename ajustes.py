@@ -148,11 +148,12 @@ def api_buscar_trabajador_para_ajuste():
         SELECT id, nombres, apellidos, dni, codigo_empleado
         FROM trabajadores
         WHERE (nombres || ' ' || apellidos) ILIKE %s
+           OR (apellidos || ' ' || nombres) ILIKE %s
            OR dni ILIKE %s
            OR codigo_empleado ILIKE %s
-        ORDER BY nombres
+        ORDER BY apellidos, nombres
         LIMIT 20
-    """, (patron, patron, patron))
+    """, (patron, patron, patron, patron))
     columnas = ["id", "nombres", "apellidos", "dni", "codigo_empleado"]
     resultados = [dict(zip(columnas, fila)) for fila in cursor.fetchall()]
     cursor.close()
@@ -205,7 +206,7 @@ def api_listar_todos_los_ajustes():
             "motivo": fila[2],
             "creado_por": fila[3],
             "trabajadorId": fila[4],
-            "trabajadorNombre": f"{fila[5]} {fila[6]}"
+            "trabajadorNombre": f"{fila[6]} {fila[5]}"
         }
         for fila in cursor.fetchall()
     ]

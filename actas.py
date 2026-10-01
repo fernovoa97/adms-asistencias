@@ -247,10 +247,10 @@ def api_tabla_acta(acta_id):
     cursor.execute("""
         SELECT id, nombres, apellidos, estado
         FROM trabajadores
-        ORDER BY (estado = 'INACTIVO'), nombres, apellidos
+        ORDER BY (estado = 'INACTIVO'), apellidos, nombres
     """)
     trabajadores_base = [
-        {"id": f[0], "nombre": f"{f[1]} {f[2]}", "estado": f[3] or "ACTIVO"}
+        {"id": f[0], "nombre": f"{f[2]} {f[1]}", "estado": f[3] or "ACTIVO"}
         for f in cursor.fetchall()
     ]
 

@@ -42,7 +42,7 @@ function renderResultadosBusqueda(results) {
     item.className = 'result-item';
     item.innerHTML = `
       <div>
-        <div class="name">${escapeHtml(w.nombres)} ${escapeHtml(w.apellidos)}</div>
+        <div class="name">${escapeHtml(w.apellidos)} ${escapeHtml(w.nombres)}</div>
         <div class="meta">DNI: ${escapeHtml(w.dni || '—')} ${w.codigo_empleado ? '· Código: ' + escapeHtml(w.codigo_empleado) : ''}</div>
       </div>
       <span class="tag">${yaEsta ? 'Ya agregado' : '+ Agregar'}</span>
@@ -78,7 +78,7 @@ function renderSeleccionados() {
     <div style="display:flex;flex-wrap:wrap;gap:6px;">
       ${trabajadoresSeleccionados.map((w) => `
         <span class="tag" style="display:inline-flex;align-items:center;gap:6px;">
-          ${escapeHtml(w.nombres)} ${escapeHtml(w.apellidos)}
+          ${escapeHtml(w.apellidos)} ${escapeHtml(w.nombres)}
           <button type="button" data-quitar="${w.id}" style="background:none;border:none;cursor:pointer;color:inherit;font-weight:700;line-height:1;padding:0;">×</button>
         </span>
       `).join('')}
