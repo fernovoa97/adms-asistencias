@@ -17,7 +17,7 @@ from auth import login_requerido
 from db import obtener_conexion
 from renovaciones import obtener_renovaciones
 from seguros import obtener_seguros
-from validaciones import parsear_fecha
+from validaciones import estado_vencimiento, parsear_fecha
 
 trabajadores_bp = Blueprint("trabajadores", __name__)
 
@@ -373,7 +373,14 @@ def api_resumen_personal():
             id, nombres, apellidos, dni, fecha_ingreso, fecha_nacimiento,
             email, telefono, direccion, distrito, provincia, departamento, pais,
             contacto_emergencia_nombres, contacto_emergencia_telefono,
-            contacto_emergencia_direccion, (foto IS NOT NULL) AS tiene_foto
+            contacto_emergencia_direccion, (foto IS NOT NULL) AS tiene_foto,
+            (
+                SELECT r.fecha_proxima
+                FROM trabajadores_renovaciones r
+                WHERE r.trabajador_id = trabajadores.id AND r.tipo = 'EMO'
+                ORDER BY r.creado_en DESC, r.id DESC
+                LIMIT 1
+            ) AS emo_vencimiento
         FROM trabajadores
         WHERE estado IS DISTINCT FROM 'INACTIVO'
         ORDER BY apellidos, nombres
@@ -383,7 +390,8 @@ def api_resumen_personal():
     for fila in cursor.fetchall():
         (t_id, nombres, apellidos, dni, fecha_ingreso, fecha_nacimiento,
          email, telefono, direccion, distrito, provincia, departamento, pais,
-         contacto_nombres, contacto_telefono, contacto_direccion, tiene_foto) = fila
+         contacto_nombres, contacto_telefono, contacto_direccion, tiene_foto,
+         emo_vencimiento) = fila
 
         trabajadores.append({
             "id": t_id,
@@ -397,7 +405,11 @@ def api_resumen_personal():
             "contactoEmergenciaNombres": contacto_nombres,
             "contactoEmergenciaTelefono": contacto_telefono,
             "contactoEmergenciaDireccion": contacto_direccion,
-            "tieneFoto": tiene_foto
+            "tieneFoto": tiene_foto,
+            "emo": {
+                "fechaVencimiento": str(emo_vencimiento) if emo_vencimiento else None,
+                **estado_vencimiento(emo_vencimiento)
+            }
         })
 
     cursor.close()

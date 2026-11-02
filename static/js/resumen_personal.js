@@ -1,6 +1,44 @@
 let trabajadoresCache = [];
 let vistaActual = 'tabla';
 
+const ESTADO_EMO = {
+  vencido: { texto: 'Vencido', clase: 'doc-vencido' },
+  por_vencer: { texto: 'Por vencer', clase: 'doc-por-vencer' },
+  vigente: { texto: 'Vigente', clase: 'doc-vigente' },
+  sin_fecha: { texto: 'Sin registro', clase: 'doc-sin-fecha' }
+};
+
+function emoHtml(t) {
+  const info = ESTADO_EMO[t.emo.estado];
+  return `
+    <a class="enlace-badge" href="/buscar-trabajador?id=${t.id}&tab=contrato" title="Actualizar examen médico">
+      <span class="badge ${info.clase}">${info.texto}</span>
+    </a>
+    ${t.emo.fechaVencimiento ? `<div class="muted">Vence: ${t.emo.fechaVencimiento}</div>` : ''}
+  `;
+}
+
+function renderAlertaEmo() {
+  const alerta = document.getElementById('alertaEmo');
+  const conAlerta = trabajadoresCache.filter((t) => t.emo.estado === 'vencido' || t.emo.estado === 'por_vencer');
+  const vencidos = conAlerta.filter((t) => t.emo.estado === 'vencido').length;
+  const porVencer = conAlerta.length - vencidos;
+
+  alerta.hidden = conAlerta.length === 0;
+  if (alerta.hidden) return;
+
+  alerta.innerHTML = `
+    <div class="alerta-faltantes-titulo">Examen médico: ${vencidos} vencido(s) y ${porVencer} por vencer</div>
+    <div class="alerta-faltantes-lista">
+      ${conAlerta.map((t) => `
+        <a class="enlace-badge" href="/buscar-trabajador?id=${t.id}&tab=contrato">
+          <span class="badge ${ESTADO_EMO[t.emo.estado].clase}">${escapeHtml(t.nombreCompleto)} — ${t.emo.fechaVencimiento}</span>
+        </a>
+      `).join('')}
+    </div>
+  `;
+}
+
 async function cargarResumen() {
   try {
     const res = await fetch('/api/trabajadores/resumen');
@@ -9,7 +47,7 @@ async function cargarResumen() {
     render();
   } catch (err) {
     document.getElementById('tablaCuerpo').innerHTML =
-      '<tr><td colspan="8" class="empty-state">Error al cargar</td></tr>';
+      '<tr><td colspan="9" class="empty-state">Error al cargar</td></tr>';
   }
 }
 
@@ -25,6 +63,7 @@ document.querySelectorAll('#vistaToggle a').forEach((tab) => {
 });
 
 function render() {
+  renderAlertaEmo();
   renderTabla();
   renderTarjetas();
 }
@@ -33,7 +72,7 @@ function renderTabla() {
   const cuerpo = document.getElementById('tablaCuerpo');
 
   if (trabajadoresCache.length === 0) {
-    cuerpo.innerHTML = '<tr><td colspan="8" class="empty-state">No hay trabajadores activos.</td></tr>';
+    cuerpo.innerHTML = '<tr><td colspan="9" class="empty-state">No hay trabajadores activos.</td></tr>';
     return;
   }
 
@@ -47,6 +86,7 @@ function renderTabla() {
     fila.innerHTML = `
       <td><a href="/buscar-trabajador?id=${t.id}">${escapeHtml(t.nombreCompleto)}</a></td>
       <td>${escapeHtml(t.dni || '—')}</td>
+      <td>${emoHtml(t)}</td>
       <td>${t.fechaIngreso || '<span class="muted">—</span>'}</td>
       <td>${t.fechaNacimiento || '<span class="muted">—</span>'}</td>
       <td>${t.email ? escapeHtml(t.email) : '<span class="muted">—</span>'}</td>
@@ -84,6 +124,7 @@ function renderTarjetas() {
         </div>
       </div>
       <div class="tarjeta-personal-datos">
+        <div><span class="label-chico">Examen médico</span> ${emoHtml(t)}</div>
         <div><span class="label-chico">Ingreso</span> ${t.fechaIngreso || '—'}</div>
         <div><span class="label-chico">Nacimiento</span> ${t.fechaNacimiento || '—'}</div>
         <div><span class="label-chico">Correo</span> ${t.email ? escapeHtml(t.email) : '—'}</div>

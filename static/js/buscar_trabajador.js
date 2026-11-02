@@ -50,7 +50,11 @@ doSearch('');
 
 // Si se llega con ?id=123 en la URL (ej. desde el Resumen de personal),
 // se abre directo la ficha de ese trabajador, sin tener que buscarlo.
-const idDesdeUrl = new URLSearchParams(window.location.search).get('id');
+const parametrosUrl = new URLSearchParams(window.location.search);
+const idDesdeUrl = parametrosUrl.get('id');
+if (TABS_FICHA.some(([id]) => id === parametrosUrl.get('tab'))) {
+  tabFicha = parametrosUrl.get('tab');
+}
 if (idDesdeUrl) {
   loadDetail(Number(idDesdeUrl));
 }
@@ -335,6 +339,7 @@ function renderViewMode(w) {
     ? `<img src="/foto/${w.id}?v=${Date.now()}" alt="">`
     : `<span>${inicial}</span>`;
 
+  const examenVigente = (w.renovaciones || []).find((r) => r.tipo === 'EMO');
   const metaPuesto = [w.cargo, w.area, w.sede_nombre].filter(Boolean).map(escapeHtml).join(' · ');
 
   workerDetail.innerHTML = `
@@ -397,6 +402,17 @@ function renderViewMode(w) {
 
     <div data-panel-ficha="documentos">
       <div class="panel">
+        <h3>Examen médico (EMO)</h3>
+        <div class="estado-lista">
+          <div class="estado-fila">
+            <span>${examenVigente ? `Vence: ${examenVigente.fecha_proxima}` : 'Sin fecha de vencimiento registrada'}</span>
+            <span class="estado-acciones">
+              ${examenVigente ? badgeVencimiento(examenVigente.fecha_proxima) : ''}
+              <button type="button" class="btn secondary sm" id="irExamenBtn">${examenVigente ? 'Actualizar fecha' : 'Registrar fecha'}</button>
+            </span>
+          </div>
+        </div>
+
         <h3>Documentos</h3>
         ${docsHtml}
         <div id="pdfPreviewArea"></div>
@@ -422,6 +438,12 @@ function renderViewMode(w) {
 
   document.getElementById('editWorkerBtn').addEventListener('click', () => renderEditForm(w));
   bindTabsFicha();
+  document.getElementById('irExamenBtn').addEventListener('click', () => {
+    tabFicha = 'contrato';
+    mostrarTabFicha();
+    document.querySelector('form[data-renovacion="EMO"]').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    document.getElementById('renovacionFechaEMO').focus({ preventScroll: true });
+  });
   bindContratoForm(w.id);
   bindRenovaciones(w);
   bindSeguros(w);

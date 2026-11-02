@@ -486,6 +486,9 @@ p.muted { margin: 0 0 10px; }
 .estado-lista { border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); margin-bottom: 12px; }
 .estado-fila { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 7px 0; }
 .estado-fila + .estado-fila { border-top: 1px solid var(--border); }
+.estado-acciones { display: inline-flex; align-items: center; gap: 8px; }
+.enlace-badge { text-decoration: none; }
+.enlace-badge:hover .badge { text-decoration: underline; }
 
 .historial { margin-top: 14px; border-top: 1px solid var(--border); padding-top: 8px; }
 .historial summary { cursor: pointer; font-size: var(--t-sm); font-weight: 600; color: var(--muted); }

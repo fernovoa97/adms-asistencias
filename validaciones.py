@@ -6,6 +6,7 @@ from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
 ZONA_HORARIA_LOCAL = ZoneInfo("America/Lima")
+DIAS_ALERTA_VENCIMIENTO = 30
 
 
 def hoy_local():
@@ -23,6 +24,21 @@ def parsear_fecha(valor):
     if not isinstance(valor, str):
         raise ValueError("Fecha no válida")
     return datetime.strptime(valor, "%Y-%m-%d").date()
+
+
+def estado_vencimiento(fecha_vencimiento):
+    """vencido / por_vencer (30 dias o menos) / vigente / sin_fecha."""
+    if not fecha_vencimiento:
+        return {"estado": "sin_fecha", "diasRestantes": None}
+
+    dias_restantes = (fecha_vencimiento - hoy_local()).days
+    if dias_restantes < 0:
+        estado = "vencido"
+    elif dias_restantes <= DIAS_ALERTA_VENCIMIENTO:
+        estado = "por_vencer"
+    else:
+        estado = "vigente"
+    return {"estado": estado, "diasRestantes": dias_restantes}
 
 
 def calcular_edad(fecha_nacimiento, hoy=None):
