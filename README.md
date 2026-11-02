@@ -25,6 +25,8 @@ abiertos para que el dispositivo pueda reportar datos.
   asistencias y de comunicación con el dispositivo biométrico.
 - `db.py` — conexión a PostgreSQL y creación/migración automática de tablas.
 - `auth.py` — login, logout y protección de rutas.
+- `asistencia.py` — panel de asistencia por periodo (corte día 23): registro de
+  marcaciones y justificaciones, importación Excel/CSV y exportación a Excel.
 - `trabajadores.py` — todo el módulo de personal (alta, búsqueda, edición,
   contrato, documentos PDF).
 - `renovaciones.py` — renovaciones de EMO, activos y EPPs de cada colaborador,

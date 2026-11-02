@@ -9,6 +9,18 @@ from werkzeug.security import generate_password_hash
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
+# Tipos de justificacion con los que arranca el panel de asistencia:
+# (nombre, color de celda, cuenta como falta). Despues se editan en Ajustes.
+TIPOS_JUSTIFICACION_INICIALES = [
+    ("Día libre", "#8db4e2", False),
+    ("Gestiones en Mina / Viaje", "#d9d2e9", False),
+    ("Trabajo remoto", "#fbd5a8", False),
+    ("Permiso personal", "#fff4cf", False),
+    ("Gestiones fuera de oficina", "#bfeaf9", False),
+    ("Falta injustificada", "#f28b82", True),
+    ("Descanso médico", "#c7e8d3", False),
+]
+
 if not DATABASE_URL:
     raise RuntimeError("No se encontró la variable de entorno DATABASE_URL")
 
@@ -547,6 +559,58 @@ def inicializar_base_datos():
                     (nombre_motivo, datetime.now())
                 )
             print("MOTIVOS DE JUSTIFICACIÓN POR DEFECTO CREADOS")
+
+        # El catalogo de motivos pasa a ser tambien el de tipos de
+        # justificacion del panel de asistencia. Los colores iniciales se
+        # siembran una sola vez (al crear la columna), para no pisar lo que
+        # se edite despues en Ajustes.
+        sembrar_tipos = not _columna_existe(cursor, "motivos_justificacion", "color")
+        _agregar_columna_si_falta(cursor, "motivos_justificacion", "color", "TEXT NOT NULL DEFAULT '#e4e4de'")
+        _agregar_columna_si_falta(cursor, "motivos_justificacion", "es_falta", "BOOLEAN NOT NULL DEFAULT FALSE")
+        _agregar_columna_si_falta(cursor, "motivos_justificacion", "orden", "INTEGER NOT NULL DEFAULT 100")
+
+        if sembrar_tipos:
+            for orden, (nombre_tipo, color, es_falta) in enumerate(TIPOS_JUSTIFICACION_INICIALES, 1):
+                cursor.execute("""
+                    UPDATE motivos_justificacion SET color = %s, es_falta = %s, orden = %s
+                    WHERE LOWER(nombre) = LOWER(%s)
+                """, (color, es_falta, orden, nombre_tipo))
+                if cursor.rowcount == 0:
+                    cursor.execute("""
+                        INSERT INTO motivos_justificacion (nombre, color, es_falta, orden, creado_en)
+                        VALUES (%s, %s, %s, %s, %s)
+                    """, (nombre_tipo, color, es_falta, orden, datetime.now()))
+
+        # Cada justificacion queda enlazada a su tipo. "motivo" se conserva
+        # como texto (es lo que ya leen Panel, Resumen e Historial); las
+        # justificaciones viejas con texto libre quedan sin tipo y no se
+        # pierden.
+        vincular_tipos = not _columna_existe(cursor, "ajustes_asistencia", "tipo_id")
+        _agregar_columna_si_falta(
+            cursor, "ajustes_asistencia", "tipo_id",
+            "INTEGER REFERENCES motivos_justificacion(id) ON DELETE SET NULL"
+        )
+        _agregar_columna_si_falta(cursor, "ajustes_asistencia", "observacion", "TEXT")
+
+        if vincular_tipos:
+            cursor.execute("""
+                UPDATE ajustes_asistencia a SET tipo_id = m.id
+                FROM motivos_justificacion m
+                WHERE LOWER(TRIM(a.motivo)) = LOWER(m.nombre)
+            """)
+
+        # Quien registro una marcacion manual (NULL = vino del dispositivo).
+        _agregar_columna_si_falta(cursor, "asistencias", "registrado_por", "TEXT")
+
+        # --- Configuracion del panel de asistencia (una sola fila) ---
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS config_asistencia (
+                id INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+                hora_entrada TIME NOT NULL DEFAULT '08:00:00',
+                umbral_semanal_seg INTEGER NOT NULL DEFAULT 5400
+            )
+        """)
+        cursor.execute("INSERT INTO config_asistencia (id) VALUES (1) ON CONFLICT (id) DO NOTHING")
 
         # --- Eventos del calendario de la empresa ---
         cursor.execute("""

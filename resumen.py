@@ -9,6 +9,7 @@ from zoneinfo import ZoneInfo
 
 from flask import Blueprint, request, render_template
 
+from ajustes import obtener_config_asistencia
 from auth import login_requerido
 from db import obtener_conexion
 from reglas_asistencia import horario_del_trabajador, evaluar_marcaje_entrada
@@ -102,6 +103,7 @@ def pagina_resumen():
 
     conexion = obtener_conexion()
     cursor = conexion.cursor()
+    hora_estandar = obtener_config_asistencia(cursor)["hora_entrada"]
 
     # Solo tiene sentido mostrar trabajadores que tengan codigo de empleado
     # (sin eso, nunca van a tener marcajes que evaluar).
@@ -142,9 +144,13 @@ def pagina_resumen():
     )
     feriados_set = {f[0] for f in cursor.fetchall()}
 
+    # Una "Falta injustificada" registrada no justifica nada: se ignora aqui
+    # para que el dia se evalue igual que uno sin ajuste.
     cursor.execute("""
-        SELECT trabajador_id, fecha, motivo FROM ajustes_asistencia
-        WHERE fecha BETWEEN %s AND %s
+        SELECT a.trabajador_id, a.fecha, a.motivo
+        FROM ajustes_asistencia a
+        LEFT JOIN motivos_justificacion m ON m.id = a.tipo_id
+        WHERE a.fecha BETWEEN %s AND %s AND m.es_falta IS NOT TRUE
     """, (primer_dia, ultimo_dia))
     ajustes_map = {(f[0], f[1]): f[2] for f in cursor.fetchall()}
 
@@ -169,7 +175,7 @@ def pagina_resumen():
 
             es_feriado = fecha in feriados_set
             motivo_ajuste = ajustes_map.get((t["id"], fecha))
-            hora_prog, _ = horario_del_trabajador(t["hora_entrada"], t["hora_salida"])
+            hora_prog, _ = horario_del_trabajador(t["hora_entrada"], t["hora_salida"], hora_estandar)
             evaluacion = evaluar_marcaje_entrada(
                 hora_entrada_real, hora_prog, es_feriado, motivo_ajuste
             )
@@ -183,7 +189,7 @@ def pagina_resumen():
         # Para el dia de hoy especificamente, se respeta la misma
         # tolerancia de 30 min que usa el Panel antes de darlo por faltado.
         if t["alerta_inasistencia"]:
-            hora_entrada_prog, hora_salida_prog = horario_del_trabajador(t["hora_entrada"], t["hora_salida"])
+            hora_entrada_prog, hora_salida_prog = horario_del_trabajador(t["hora_entrada"], t["hora_salida"], hora_estandar)
             minutos_jornada = (
                 (hora_salida_prog.hour * 60 + hora_salida_prog.minute)
                 - (hora_entrada_prog.hour * 60 + hora_entrada_prog.minute)

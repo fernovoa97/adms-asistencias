@@ -11,6 +11,7 @@ from zoneinfo import ZoneInfo
 
 from flask import Blueprint, render_template, request, abort
 
+from ajustes import obtener_config_asistencia
 from auth import login_requerido
 from db import obtener_conexion
 from reglas_asistencia import horario_del_trabajador, evaluar_marcaje_entrada
@@ -115,19 +116,26 @@ def pagina_historial(trabajador_id):
     )
     feriados_set = {f[0] for f in cursor.fetchall()}
 
+    # Una "Falta injustificada" registrada no justifica el dia: va aparte.
     cursor.execute("""
-        SELECT fecha, motivo FROM ajustes_asistencia
-        WHERE trabajador_id = %s AND fecha BETWEEN %s AND %s
+        SELECT a.fecha, a.motivo, m.es_falta IS TRUE
+        FROM ajustes_asistencia a
+        LEFT JOIN motivos_justificacion m ON m.id = a.tipo_id
+        WHERE a.trabajador_id = %s AND a.fecha BETWEEN %s AND %s
     """, (trabajador_id, primer_dia, ultimo_dia))
-    ajustes_map = {f[0]: f[1] for f in cursor.fetchall()}
+    ajustes_map = {}
+    faltas_registradas = {}
+    for fecha_ajuste, motivo, es_falta in cursor.fetchall():
+        (faltas_registradas if es_falta else ajustes_map)[fecha_ajuste] = motivo
 
     rangos_vacaciones = obtener_rangos_vacaciones(cursor, trabajador_id)
+    hora_estandar = obtener_config_asistencia(cursor)["hora_entrada"]
 
     cursor.close()
     conexion.close()
 
     hora_entrada_prog, hora_salida_prog = horario_del_trabajador(
-        trabajador["hora_entrada"], trabajador["hora_salida"]
+        trabajador["hora_entrada"], trabajador["hora_salida"], hora_estandar
     )
     minutos_jornada = (
         (hora_salida_prog.hour * 60 + hora_salida_prog.minute)
@@ -263,6 +271,29 @@ def pagina_historial(trabajador_id):
                 "evaluacion": {
                     "estado": "justificado",
                     "etiqueta": "Justificado",
+                    "descuento_min": 0,
+                    "minutos_tarde": 0,
+                    "detalle": motivo
+                }
+            })
+
+    # Faltas registradas a mano en dias que todavia no aparecen. No suman
+    # minutos, para que el total siga coincidiendo con el Resumen.
+    if not trabajador["excluido_asistencia"]:
+        fechas_listadas = {d["fecha"] for d in dias}
+        for fecha_falta, motivo in faltas_registradas.items():
+            if fecha_falta in fechas_listadas:
+                continue
+
+            dias.append({
+                "fecha": fecha_falta,
+                "dia_semana": DIAS_ES[fecha_falta.weekday()],
+                "es_feriado": fecha_falta in feriados_set,
+                "entrada": None,
+                "salida": None,
+                "evaluacion": {
+                    "estado": "falta",
+                    "etiqueta": "Falta",
                     "descuento_min": 0,
                     "minutos_tarde": 0,
                     "detalle": motivo

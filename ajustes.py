@@ -1,21 +1,80 @@
 # ajustes.py
 # Modulo de Ajustes: feriados (aplican a todos) y justificaciones de
-# tardanza (por trabajador y fecha especifica).
+# tardanza (por trabajador y fecha especifica), y configuracion del panel de
+# asistencia (hora de entrada, umbral y tipos de justificacion con su color).
 
+import re
 from datetime import datetime, timedelta
 
 from flask import Blueprint, request, render_template, jsonify, session
 
 from auth import login_requerido
 from db import obtener_conexion
+from reglas_asistencia import formatear_hms
 
 ajustes_bp = Blueprint("ajustes", __name__)
+
+COLOR_POR_DEFECTO = "#e4e4de"
+
+
+def obtener_config_asistencia(cursor):
+    """Configuracion vigente del panel de asistencia."""
+    cursor.execute("SELECT hora_entrada, umbral_semanal_seg FROM config_asistencia WHERE id = 1")
+    hora_entrada, umbral = cursor.fetchone()
+    return {"hora_entrada": hora_entrada, "umbral_semanal_seg": umbral}
+
+
+def _color_valido(color):
+    return isinstance(color, str) and re.fullmatch(r"#[0-9a-fA-F]{6}", color) is not None
 
 
 @ajustes_bp.route("/ajustes")
 @login_requerido
 def pagina_ajustes():
     return render_template("ajustes.html", active_page="ajustes")
+
+
+# ---------------------------------------------------------------------------
+# Configuracion del panel de asistencia
+# ---------------------------------------------------------------------------
+
+@ajustes_bp.route("/api/asistencia/config")
+@login_requerido
+def api_obtener_config_asistencia():
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    config = obtener_config_asistencia(cursor)
+    cursor.close()
+    conexion.close()
+    return jsonify({
+        "horaEntrada": config["hora_entrada"].strftime("%H:%M:%S"),
+        "umbralSemanal": formatear_hms(config["umbral_semanal_seg"])
+    })
+
+
+@ajustes_bp.route("/api/asistencia/config", methods=["PUT"])
+@login_requerido
+def api_guardar_config_asistencia():
+    datos = request.get_json(silent=True) or {}
+
+    try:
+        hora_entrada = datetime.strptime((datos.get("horaEntrada") or "").strip(), "%H:%M:%S").time()
+        umbral = datetime.strptime((datos.get("umbralSemanal") or "").strip(), "%H:%M:%S").time()
+    except ValueError:
+        return jsonify({"error": "Usa el formato hh:mm:ss en la hora de entrada y el umbral"}), 400
+
+    umbral_seg = umbral.hour * 3600 + umbral.minute * 60 + umbral.second
+
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    cursor.execute(
+        "UPDATE config_asistencia SET hora_entrada = %s, umbral_semanal_seg = %s WHERE id = 1",
+        (hora_entrada, umbral_seg)
+    )
+    conexion.commit()
+    cursor.close()
+    conexion.close()
+    return jsonify({"ok": True})
 
 
 # ---------------------------------------------------------------------------
@@ -80,7 +139,7 @@ def api_eliminar_feriado(fecha):
 
 
 # ---------------------------------------------------------------------------
-# Catalogo de motivos de justificacion (combo administrable)
+# Catalogo de motivos / tipos de justificacion (combo administrable)
 # ---------------------------------------------------------------------------
 
 @ajustes_bp.route("/api/motivos-justificacion")
@@ -88,8 +147,14 @@ def api_eliminar_feriado(fecha):
 def api_listar_motivos():
     conexion = obtener_conexion()
     cursor = conexion.cursor()
-    cursor.execute("SELECT id, nombre FROM motivos_justificacion ORDER BY nombre")
-    motivos = [{"id": f[0], "nombre": f[1]} for f in cursor.fetchall()]
+    cursor.execute("""
+        SELECT id, nombre, color, es_falta FROM motivos_justificacion
+        ORDER BY orden, nombre
+    """)
+    motivos = [
+        {"id": f[0], "nombre": f[1], "color": f[2], "esFalta": f[3]}
+        for f in cursor.fetchall()
+    ]
     cursor.close()
     conexion.close()
     return jsonify({"motivos": motivos})
@@ -100,22 +165,26 @@ def api_listar_motivos():
 def api_crear_motivo():
     datos = request.get_json(silent=True) or {}
     nombre = (datos.get("nombre") or "").strip()
+    color = datos.get("color", COLOR_POR_DEFECTO)
+    es_falta = datos.get("esFalta") is True
 
     if not nombre:
         return jsonify({"error": "El nombre del motivo es obligatorio"}), 400
+    if not _color_valido(color):
+        return jsonify({"error": "El color no es válido"}), 400
 
     conexion = obtener_conexion()
     cursor = conexion.cursor()
     try:
-        cursor.execute("SELECT id FROM motivos_justificacion WHERE nombre ILIKE %s", (nombre,))
+        cursor.execute("SELECT id FROM motivos_justificacion WHERE LOWER(nombre) = LOWER(%s)", (nombre,))
         if cursor.fetchone():
             return jsonify({"error": "Ya existe un motivo con ese nombre"}), 400
 
         cursor.execute("""
-            INSERT INTO motivos_justificacion (nombre, creado_en)
-            VALUES (%s, %s)
+            INSERT INTO motivos_justificacion (nombre, color, es_falta, creado_en)
+            VALUES (%s, %s, %s, %s)
             RETURNING id
-        """, (nombre, datetime.now()))
+        """, (nombre, color, es_falta, datetime.now()))
         motivo_id = cursor.fetchone()[0]
         conexion.commit()
         return jsonify({"ok": True, "id": motivo_id, "nombre": nombre}), 201
@@ -123,6 +192,76 @@ def api_crear_motivo():
         conexion.rollback()
         print("ERROR CREANDO MOTIVO:", error)
         return jsonify({"error": "No se pudo crear el motivo"}), 500
+    finally:
+        cursor.close()
+        conexion.close()
+
+
+@ajustes_bp.route("/api/motivos-justificacion/<int:motivo_id>", methods=["PUT"])
+@login_requerido
+def api_editar_motivo(motivo_id):
+    datos = request.get_json(silent=True) or {}
+    nombre = (datos.get("nombre") or "").strip()
+    color = datos.get("color")
+    es_falta = datos.get("esFalta") is True
+
+    if not nombre:
+        return jsonify({"error": "El nombre es obligatorio"}), 400
+    if not _color_valido(color):
+        return jsonify({"error": "El color no es válido"}), 400
+
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    try:
+        cursor.execute(
+            "SELECT 1 FROM motivos_justificacion WHERE LOWER(nombre) = LOWER(%s) AND id <> %s",
+            (nombre, motivo_id)
+        )
+        if cursor.fetchone():
+            return jsonify({"error": "Ya existe un tipo con ese nombre"}), 400
+
+        cursor.execute(
+            "UPDATE motivos_justificacion SET nombre = %s, color = %s, es_falta = %s WHERE id = %s",
+            (nombre, color, es_falta, motivo_id)
+        )
+        if cursor.rowcount == 0:
+            return jsonify({"error": "Tipo no encontrado"}), 404
+
+        # Las justificaciones guardan el nombre como texto: si no se
+        # actualiza aqui, seguirian mostrando el nombre anterior.
+        cursor.execute(
+            "UPDATE ajustes_asistencia SET motivo = %s WHERE tipo_id = %s",
+            (nombre, motivo_id)
+        )
+        conexion.commit()
+        return jsonify({"ok": True})
+    except Exception as error:
+        conexion.rollback()
+        print("ERROR EDITANDO MOTIVO:", error)
+        return jsonify({"error": "No se pudo guardar el tipo"}), 500
+    finally:
+        cursor.close()
+        conexion.close()
+
+
+@ajustes_bp.route("/api/motivos-justificacion/<int:motivo_id>", methods=["DELETE"])
+@login_requerido
+def api_eliminar_motivo(motivo_id):
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    try:
+        cursor.execute("SELECT COUNT(*) FROM ajustes_asistencia WHERE tipo_id = %s", (motivo_id,))
+        en_uso = cursor.fetchone()[0]
+        if en_uso:
+            return jsonify({
+                "error": f"No se puede eliminar: lo usan {en_uso} justificación(es). Puedes renombrarlo."
+            }), 409
+
+        cursor.execute("DELETE FROM motivos_justificacion WHERE id = %s", (motivo_id,))
+        if cursor.rowcount == 0:
+            return jsonify({"error": "Tipo no encontrado"}), 404
+        conexion.commit()
+        return jsonify({"ok": True})
     finally:
         cursor.close()
         conexion.close()
@@ -194,7 +333,7 @@ def api_listar_todos_los_ajustes():
     cursor = conexion.cursor()
     cursor.execute("""
         SELECT a.id, a.fecha, a.motivo, a.creado_por, a.trabajador_id,
-               t.nombres, t.apellidos, a.creado_en
+               t.nombres, t.apellidos, a.creado_en, a.observacion
         FROM ajustes_asistencia a
         JOIN trabajadores t ON t.id = a.trabajador_id
         ORDER BY a.fecha DESC
@@ -207,7 +346,8 @@ def api_listar_todos_los_ajustes():
             "creado_por": fila[3],
             "trabajadorId": fila[4],
             "trabajadorNombre": f"{fila[6]} {fila[5]}",
-            "creadoEn": fila[7].strftime("%Y-%m-%d %H:%M") if fila[7] else None
+            "creadoEn": fila[7].strftime("%Y-%m-%d %H:%M") if fila[7] else None,
+            "observacion": fila[8]
         }
         for fila in cursor.fetchall()
     ]
@@ -223,6 +363,7 @@ def api_crear_ajuste():
     trabajador_id = datos.get("trabajadorId")
     fecha = (datos.get("fecha") or "").strip()
     motivo = (datos.get("motivo") or "").strip()
+    observacion = (datos.get("observacion") or "").strip() or None
 
     if not trabajador_id or not fecha or not motivo:
         return jsonify({"error": "Trabajador, fecha y motivo son obligatorios"}), 400
@@ -231,11 +372,12 @@ def api_crear_ajuste():
     cursor = conexion.cursor()
     try:
         cursor.execute("""
-            INSERT INTO ajustes_asistencia (trabajador_id, fecha, motivo, creado_por, creado_en)
-            VALUES (%s, %s, %s, %s, %s)
+            INSERT INTO ajustes_asistencia (trabajador_id, fecha, motivo, tipo_id, observacion, creado_por, creado_en)
+            VALUES (%s, %s, %s, (SELECT id FROM motivos_justificacion WHERE nombre = %s), %s, %s, %s)
             ON CONFLICT (trabajador_id, fecha)
-            DO UPDATE SET motivo = EXCLUDED.motivo, creado_por = EXCLUDED.creado_por, creado_en = EXCLUDED.creado_en
-        """, (trabajador_id, fecha, motivo, session.get("username"), datetime.now()))
+            DO UPDATE SET motivo = EXCLUDED.motivo, tipo_id = EXCLUDED.tipo_id, observacion = EXCLUDED.observacion,
+                          creado_por = EXCLUDED.creado_por, creado_en = EXCLUDED.creado_en
+        """, (trabajador_id, fecha, motivo, motivo, observacion, session.get("username"), datetime.now()))
         conexion.commit()
         return jsonify({"ok": True})
     except Exception as error:
@@ -259,6 +401,7 @@ def api_crear_ajuste_masivo():
     fecha_inicio_str = (datos.get("fechaInicio") or "").strip()
     fecha_fin_str = (datos.get("fechaFin") or "").strip()
     motivo = (datos.get("motivo") or "").strip()
+    observacion = (datos.get("observacion") or "").strip() or None
 
     if not trabajador_ids:
         return jsonify({"error": "Selecciona al menos un trabajador"}), 400
@@ -295,11 +438,12 @@ def api_crear_ajuste_masivo():
         for trabajador_id in trabajador_ids:
             for dia in dias:
                 cursor.execute("""
-                    INSERT INTO ajustes_asistencia (trabajador_id, fecha, motivo, creado_por, creado_en)
-                    VALUES (%s, %s, %s, %s, %s)
+                    INSERT INTO ajustes_asistencia (trabajador_id, fecha, motivo, tipo_id, observacion, creado_por, creado_en)
+                    VALUES (%s, %s, %s, (SELECT id FROM motivos_justificacion WHERE nombre = %s), %s, %s, %s)
                     ON CONFLICT (trabajador_id, fecha)
-                    DO UPDATE SET motivo = EXCLUDED.motivo, creado_por = EXCLUDED.creado_por, creado_en = EXCLUDED.creado_en
-                """, (trabajador_id, dia, motivo, session.get("username"), datetime.now()))
+                    DO UPDATE SET motivo = EXCLUDED.motivo, tipo_id = EXCLUDED.tipo_id, observacion = EXCLUDED.observacion,
+                                  creado_por = EXCLUDED.creado_por, creado_en = EXCLUDED.creado_en
+                """, (trabajador_id, dia, motivo, motivo, observacion, session.get("username"), datetime.now()))
                 total_registros += 1
 
         conexion.commit()

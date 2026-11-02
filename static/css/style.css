@@ -35,6 +35,7 @@
   --neutro-suave: #ebebe6;
   --morado: #5f2a86;
   --morado-suave: #f0e8f6;
+  --semana-resaltada: #ffe94d;
 
   --radius: 6px;
   --radius-chico: 4px;
@@ -758,6 +759,103 @@ td.descuento-alto { background: var(--danger-suave); color: var(--danger); font-
   border-top: 1px solid var(--border);
 }
 .ajuste-dia .btn { min-height: 28px; padding: 2px 8px; font-size: var(--t-xs); }
+
+/* ---------- Tipos de justificacion (Ajustes) ---------- */
+.tipos-lista { display: flex; flex-direction: column; }
+.tipo-fila { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 7px 0; border-bottom: 1px solid var(--border); }
+.tipo-fila .check-linea { margin: 0; font-size: var(--t-sm); white-space: nowrap; }
+.tipo-fila input[type="text"] {
+  flex: 1 1 220px;
+  min-height: 32px;
+  padding: 4px 8px;
+  border: 1px solid var(--border-fuerte);
+  border-radius: var(--radius-chico);
+  font: inherit;
+}
+.tipo-fila input[type="color"] {
+  width: 36px;
+  height: 32px;
+  padding: 2px;
+  border: 1px solid var(--border-fuerte);
+  border-radius: var(--radius-chico);
+  background: #fff;
+  cursor: pointer;
+}
+
+/* ---------- Panel de asistencia ---------- */
+.main:has(.panel-asistencia) { max-width: none; }
+
+.panel-asistencia th, .panel-asistencia td {
+  padding: 5px 6px;
+  border-right: 1px solid var(--border);
+  text-align: center;
+  white-space: nowrap;
+  font-size: var(--t-sm);
+}
+.panel-asistencia th.col-numero, .panel-asistencia td.col-numero { position: sticky; left: 0; z-index: 2; width: 40px; min-width: 40px; background: var(--panel); }
+.panel-asistencia th.col-nombre, .panel-asistencia td.col-nombre {
+  position: sticky;
+  left: 40px;
+  z-index: 2;
+  min-width: 210px;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+  background: var(--panel);
+  box-shadow: 1px 0 0 var(--border-fuerte);
+}
+.panel-asistencia thead th { position: sticky; top: 0; z-index: 1; }
+.panel-asistencia thead th.col-numero, .panel-asistencia thead th.col-nombre { z-index: 3; }
+.panel-asistencia .col-dia-hoy { box-shadow: inset 0 -2px 0 var(--primary); color: var(--primary); }
+
+.asist-celda { min-width: 76px; max-width: 96px; padding: 0 !important; }
+.asist-celda button {
+  display: block;
+  width: 100%;
+  min-height: 30px;
+  padding: 3px 5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.asist-celda button:hover { box-shadow: inset 0 0 0 2px var(--primary); }
+.asist-celda.con-texto button { font-size: var(--t-xs); }
+.asist-celda.tarde { color: var(--danger); font-weight: 600; }
+
+.asist-total-semana, .panel-asistencia th.asist-total-semana { background: var(--semana-resaltada); color: var(--text); font-weight: 600; min-width: 96px; }
+.panel-asistencia td.asist-total-semana.supera { color: var(--danger); font-weight: 700; }
+.panel-asistencia th.asist-total-periodo, .asist-total-periodo { background: var(--primary-light); color: var(--primary-dark); font-weight: 600; white-space: normal; min-width: 96px; }
+
+td.celda-nombre { white-space: nowrap; }
+
+.leyenda-asistencia { display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 12px 0 18px; font-size: var(--t-sm); }
+.leyenda-asistencia span { display: inline-flex; align-items: center; gap: 6px; }
+.leyenda-color { display: inline-block; width: 22px; height: 14px; border: 1px solid var(--border-fuerte); border-radius: 2px; }
+
+.asist-tooltip {
+  position: fixed;
+  z-index: 90;
+  max-width: 300px;
+  padding: 8px 10px;
+  background: var(--marino);
+  color: #fff;
+  border-radius: var(--radius-chico);
+  font-size: var(--t-sm);
+  pointer-events: none;
+}
+.asist-tooltip div + div { margin-top: 2px; }
+.asist-detalle { padding: 8px 10px; margin-bottom: 12px; border-radius: var(--radius-chico); font-size: var(--t-sm); }
+.asist-detalle div + div { margin-top: 2px; }
+
+.tipo-registro { display: flex; gap: 16px; margin-bottom: 12px; }
+.tipo-registro label { display: flex; align-items: center; gap: 6px; }
+.importar-errores { max-height: 180px; margin: 0 0 12px; padding-left: 18px; overflow-y: auto; font-size: var(--t-sm); }
 
 /* ---------- Calendario ---------- */
 .calendario-toolbar {

@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+
+{% block titulo %}Panel de asistencia · Personal y Asistencias{% endblock %}
+
+{% block contenido %}
+<h1>Panel de asistencia</h1>
+<p class="lead">Hora de entrada por día y tardanzas de cada periodo. Entrada: {{ panel.hora_entrada }}, salvo horario propio en la ficha. Total semanal en rojo si supera {{ panel.umbral }}.</p>
+
+<div class="barra">
+  <h2>Periodo {{ panel.titulo }} <span class="muted">({{ panel.rango }})</span></h2>
+  <div class="doc-actions">
+    <a class="btn secondary" href="{{ url_for('asistencia.pagina_asistencia', anio=anio_prev, mes=mes_prev) }}">← Periodo anterior</a>
+    {% if not es_periodo_actual %}
+    <a class="btn secondary" href="{{ url_for('asistencia.pagina_asistencia') }}">Periodo actual</a>
+    {% endif %}
+    <a class="btn secondary" href="{{ url_for('asistencia.pagina_asistencia', anio=anio_next, mes=mes_next) }}">Periodo siguiente →</a>
+  </div>
+</div>
+
+<div class="barra">
+  <div class="doc-actions">
+    <button type="button" class="btn" id="nuevoRegistroBtn">Registrar</button>
+    <button type="button" class="btn secondary" id="importarBtn">Importar marcaciones</button>
+  </div>
+  <div class="doc-actions">
+    <a class="btn secondary" href="{{ url_for('asistencia.exportar_panel', anio=anio, mes=mes) }}">Exportar a Excel</a>
+    <a class="btn secondary" href="/exportar">Historial completo (CSV)</a>
+  </div>
+</div>
+
+{% if panel.filas %}
+<div class="tabla-contenedor panel-asistencia" id="panelTabla">
+  <table>
+    <thead>
+      <tr>
+        <th class="col-numero" rowspan="2">N.º</th>
+        <th class="col-nombre" rowspan="2">Trabajador</th>
+        {% for semana in panel.semanas %}
+        <th colspan="{{ semana.dias|length }}">Semana {{ semana.numero }}</th>
+        <th class="asist-total-semana">{{ semana.etiqueta }}</th>
+        {% endfor %}
+        <th class="asist-total-periodo" rowspan="2">Total tardanzas del periodo</th>
+      </tr>
+      <tr>
+        {% for semana in panel.semanas %}
+        {% for dia in semana.dias %}
+        <th class="{{ 'col-dia-hoy' if dia.es_hoy }}">{{ dia.dia }}<br>{{ dia.etiqueta }}</th>
+        {% endfor %}
+        <th class="asist-total-semana">Tardanzas</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for fila in panel.filas %}
+      <tr>
+        <td class="col-numero">{{ fila.numero }}</td>
+        <td class="col-nombre" title="{{ fila.nombre }}">{{ fila.nombre }}</td>
+        {% for semana in fila.semanas %}
+        {% for celda in semana.celdas %}
+        <td class="asist-celda {{ 'tarde' if celda.segundos > 0 }} {{ 'con-texto' if not celda.hora and celda.tipo }}"
+            {% if celda.color %}style="background:{{ celda.color }};color:{{ celda.color_texto }};"{% endif %}>
+          <button type="button" data-celda='{{ celda|tojson }}'
+                  aria-label="{{ fila.nombre }}, {{ celda.fecha }}{{ ': ' ~ celda.texto if celda.texto }}">{{ celda.texto }}</button>
+        </td>
+        {% endfor %}
+        <td class="asist-total-semana {{ 'supera' if semana.supera }}">{{ semana.total }}</td>
+        {% endfor %}
+        <td class="asist-total-periodo">{{ fila.total }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="leyenda-asistencia" aria-label="Leyenda de colores">
+  {% for entrada in panel.leyenda %}
+  <span><i class="leyenda-color" style="background:{{ entrada.color }};"></i>{{ entrada.nombre }}</span>
+  {% endfor %}
+</div>
+
+<div class="barra"><h2>Resumen del periodo</h2></div>
+<div class="tabla-contenedor">
+  <table>
+    <thead>
+      <tr>
+        <th>N.º</th>
+        <th>Trabajador</th>
+        <th>Total tardanzas</th>
+        <th>Días con tardanza</th>
+        <th>Faltas injustificadas</th>
+        {% for columna in panel.columnas_resumen %}
+        <th>{{ columna.nombre }}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for fila in panel.filas %}
+      <tr>
+        <td>{{ fila.numero }}</td>
+        <td class="celda-nombre">
+          <a href="{{ url_for('historial.pagina_historial', trabajador_id=fila.trabajador_id) }}">{{ fila.nombre }}</a>
+        </td>
+        <td>{{ fila.total }}</td>
+        <td>{{ fila.dias_con_tardanza }}</td>
+        <td>{{ fila.faltas }}</td>
+        {% for columna in panel.columnas_resumen %}
+        <td>{{ fila.conteos.get(columna.clave, 0) }}</td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty-state">No hay trabajadores activos con código de empleado.</div>
+{% endif %}
+
+<div class="asist-tooltip" id="asistTooltip" hidden></div>
+
+<div id="registroOverlay" class="modal-overlay" hidden>
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="registroTitulo">
+    <h2 id="registroTitulo">Registrar asistencia</h2>
+    <div id="registroDetalle" class="asist-detalle" hidden></div>
+    <div class="error-msg" id="registroError"></div>
+
+    <form id="registroForm">
+      <div class="field" id="campoTrabajador">
+        <label for="registroTrabajador">Trabajador</label>
+        <select id="registroTrabajador">
+          <option value="">Elige un trabajador...</option>
+          {% for fila in panel.filas %}
+          <option value="{{ fila.trabajador_id }}">{{ fila.nombre }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field" id="campoFecha">
+        <label for="registroFecha">Fecha</label>
+        <input type="date" id="registroFecha" required>
+      </div>
+
+      <div class="tipo-registro">
+        <label><input type="radio" name="tipoRegistro" value="marcacion" checked> Marcación</label>
+        <label><input type="radio" name="tipoRegistro" value="justificacion"> Justificación</label>
+      </div>
+
+      <div id="camposMarcacion">
+        <div class="field">
+          <label for="registroHora">Hora de entrada</label>
+          <input type="time" id="registroHora" step="1">
+        </div>
+        <p class="muted" id="avisoReemplazo" hidden>Al guardar la marcación se quita la justificación de este día.</p>
+      </div>
+
+      <div id="camposJustificacion" hidden>
+        <div class="field">
+          <label for="registroTipo">Tipo de justificación</label>
+          <select id="registroTipo">
+            <option value="">Elige un tipo...</option>
+            {% for tipo in panel.tipos %}
+            <option value="{{ tipo.clave }}">{{ tipo.nombre }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="registroObservacion">Motivo u observación</label>
+          <textarea id="registroObservacion" rows="2"></textarea>
+        </div>
+      </div>
+
+      <div class="modal-acciones">
+        <button type="button" class="btn danger" id="registroQuitarBtn" hidden>Quitar registro</button>
+        <button type="button" class="btn secondary" id="registroCancelarBtn">Cancelar</button>
+        <button type="submit" class="btn" id="registroGuardarBtn">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="importarOverlay" class="modal-overlay" hidden>
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="importarTitulo">
+    <h2 id="importarTitulo">Importar marcaciones</h2>
+    <p class="muted">Archivo .xlsx o .csv con encabezados: <strong>Código</strong> (o DNI), <strong>Fecha</strong> y <strong>Hora</strong>, o una sola columna <strong>Fecha y hora</strong>. <strong>Tipo</strong> es opcional (entrada/salida). Se puede volver a subir el mismo archivo: lo ya importado no se duplica.</p>
+
+    <div class="error-msg" id="importarError"></div>
+    <div class="success-msg" id="importarExito"></div>
+    <ul class="importar-errores" id="importarDetalle" hidden></ul>
+
+    <form id="importarForm">
+      <div class="field">
+        <label for="importarArchivo">Archivo</label>
+        <input type="file" id="importarArchivo" accept=".xlsx,.csv,.txt" required>
+      </div>
+      <div class="modal-acciones">
+        <button type="button" class="btn secondary" id="importarCerrarBtn">Cerrar</button>
+        <button type="submit" class="btn" id="importarSubirBtn">Importar</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/asistencia.js"></script>
+{% endblock %}

@@ -22,21 +22,25 @@
 {% endif %}
 
 <div class="kpis">
-  <div class="card azul">
-    <h3>Total marcajes</h3>
-    <div class="numero">{{ total_marcajes }}</div>
+  <div class="card">
+    <h3>Marcaciones de hoy</h3>
+    <div class="numero">{{ indicadores_hoy.marcaciones }}</div>
   </div>
-  <div class="card verde">
-    <h3>Trabajadores registrados</h3>
-    <div class="numero">{{ total_trabajadores }}</div>
+  <div class="card">
+    <h3>Presentes</h3>
+    <div class="numero">{{ indicadores_hoy.presentes }}</div>
   </div>
-  <div class="card morado">
-    <h3>Entradas hoy</h3>
-    <div class="numero">{{ entradas_hoy }}</div>
+  <div class="card">
+    <h3>Tardanzas de hoy</h3>
+    <div class="numero">{{ indicadores_hoy.tardanzas }}</div>
   </div>
-  <div class="card rojo">
-    <h3>Salidas hoy</h3>
-    <div class="numero">{{ salidas_hoy }}</div>
+  <div class="card">
+    <h3>Justificados</h3>
+    <div class="numero">{{ indicadores_hoy.justificados }}</div>
+  </div>
+  <div class="card">
+    <h3>Sin marcar</h3>
+    <div class="numero">{{ indicadores_hoy.sin_marcar }}</div>
   </div>
 </div>
 
@@ -48,15 +52,8 @@
 </div>
 
 <div class="barra">
-  <h2>Últimos marcajes</h2>
-  <a class="btn secondary" href="/exportar">Exportar CSV</a>
-</div>
-
-<div class="filtro-rango">
-  <a href="{{ url_for('inicio', rango='hoy') }}" class="{{ 'active' if rango == 'hoy' }}">Hoy</a>
-  <a href="{{ url_for('inicio', rango='semana') }}" class="{{ 'active' if rango == 'semana' }}">Últimos 7 días</a>
-  <a href="{{ url_for('inicio', rango='mes') }}" class="{{ 'active' if rango == 'mes' }}">Últimos 30 días</a>
-  <a href="{{ url_for('inicio', rango='todos') }}" class="{{ 'active' if rango == 'todos' }}">Todos</a>
+  <h2>Marcajes de hoy</h2>
+  <a class="btn secondary" href="{{ url_for('asistencia.pagina_asistencia') }}">Ver panel de asistencia</a>
 </div>
 
 <div class="tabla-contenedor">
@@ -119,7 +116,7 @@
     </tbody>
   </table>
   {% else %}
-  <div style="padding:40px;text-align:center">No existen registros en este rango</div>
+  <div style="padding:40px;text-align:center">Todavía no hay marcajes hoy</div>
   {% endif %}
 </div>
 {% endblock %}

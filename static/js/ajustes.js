@@ -102,6 +102,7 @@ document.getElementById('ajusteForm').addEventListener('submit', async (e) => {
   const fechaInicio = document.getElementById('fechaInicioAjuste').value;
   const fechaFin = document.getElementById('fechaFinAjuste').value;
   const motivo = document.getElementById('motivoAjuste').value.trim();
+  const observacion = document.getElementById('observacionAjuste').value.trim();
 
   if (trabajadoresSeleccionados.length === 0) {
     errorMsg.textContent = 'Agrega al menos un trabajador.';
@@ -124,7 +125,7 @@ document.getElementById('ajusteForm').addEventListener('submit', async (e) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         trabajadorIds: trabajadoresSeleccionados.map((w) => w.id),
-        fechaInicio, fechaFin, motivo
+        fechaInicio, fechaFin, motivo, observacion
       })
     });
     const data = await res.json();
@@ -219,6 +220,7 @@ function bindNuevoMotivoModal() {
       }
 
       await cargarMotivos(data.nombre);
+      cargarTipos();
       overlay.style.display = 'none';
     } catch (err) {
       errorMsg.textContent = 'Error de conexión con el servidor';
@@ -367,7 +369,7 @@ function agruparEnFranjas(ajustes) {
   const franjas = [];
 
   ordenados.forEach((a) => {
-    const clave = JSON.stringify([a.trabajadorId, a.motivo, a.creado_por]);
+    const clave = JSON.stringify([a.trabajadorId, a.motivo, a.observacion, a.creado_por]);
     let franja = ultimaPorClave.get(clave);
     const ultimoDia = franja && franja.dias[franja.dias.length - 1].fecha;
 
@@ -375,6 +377,7 @@ function agruparEnFranjas(ajustes) {
       franja = {
         trabajadorNombre: a.trabajadorNombre,
         motivo: a.motivo,
+        observacion: a.observacion,
         creado_por: a.creado_por,
         dias: []
       };
@@ -417,6 +420,7 @@ function detalleDeFranja(franja) {
     <div class="ajuste-detalle-datos">
       <div><strong>Trabajador:</strong> ${escapeHtml(franja.trabajadorNombre)}</div>
       <div><strong>Motivo:</strong> ${escapeHtml(franja.motivo)}</div>
+      ${franja.observacion ? `<div><strong>Observación:</strong> ${escapeHtml(franja.observacion)}</div>` : ''}
       <div><strong>Periodo:</strong> ${periodoDeFranja(franja)}</div>
       <div><strong>Días justificados:</strong> ${total}</div>
       <div><strong>Registrado por:</strong> ${escapeHtml(franja.creado_por || 'admin')}</div>
@@ -491,5 +495,140 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
+// ---------- Configuracion del panel de asistencia ----------
+
+async function cargarConfigAsistencia() {
+  try {
+    const res = await fetch('/api/asistencia/config');
+    const data = await res.json();
+    document.getElementById('configHoraEntrada').value = data.horaEntrada;
+    document.getElementById('configUmbral').value = data.umbralSemanal;
+  } catch (err) {
+    // los campos quedan vacios y el formulario exige completarlos
+  }
+}
+
+document.getElementById('configForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const successMsg = document.getElementById('configSuccessMsg');
+  const errorMsg = document.getElementById('configErrorMsg');
+  successMsg.style.display = 'none';
+  errorMsg.style.display = 'none';
+
+  try {
+    const res = await fetch('/api/asistencia/config', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        horaEntrada: document.getElementById('configHoraEntrada').value.trim(),
+        umbralSemanal: document.getElementById('configUmbral').value.trim()
+      })
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      errorMsg.textContent = data.error || 'No se pudo guardar la configuración';
+      errorMsg.style.display = 'block';
+      return;
+    }
+
+    successMsg.textContent = 'Configuración guardada.';
+    successMsg.style.display = 'block';
+  } catch (err) {
+    errorMsg.textContent = 'Error de conexión con el servidor';
+    errorMsg.style.display = 'block';
+  }
+});
+
+// ---------- Tipos de justificacion (nombre, color y si cuenta como falta) ----------
+
+function mostrarErrorTipos(mensaje) {
+  const errorMsg = document.getElementById('tiposErrorMsg');
+  errorMsg.textContent = mensaje || '';
+  errorMsg.style.display = mensaje ? 'block' : 'none';
+}
+
+async function enviarTipo(url, method, cuerpo) {
+  mostrarErrorTipos('');
+  try {
+    const res = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: cuerpo ? JSON.stringify(cuerpo) : undefined
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      mostrarErrorTipos(data.error || 'No se pudo guardar el tipo');
+      return false;
+    }
+
+    await Promise.all([cargarTipos(), cargarMotivos()]);
+    return true;
+  } catch (err) {
+    mostrarErrorTipos('Error de conexión con el servidor');
+    return false;
+  }
+}
+
+async function cargarTipos() {
+  const lista = document.getElementById('tiposLista');
+  try {
+    const res = await fetch('/api/motivos-justificacion');
+    const data = await res.json();
+    renderTipos(data.motivos || []);
+  } catch (err) {
+    lista.innerHTML = '<p class="muted">Error al cargar</p>';
+  }
+}
+
+function renderTipos(tipos) {
+  const lista = document.getElementById('tiposLista');
+  lista.innerHTML = '';
+
+  tipos.forEach((tipo) => {
+    const fila = document.createElement('div');
+    fila.className = 'tipo-fila';
+    fila.innerHTML = `
+      <input type="color" data-color value="${escapeHtml(tipo.color)}" aria-label="Color">
+      <input type="text" data-nombre value="${escapeHtml(tipo.nombre).replace(/"/g, '&quot;')}" aria-label="Nombre">
+      <label class="check-linea"><input type="checkbox" data-falta ${tipo.esFalta ? 'checked' : ''}> Cuenta como falta</label>
+      <button type="button" class="btn secondary sm" data-guardar>Guardar</button>
+      <button type="button" class="btn danger sm" data-eliminar>Eliminar</button>
+    `;
+
+    fila.querySelector('[data-guardar]').addEventListener('click', () => {
+      enviarTipo(`/api/motivos-justificacion/${tipo.id}`, 'PUT', {
+        nombre: fila.querySelector('[data-nombre]').value.trim(),
+        color: fila.querySelector('[data-color]').value,
+        esFalta: fila.querySelector('[data-falta]').checked
+      });
+    });
+
+    fila.querySelector('[data-eliminar]').addEventListener('click', () => {
+      if (confirm(`¿Eliminar el tipo "${tipo.nombre}"?`)) {
+        enviarTipo(`/api/motivos-justificacion/${tipo.id}`, 'DELETE');
+      }
+    });
+
+    lista.appendChild(fila);
+  });
+}
+
+document.getElementById('nuevoTipoForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const guardado = await enviarTipo('/api/motivos-justificacion', 'POST', {
+    nombre: document.getElementById('nuevoTipoNombre').value.trim(),
+    color: document.getElementById('nuevoTipoColor').value,
+    esFalta: document.getElementById('nuevoTipoFalta').checked
+  });
+
+  if (guardado) e.target.reset();
+});
+
 cargarFeriados();
 cargarTodosLosAjustes();
+cargarConfigAsistencia();
+cargarTipos();

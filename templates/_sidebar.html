@@ -3,10 +3,11 @@
     <img src="{{ url_for('static', filename='img/logo-transparente.png') }}" alt="Shareate Drillco">
   </div>
   <nav>
-    <details class="nav-group" {% if active_page in ['inicio', 'resumen', 'ajustes', 'historial'] %}open{% endif %}>
+    <details class="nav-group" {% if active_page in ['inicio', 'asistencia', 'resumen', 'ajustes', 'historial'] %}open{% endif %}>
       <summary>Asistencias</summary>
       <div class="nav-submenu">
         <a href="{{ url_for('inicio') }}" class="{{ 'active' if active_page == 'inicio' }}">Panel</a>
+        <a href="{{ url_for('asistencia.pagina_asistencia') }}" class="{{ 'active' if active_page == 'asistencia' }}">Panel de asistencia</a>
         <a href="{{ url_for('resumen.pagina_resumen') }}" class="{{ 'active' if active_page == 'resumen' }}">Resumen</a>
         <a href="{{ url_for('ajustes.pagina_ajustes') }}" class="{{ 'active' if active_page == 'ajustes' }}">Ajustes</a>
       </div>

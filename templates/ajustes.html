@@ -4,7 +4,7 @@
 
 {% block contenido %}
 <h1>Ajustes</h1>
-<p class="lead">Justifica tardanzas puntuales y define los días feriados de la empresa.</p>
+<p class="lead">Justifica tardanzas puntuales, define los días feriados y configura el panel de asistencia.</p>
 
 <div class="panel">
   <h2>Justificar asistencia</h2>
@@ -39,6 +39,10 @@
       </div>
     </div>
     <div class="field" style="grid-column: span 2;">
+      <label for="observacionAjuste">Observación (opcional)</label>
+      <input type="text" id="observacionAjuste" placeholder="Ej. Visita a mina Antamina">
+    </div>
+    <div class="field" style="grid-column: span 2;">
       <button type="submit" class="btn" id="ajusteSubmitBtn">Guardar justificación</button>
     </div>
   </form>
@@ -68,6 +72,43 @@
   </form>
 
   <div id="feriadosList" class="doc-list"></div>
+</div>
+
+<div class="panel">
+  <h2>Panel de asistencia</h2>
+  <p class="muted">La hora de entrada se usa para calcular tardanzas de quienes no tienen un horario propio en su ficha. El total semanal se muestra en rojo cuando supera el umbral.</p>
+
+  <div class="success-msg" id="configSuccessMsg"></div>
+  <div class="error-msg" id="configErrorMsg"></div>
+
+  <form id="configForm" class="grid-2" style="align-items:end;">
+    <div class="field">
+      <label for="configHoraEntrada">Hora de entrada (hh:mm:ss)</label>
+      <input type="text" id="configHoraEntrada" pattern="[0-9]{2}:[0-9]{2}:[0-9]{2}" placeholder="08:00:00" required>
+    </div>
+    <div class="field">
+      <label for="configUmbral">Umbral semanal (hh:mm:ss)</label>
+      <input type="text" id="configUmbral" pattern="[0-9]{2}:[0-9]{2}:[0-9]{2}" placeholder="01:30:00" required>
+    </div>
+    <div class="field" style="grid-column: span 2;">
+      <button type="submit" class="btn">Guardar configuración</button>
+    </div>
+  </form>
+</div>
+
+<div class="panel">
+  <h2>Tipos de justificación</h2>
+  <p class="muted">Son los motivos que se eligen al justificar, con el color que tendrá la celda en el panel de asistencia. Marca "Cuenta como falta" en los que no justifican el día.</p>
+
+  <div class="error-msg" id="tiposErrorMsg"></div>
+  <div id="tiposLista" class="tipos-lista"></div>
+
+  <form id="nuevoTipoForm" class="tipo-fila">
+    <input type="color" id="nuevoTipoColor" value="#e4e4de" aria-label="Color del nuevo tipo">
+    <input type="text" id="nuevoTipoNombre" placeholder="Nuevo tipo de justificación" aria-label="Nombre del nuevo tipo" required>
+    <label class="check-linea"><input type="checkbox" id="nuevoTipoFalta"> Cuenta como falta</label>
+    <button type="submit" class="btn sm">Agregar</button>
+  </form>
 </div>
 
 <div id="nuevoMotivoModalOverlay" class="modal-overlay" style="display:none;">

@@ -23,6 +23,8 @@ from vehiculos import vehiculos_bp
 from renovaciones import renovaciones_bp
 from seguros import seguros_bp
 from contratos import contratos_bp
+from asistencia import asistencia_bp, resumen_del_dia, SN_MANUAL, SN_IMPORTADO
+from ajustes import obtener_config_asistencia
 from reglas_asistencia import horario_del_trabajador, evaluar_marcaje_entrada
 
 app = Flask(__name__)
@@ -80,6 +82,7 @@ app.register_blueprint(auth_bp)
 app.register_blueprint(trabajadores_bp)
 app.register_blueprint(ajustes_bp)
 app.register_blueprint(resumen_bp)
+app.register_blueprint(asistencia_bp)
 app.register_blueprint(historial_bp)
 app.register_blueprint(calendario_bp)
 app.register_blueprint(boletas_bp)
@@ -414,12 +417,13 @@ def _trabajadores_faltantes_hoy(hoy):
         return []
 
     ahora = datetime.now(ZONA_HORARIA_LOCAL)
+    hora_estandar = obtener_config_asistencia(cursor)["hora_entrada"]
     faltantes = []
 
     for (t_id, nombres, apellidos, codigo, dni, hora_ent_cfg,
          hora_sal_cfg, sede_nombre) in candidatos:
 
-        hora_entrada_prog, _ = horario_del_trabajador(hora_ent_cfg, hora_sal_cfg)
+        hora_entrada_prog, _ = horario_del_trabajador(hora_ent_cfg, hora_sal_cfg, hora_estandar)
         limite = datetime.combine(hoy, hora_entrada_prog, tzinfo=ZONA_HORARIA_LOCAL) + timedelta(minutes=30)
 
         if ahora < limite:
@@ -459,19 +463,7 @@ def _trabajadores_faltantes_hoy(hoy):
 @app.route("/")
 @login_requerido
 def inicio():
-    rango = request.args.get("rango", "semana")
-    if rango not in ("hoy", "semana", "mes", "todos"):
-        rango = "semana"
-
     hoy = hoy_local()
-    if rango == "hoy":
-        fecha_desde = hoy
-    elif rango == "mes":
-        fecha_desde = hoy - timedelta(days=29)
-    elif rango == "todos":
-        fecha_desde = None
-    else:
-        fecha_desde = hoy - timedelta(days=6)
 
     conexion = obtener_conexion()
     cursor = conexion.cursor()
@@ -488,15 +480,9 @@ def inicio():
         WHERE (t.id IS NULL OR t.estado IS DISTINCT FROM 'INACTIVO')
     """
 
-    if fecha_desde:
-        cursor.execute(
-            sql_base + " AND a.fecha >= %s ORDER BY a.fecha_hora DESC",
-            (fecha_desde,)
-        )
-    else:
-        # "Todos" sin filtro de fecha: se limita a los ultimos 500 marcajes
-        # como medida de seguridad, para no traer una tabla gigante de golpe.
-        cursor.execute(sql_base + " ORDER BY a.fecha_hora DESC LIMIT 500")
+    # El inicio solo muestra el dia actual; el historial completo vive en el
+    # panel de asistencia.
+    cursor.execute(sql_base + " AND a.fecha = %s ORDER BY a.fecha_hora DESC", (hoy,))
 
     columnas = [
         "codigo_empleado", "fecha", "hora", "tipo_marcaje", "trabajador_id",
@@ -505,13 +491,20 @@ def inicio():
     ]
     filas = [dict(zip(columnas, fila)) for fila in cursor.fetchall()]
 
-    # Feriados y ajustes del rango visible, cargados una sola vez para no
-    # hacer una consulta por cada fila de la tabla.
-    cursor.execute("SELECT fecha FROM feriados")
+    # Feriados y ajustes del dia, cargados una sola vez para no hacer una
+    # consulta por cada fila de la tabla. Una "Falta injustificada" no
+    # justifica el dia, asi que no cuenta como ajuste.
+    cursor.execute("SELECT fecha FROM feriados WHERE fecha = %s", (hoy,))
     feriados_set = {fila[0] for fila in cursor.fetchall()}
 
-    cursor.execute("SELECT trabajador_id, fecha, motivo FROM ajustes_asistencia")
+    cursor.execute("""
+        SELECT a.trabajador_id, a.fecha, a.motivo
+        FROM ajustes_asistencia a
+        LEFT JOIN motivos_justificacion m ON m.id = a.tipo_id
+        WHERE a.fecha = %s AND m.es_falta IS NOT TRUE
+    """, (hoy,))
     ajustes_map = {(fila[0], fila[1]): fila[2] for fila in cursor.fetchall()}
+    hora_estandar = obtener_config_asistencia(cursor)["hora_entrada"]
 
     # Agrupamos los marcajes por dia y por trabajador: cada persona tiene
     # una sola fila por dia, con su entrada (la mas temprana) y su salida
@@ -565,7 +558,7 @@ def inicio():
 
             if registro["entrada"] is not None and registro["trabajador_id"] and not registro["excluido_asistencia"]:
                 hora_entrada_prog, _ = horario_del_trabajador(
-                    registro["hora_entrada_config"], registro["hora_salida_config"]
+                    registro["hora_entrada_config"], registro["hora_salida_config"], hora_estandar
                 )
                 motivo_ajuste = ajustes_map.get((registro["trabajador_id"], fecha))
                 registro["evaluacion"] = evaluar_marcaje_entrada(
@@ -584,33 +577,24 @@ def inicio():
 
         grupos.append(grupo)
 
+    # Las marcaciones manuales e importadas no vienen de un dispositivo, asi
+    # que no cuentan para saber si el huellero sigue reportando.
     cursor.execute("""
         SELECT DISTINCT sn_dispositivo
         FROM asistencias
         WHERE sn_dispositivo IS NOT NULL AND sn_dispositivo != ''
-    """)
+          AND sn_dispositivo <> ALL(%s)
+    """, ([SN_MANUAL, SN_IMPORTADO],))
     dispositivos = [{"sn_dispositivo": fila[0]} for fila in cursor.fetchall()]
 
-    cursor.execute("SELECT COUNT(*) FROM asistencias")
-    total_marcajes = cursor.fetchone()[0]
-
-    cursor.execute("SELECT COUNT(*) FROM trabajadores")
-    total_trabajadores = cursor.fetchone()[0]
-
-    cursor.execute(
-        "SELECT COUNT(*) FROM asistencias WHERE fecha = %s AND tipo_marcaje = '0'",
-        (hoy,)
-    )
-    entradas_hoy = cursor.fetchone()[0]
-
-    cursor.execute(
-        "SELECT COUNT(*) FROM asistencias WHERE fecha = %s AND tipo_marcaje = '1'",
-        (hoy,)
-    )
-    salidas_hoy = cursor.fetchone()[0]
-
-    cursor.execute("SELECT fecha_recepcion FROM asistencias ORDER BY id DESC LIMIT 1")
+    cursor.execute("""
+        SELECT fecha_recepcion FROM asistencias
+        WHERE sn_dispositivo <> ALL(%s)
+        ORDER BY id DESC LIMIT 1
+    """, ([SN_MANUAL, SN_IMPORTADO],))
     ultimo_marcaje = cursor.fetchone()
+
+    indicadores_hoy = resumen_del_dia(cursor, hoy)
 
     cursor.close()
     conexion.close()
@@ -620,12 +604,8 @@ def inicio():
     return render_template(
         "index.html",
         grupos=grupos,
-        rango=rango,
         dispositivos=dispositivos,
-        total_marcajes=total_marcajes,
-        total_trabajadores=total_trabajadores,
-        entradas_hoy=entradas_hoy,
-        salidas_hoy=salidas_hoy,
+        indicadores_hoy=indicadores_hoy,
         ultimo_marcaje=(ultimo_marcaje[0] if ultimo_marcaje else "Sin registros"),
         faltantes_hoy=faltantes_hoy,
         active_page="inicio"
