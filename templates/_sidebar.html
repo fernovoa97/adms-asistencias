@@ -26,6 +26,20 @@
       </div>
     </details>
 
+    <details class="nav-group" {% if active_page and active_page.startswith('contratos_') %}open{% endif %}>
+      <summary>Contratos</summary>
+      <div class="nav-submenu">
+        <a href="{{ url_for('contratos.pagina_resumen_contratos') }}" class="{{ 'active' if active_page == 'contratos_resumen' }}">Resumen general</a>
+        <a href="{{ url_for('contratos.pagina_modulo_contratos', modulo='laborales') }}" class="{{ 'active' if active_page == 'contratos_laborales' }}">Contratos laborales</a>
+        <a href="{{ url_for('contratos.pagina_modulo_contratos', modulo='inmuebles') }}" class="{{ 'active' if active_page == 'contratos_inmuebles' }}">Alquileres e inmuebles</a>
+        <a href="{{ url_for('contratos.pagina_modulo_contratos', modulo='seguros') }}" class="{{ 'active' if active_page == 'contratos_seguros' }}">Seguros y pólizas</a>
+        <a href="{{ url_for('contratos.pagina_modulo_contratos', modulo='servicios') }}" class="{{ 'active' if active_page == 'contratos_servicios' }}">Servicios y proveedores</a>
+        <a href="{{ url_for('contratos.pagina_modulo_contratos', modulo='comerciales') }}" class="{{ 'active' if active_page == 'contratos_comerciales' }}">Contratos comerciales</a>
+        <a href="{{ url_for('contratos.pagina_adendas') }}" class="{{ 'active' if active_page == 'contratos_adendas' }}">Renovaciones y adendas</a>
+        <a href="{{ url_for('contratos.pagina_contratos_finalizados') }}" class="{{ 'active' if active_page == 'contratos_finalizados' }}">Contratos finalizados</a>
+      </div>
+    </details>
+
     <a href="{{ url_for('calendario.pagina_calendario') }}" class="nav-toplink {{ 'active' if active_page == 'calendario' }}">Calendario</a>
     <a href="{{ url_for('vehiculos.pagina_vehiculos') }}" class="nav-toplink {{ 'active' if active_page == 'vehiculos' }}">Vehículos</a>
   </nav>

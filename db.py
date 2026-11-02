@@ -465,6 +465,55 @@ def inicializar_base_datos():
             )
         """)
 
+        # --- Registro general de contratos. "modulo" separa laborales,
+        # inmuebles, seguros, servicios y comerciales. El estado no se guarda:
+        # se calcula con las fechas (ver contratos.py) ---
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS contratos (
+                id SERIAL PRIMARY KEY,
+                numero TEXT NOT NULL UNIQUE,
+                modulo TEXT NOT NULL,
+                categoria TEXT NOT NULL,
+                contraparte_nombre TEXT NOT NULL,
+                contraparte_ruc TEXT,
+                objeto TEXT NOT NULL,
+                fecha_suscripcion DATE,
+                inicio_vigencia DATE NOT NULL,
+                fin_vigencia DATE,
+                importe NUMERIC(14,2),
+                moneda TEXT NOT NULL DEFAULT 'PEN',
+                responsable TEXT NOT NULL,
+                trabajador_id INTEGER REFERENCES trabajadores(id) ON DELETE SET NULL,
+                archivo_nombre TEXT,
+                archivo_contenido BYTEA,
+                fecha_cierre DATE,
+                motivo_cierre TEXT,
+                cerrado_por TEXT,
+                creado_por TEXT,
+                creado_en TIMESTAMP NOT NULL
+            )
+        """)
+
+        # Ampliaciones, modificaciones y renovaciones. Una adenda esta
+        # formalizada cuando tiene fecha de firma y PDF; recien ahi su
+        # nueva fecha de fin cambia la vigencia del contrato.
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS contratos_adendas (
+                id SERIAL PRIMARY KEY,
+                contrato_id INTEGER NOT NULL REFERENCES contratos(id) ON DELETE CASCADE,
+                numero INTEGER NOT NULL,
+                tipo TEXT NOT NULL,
+                descripcion TEXT NOT NULL,
+                fecha_suscripcion DATE,
+                nuevo_fin DATE,
+                archivo_nombre TEXT,
+                archivo_contenido BYTEA,
+                creado_por TEXT,
+                creado_en TIMESTAMP NOT NULL,
+                UNIQUE(contrato_id, numero)
+            )
+        """)
+
         # --- Sedes (combo administrable, con alerta opcional de inasistencia) ---
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS sedes (

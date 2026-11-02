@@ -22,6 +22,7 @@ from licencias import licencias_bp
 from vehiculos import vehiculos_bp
 from renovaciones import renovaciones_bp
 from seguros import seguros_bp
+from contratos import contratos_bp
 from reglas_asistencia import horario_del_trabajador, evaluar_marcaje_entrada
 
 app = Flask(__name__)
@@ -89,6 +90,7 @@ app.register_blueprint(licencias_bp)
 app.register_blueprint(vehiculos_bp)
 app.register_blueprint(renovaciones_bp)
 app.register_blueprint(seguros_bp)
+app.register_blueprint(contratos_bp)
 
 
 # ==========================================

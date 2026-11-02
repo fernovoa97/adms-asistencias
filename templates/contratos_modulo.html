@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block titulo %}{{ info.nombre }} · Contratos{% endblock %}
+
+{% block contenido %}
+<div class="barra">
+  <div>
+    <h1>{{ info.nombre }}</h1>
+    <p class="lead">{% if info.area %}{{ info.area }} · {% endif %}{{ info.descripcion }}</p>
+  </div>
+  {% if modulo %}<button type="button" class="btn" id="nuevoContratoBtn">+ Nuevo contrato</button>{% endif %}
+</div>
+
+{% if modulo == 'laborales' %}
+<div class="panel" id="laboralesSinFicha" hidden>
+  <h2>Colaboradores sin ficha de contrato</h2>
+  <p class="muted">Tienen contrato en su ficha personal, pero aún no están en este registro.</p>
+  <div class="doc-list" id="laboralesSinFichaLista"></div>
+</div>
+{% endif %}
+
+<div class="search-box">
+  <input type="text" id="buscarContrato" placeholder="Buscar por número, contraparte, RUC u objeto..." autocomplete="off">
+</div>
+
+{% if modulo %}
+<div class="vista-toggle" id="filtroEstado">
+  <a href="#" data-estado="" class="active">Todos</a>
+  <a href="#" data-estado="vigente">Vigentes</a>
+  <a href="#" data-estado="por_vencer">Por vencer</a>
+  <a href="#" data-estado="vencido">Vencidos</a>
+  <a href="#" data-estado="finalizado">Finalizados</a>
+</div>
+{% endif %}
+
+<div class="tabla-contenedor">
+  <table>
+    <thead>
+      <tr>
+        <th>N.º</th><th>Contraparte</th><th>Categoría</th><th>Objeto</th>
+        <th>Fin de vigencia</th><th>Importe</th><th>Responsable</th><th>Estado</th>
+      </tr>
+    </thead>
+    <tbody id="tablaContratos">
+      <tr><td colspan="8" class="empty-state">Cargando…</td></tr>
+    </tbody>
+  </table>
+</div>
+
+{% if modulo %}{% include '_contrato_modal.html' %}{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const CONTRATOS_CONFIG = {{ config|tojson }};
+  const MODULO_ACTUAL = {{ modulo|tojson }};
+</script>
+<script src="/static/js/contratos_comun.js"></script>
+{% if modulo %}<script src="/static/js/contrato_modal.js"></script>{% endif %}
+<script src="/static/js/contratos_modulo.js"></script>
+{% endblock %}

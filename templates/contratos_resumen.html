@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block titulo %}Contratos · Personal y Asistencias{% endblock %}
+
+{% block contenido %}
+<h1>Resumen de contratos</h1>
+<p class="lead">Contratos vigentes, vencimientos y alertas de todas las áreas.</p>
+
+<div class="kpis" id="totalesContratos">
+  <div class="card"><h3>Vigentes</h3><div class="numero" id="totalVigentes">—</div></div>
+  <div class="card"><h3>Por vencer (90 días)</h3><div class="numero" id="totalPorVencer">—</div></div>
+  <div class="card"><h3>Vencidos</h3><div class="numero" id="totalVencidos">—</div></div>
+  <div class="card"><h3>Finalizados</h3><div class="numero" id="totalFinalizados">—</div></div>
+</div>
+
+<div class="barra"><h2>Por módulo</h2></div>
+<div class="tabla-contenedor bloque">
+  <table>
+    <thead>
+      <tr><th>Módulo</th><th>Área</th><th>Vigentes</th><th>Por vencer</th><th>Vencidos</th><th>Finalizados</th></tr>
+    </thead>
+    <tbody id="tablaModulos"></tbody>
+  </table>
+</div>
+
+<div class="barra"><h2>Alertas</h2></div>
+<div id="alertasContratos"><div class="empty-state">Cargando…</div></div>
+{% endblock %}
+
+{% block scripts %}
+<script>const CONTRATOS_CONFIG = {{ config|tojson }};</script>
+<script src="/static/js/contratos_comun.js"></script>
+<script src="/static/js/contratos_resumen.js"></script>
+{% endblock %}

@@ -507,6 +507,16 @@ p.muted { margin: 0 0 10px; }
 .dependiente-fila input[type="date"] { flex: 1 1 140px; width: auto; }
 .dep-edad { flex: 0 0 64px; font-size: var(--t-sm); color: var(--muted); font-variant-numeric: tabular-nums; }
 
+/* ---------- Contratos ---------- */
+.bloque { margin-bottom: 20px; }
+.celda-texto { min-width: 200px; max-width: 320px; }
+.texto-largo { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.grupo-texto { margin-top: 12px; }
+.ficha-contrato { margin-top: 10px; }
+.ficha-contrato h1 { font-size: 1.25rem; }
+.ficha-contrato .estado-lista { margin: 14px 0 0; }
+.alerta-filas { border-top: 1px solid var(--border); }
+
 /* ---------- Avatares ---------- */
 .avatar-preview, .avatar-trabajador, .avatar-trabajador-chico {
   border-radius: var(--radius);

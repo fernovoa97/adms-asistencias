@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block titulo %}Renovaciones y adendas · Contratos{% endblock %}
+
+{% block contenido %}
+<h1>Renovaciones y adendas</h1>
+<p class="lead">Ampliaciones, modificaciones y renovaciones. Se registran desde la ficha del contrato original.</p>
+
+<div class="vista-toggle" id="filtroAdendas">
+  <a href="#" data-filtro="" class="active">Todas</a>
+  <a href="#" data-filtro="pendiente">Pendientes</a>
+  <a href="#" data-filtro="formalizada">Formalizadas</a>
+</div>
+
+<div class="tabla-contenedor">
+  <table>
+    <thead>
+      <tr>
+        <th>Contrato</th><th>Adenda</th><th>Contraparte</th><th>Descripción</th>
+        <th>Nuevo fin</th><th>Firma</th><th>Estado</th>
+      </tr>
+    </thead>
+    <tbody id="tablaAdendas">
+      <tr><td colspan="7" class="empty-state">Cargando…</td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/contratos_comun.js"></script>
+<script src="/static/js/contratos_adendas.js"></script>
+{% endblock %}

@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block titulo %}{{ numero }} · Contratos{% endblock %}
+
+{% block contenido %}
+<a href="{{ url_for('contratos.pagina_resumen_contratos') }}" class="muted">← Volver a contratos</a>
+<div id="contratoDetalle"><div class="empty-state">Cargando…</div></div>
+
+{% include '_contrato_modal.html' %}
+
+<div id="adendaModalOverlay" class="modal-overlay" style="display:none;">
+  <div class="modal-box">
+    <h2 id="adendaModalTitulo">Nueva adenda</h2>
+    <div class="error-msg" id="adendaError"></div>
+    <div class="field">
+      <label for="adendaTipo">Tipo *</label>
+      <select id="adendaTipo"></select>
+    </div>
+    <div class="field">
+      <label for="adendaDescripcion">Descripción del cambio *</label>
+      <textarea id="adendaDescripcion" rows="3"></textarea>
+    </div>
+    <div class="field">
+      <label for="adendaNuevoFin">Nuevo fin de vigencia <span id="adendaFinMarca">*</span></label>
+      <input type="date" id="adendaNuevoFin">
+    </div>
+    <div class="field">
+      <label for="adendaFirma">Fecha de firma</label>
+      <input type="date" id="adendaFirma">
+    </div>
+    <div class="field">
+      <label for="adendaPdf">Adenda firmada (PDF)</label>
+      <input type="file" id="adendaPdf" accept="application/pdf">
+    </div>
+    <p class="muted">Queda pendiente hasta tener fecha de firma y PDF; recién entonces cambia la vigencia del contrato.</p>
+    <div class="modal-acciones">
+      <button type="button" class="btn secondary" id="adendaCancelarBtn">Cancelar</button>
+      <button type="button" class="btn" id="adendaGuardarBtn">Guardar adenda</button>
+    </div>
+  </div>
+</div>
+
+<div id="cierreModalOverlay" class="modal-overlay" style="display:none;">
+  <div class="modal-box">
+    <h2>Finalizar contrato</h2>
+    <div class="error-msg" id="cierreError"></div>
+    <div class="field">
+      <label for="cierreFecha">Fecha de cierre *</label>
+      <input type="date" id="cierreFecha">
+    </div>
+    <div class="field">
+      <label for="cierreMotivo">Motivo</label>
+      <textarea id="cierreMotivo" rows="2"></textarea>
+    </div>
+    <div class="modal-acciones">
+      <button type="button" class="btn secondary" id="cierreCancelarBtn">Cancelar</button>
+      <button type="button" class="btn" id="cierreGuardarBtn">Finalizar contrato</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const CONTRATOS_CONFIG = {{ config|tojson }};
+  const CONTRATO_ID = {{ contrato_id }};
+</script>
+<script src="/static/js/contratos_comun.js"></script>
+<script src="/static/js/contrato_modal.js"></script>
+<script src="/static/js/contrato_detalle.js"></script>
+{% endblock %}

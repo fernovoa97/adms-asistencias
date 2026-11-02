@@ -30,6 +30,8 @@ abiertos para que el dispositivo pueda reportar datos.
 - `renovaciones.py` — renovaciones de EMO, activos y EPPs de cada colaborador,
   con historial, y catálogo administrable de activos.
 - `seguros.py` — seguros de cada colaborador y sus personas adicionales.
+- `contratos.py` — registro general de contratos por módulo, adendas, cierre
+  manual y alertas de vencimiento.
 - `validaciones.py` — fechas y cálculo de edad compartidos por esos módulos.
 - `templates/` — `base.html` es la plantilla común; el resto son páginas (login, asistencias, nuevo trabajador, buscar
   trabajador).
