@@ -205,6 +205,14 @@ def inicializar_base_datos():
             )
         """)
 
+        # PDF de sustento de la renovacion. Vive en "documentos": si alguien
+        # lo elimina desde la ficha, la renovacion queda sin PDF y se puede
+        # volver a subir.
+        _agregar_columna_si_falta(
+            cursor, "trabajadores_renovaciones", "documento_id",
+            "INTEGER REFERENCES documentos(id) ON DELETE SET NULL"
+        )
+
         # --- Catalogo administrable de activos (Laptop, Celular, ...) ---
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS activos_catalogo (

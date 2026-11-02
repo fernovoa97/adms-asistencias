@@ -7,7 +7,8 @@ const TARJETAS_RENOVACION = [
     titulo: 'Actualizar renovación de EMO',
     descripcion: 'Examen Médico Ocupacional. Cada renovación queda guardada en el historial.',
     etiquetaFecha: 'Fecha de renovación del EMO',
-    etiquetaProxima: 'Fecha de vencimiento del próximo EMO'
+    etiquetaProxima: 'Fecha de vencimiento del próximo EMO',
+    conPdf: true
   },
   {
     tipo: 'ACTIVO',
@@ -27,6 +28,7 @@ const TARJETAS_RENOVACION = [
 ];
 
 const DIAS_ALERTA_RENOVACION = 30;
+const TAMANO_MAXIMO_PDF_RENOVACION = 25 * 1024 * 1024;
 const MS_POR_DIA_RENOVACION = 24 * 60 * 60 * 1000;
 
 function hoyLocalIso() {
@@ -52,7 +54,39 @@ function renovacionesVigentes(registros) {
   });
 }
 
-function vigentesHtml(registros) {
+// El mismo control sirve en la fila vigente y en el historial: abre el PDF si
+// ya esta subido, o permite subirlo si falta.
+function pdfRenovacionHtml(r) {
+  if (r.documento_id) {
+    return `<a class="btn secondary sm" href="/documentos/${r.documento_id}" target="_blank">Ver PDF</a>`;
+  }
+  return `
+    <label class="btn secondary sm">
+      Subir PDF
+      <input type="file" accept="application/pdf" data-renovacion-pdf="${r.id}" hidden>
+    </label>
+  `;
+}
+
+function errorDePdf(archivo) {
+  if (!archivo.name.toLowerCase().endsWith('.pdf')) return 'El archivo debe ser un PDF';
+  if (archivo.size > TAMANO_MAXIMO_PDF_RENOVACION) return 'El archivo supera los 25MB';
+  return null;
+}
+
+async function subirPdfRenovacion(renovacionId, archivo) {
+  const formData = new FormData();
+  formData.append('archivo', archivo);
+  try {
+    const res = await fetch(`/api/renovaciones/${renovacionId}/documento`, { method: 'POST', body: formData });
+    const data = await res.json();
+    return res.ok ? null : (data.error || 'No se pudo subir el PDF');
+  } catch (err) {
+    return 'Error de conexión con el servidor';
+  }
+}
+
+function vigentesHtml(tarjeta, registros) {
   if (registros.length === 0) {
     return '<p class="muted">Todavía no hay ninguna renovación registrada.</p>';
   }
@@ -61,7 +95,10 @@ function vigentesHtml(registros) {
       ${renovacionesVigentes(registros).map((r) => `
         <div class="estado-fila">
           <span>${r.activo ? `<strong>${escapeHtml(r.activo)}</strong> · ` : ''}Próxima: ${r.fecha_proxima}</span>
-          ${badgeVencimiento(r.fecha_proxima)}
+          <span class="estado-acciones">
+            ${tarjeta.conPdf ? pdfRenovacionHtml(r) : ''}
+            ${badgeVencimiento(r.fecha_proxima)}
+          </span>
         </div>
       `).join('')}
     </div>
@@ -77,6 +114,7 @@ function historialRenovacionHtml(tarjeta, registros) {
         <table>
           <thead>
             <tr>
+              ${tarjeta.conPdf ? '<th>PDF</th>' : ''}
               ${tarjeta.conActivo ? '<th>Activo</th>' : ''}
               <th>Renovación</th>
               <th>Próxima</th>
@@ -86,6 +124,7 @@ function historialRenovacionHtml(tarjeta, registros) {
           <tbody>
             ${registros.map((r) => `
               <tr>
+                ${tarjeta.conPdf ? `<td>${pdfRenovacionHtml(r)}</td>` : ''}
                 ${tarjeta.conActivo ? `<td>${escapeHtml(r.activo || '—')}</td>` : ''}
                 <td>${r.fecha_renovacion}</td>
                 <td>${r.fecha_proxima}</td>
@@ -107,7 +146,7 @@ function tarjetaRenovacionHtml(tarjeta, renovaciones) {
     <div class="panel">
       <h3>${tarjeta.titulo}</h3>
       <p class="muted">${tarjeta.descripcion}</p>
-      ${vigentesHtml(registros)}
+      ${vigentesHtml(tarjeta, registros)}
       <div class="error-msg" id="renovacionError${tipo}"></div>
       <form data-renovacion="${tipo}">
         ${tarjeta.conActivo ? `
@@ -131,6 +170,12 @@ function tarjetaRenovacionHtml(tarjeta, renovaciones) {
             <input type="date" id="renovacionProxima${tipo}" required>
           </div>
         </div>
+        ${tarjeta.conPdf ? `
+          <div class="field">
+            <label for="renovacionPdf${tipo}">Documento del examen (PDF, opcional)</label>
+            <input type="file" id="renovacionPdf${tipo}" accept="application/pdf">
+          </div>
+        ` : ''}
         <button type="submit" class="btn">Guardar renovación</button>
       </form>
       ${historialRenovacionHtml(tarjeta, registros)}
@@ -172,6 +217,15 @@ function bindRenovaciones(w) {
         return;
       }
 
+      const inputPdf = document.getElementById(`renovacionPdf${tipo}`);
+      const archivoPdf = inputPdf ? inputPdf.files[0] : null;
+      const problemaPdf = archivoPdf ? errorDePdf(archivoPdf) : null;
+      if (problemaPdf) {
+        errorMsg.textContent = problemaPdf;
+        errorMsg.style.display = 'block';
+        return;
+      }
+
       const btn = form.querySelector('button[type="submit"]');
       btn.disabled = true;
       btn.textContent = 'Guardando...';
@@ -190,6 +244,13 @@ function bindRenovaciones(w) {
           return;
         }
 
+        // La renovacion ya quedo guardada: si el PDF falla, se avisa y se
+        // puede reintentar con "Subir PDF" sin duplicar el registro.
+        if (archivoPdf) {
+          const errorSubida = await subirPdfRenovacion(data.id, archivoPdf);
+          if (errorSubida) alert(`La renovación se guardó, pero el PDF no: ${errorSubida}`);
+        }
+
         loadDetail(w.id, false);
       } catch (err) {
         errorMsg.textContent = 'Error de conexión con el servidor';
@@ -198,6 +259,21 @@ function bindRenovaciones(w) {
         btn.disabled = false;
         btn.textContent = 'Guardar renovación';
       }
+    });
+  });
+
+  document.querySelectorAll('[data-renovacion-pdf]').forEach((input) => {
+    input.addEventListener('change', async () => {
+      const archivo = input.files[0];
+      if (!archivo) return;
+
+      const error = errorDePdf(archivo) || await subirPdfRenovacion(input.dataset.renovacionPdf, archivo);
+      if (error) {
+        alert(error);
+        input.value = '';
+        return;
+      }
+      loadDetail(w.id, false);
     });
   });
 }

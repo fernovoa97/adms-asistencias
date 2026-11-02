@@ -8,6 +8,7 @@
 
 from datetime import datetime
 
+import psycopg2
 from flask import Blueprint, request, jsonify, session
 
 from auth import login_requerido
@@ -17,12 +18,15 @@ from validaciones import parsear_fecha
 renovaciones_bp = Blueprint("renovaciones", __name__)
 
 TIPOS_RENOVACION = ("EMO", "ACTIVO", "EPP")
+TAMANO_MAXIMO_PDF = 25 * 1024 * 1024  # 25 MB
+CARPETA_EXAMEN_MEDICO = "Examen médico"
 
 
 def obtener_renovaciones(cursor, worker_id):
     """Historial del colaborador, de la mas reciente a la mas antigua."""
     cursor.execute("""
-        SELECT id, tipo, activo, fecha_renovacion, fecha_proxima, creado_por, creado_en
+        SELECT id, tipo, activo, fecha_renovacion, fecha_proxima, creado_por, creado_en,
+               documento_id
         FROM trabajadores_renovaciones
         WHERE trabajador_id = %s
         ORDER BY creado_en DESC, id DESC
@@ -36,7 +40,8 @@ def obtener_renovaciones(cursor, worker_id):
             "fecha_renovacion": str(fila[3]),
             "fecha_proxima": str(fila[4]),
             "creado_por": fila[5],
-            "creado_en": fila[6].strftime("%Y-%m-%d %H:%M")
+            "creado_en": fila[6].strftime("%Y-%m-%d %H:%M"),
+            "documento_id": fila[7]
         }
         for fila in cursor.fetchall()
     ]
@@ -158,6 +163,91 @@ def api_registrar_renovacion(worker_id):
         conexion.rollback()
         print("ERROR REGISTRANDO RENOVACIÓN:", error)
         return jsonify({"error": "No se pudo guardar la renovación"}), 500
+    finally:
+        cursor.close()
+        conexion.close()
+
+
+# ---------------------------------------------------------------------------
+# PDF del examen medico
+# ---------------------------------------------------------------------------
+
+def _carpeta_examen_medico(cursor, worker_id):
+    """Devuelve la carpeta "Examen médico" del colaborador, creandola si
+    todavia no existe."""
+    cursor.execute("""
+        SELECT id FROM carpetas_documentos
+        WHERE trabajador_id = %s AND LOWER(nombre) = LOWER(%s)
+    """, (worker_id, CARPETA_EXAMEN_MEDICO))
+    fila = cursor.fetchone()
+    if fila:
+        return fila[0]
+
+    cursor.execute("""
+        INSERT INTO carpetas_documentos (trabajador_id, nombre, creado_en)
+        VALUES (%s, %s, %s)
+        RETURNING id
+    """, (worker_id, CARPETA_EXAMEN_MEDICO, datetime.now()))
+    return cursor.fetchone()[0]
+
+
+@renovaciones_bp.route("/api/renovaciones/<int:renovacion_id>/documento", methods=["POST"])
+@login_requerido
+def api_subir_pdf_renovacion(renovacion_id):
+    archivo = request.files.get("archivo")
+
+    if not archivo or not archivo.filename:
+        return jsonify({"error": "No se recibió ningún archivo"}), 400
+    if not archivo.filename.lower().endswith(".pdf"):
+        return jsonify({"error": "El archivo debe ser un PDF"}), 400
+
+    contenido = archivo.read()
+    if len(contenido) > TAMANO_MAXIMO_PDF:
+        return jsonify({"error": "El archivo supera los 25MB"}), 400
+
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    try:
+        cursor.execute("""
+            SELECT trabajador_id, tipo, fecha_proxima, documento_id
+            FROM trabajadores_renovaciones
+            WHERE id = %s
+            FOR UPDATE
+        """, (renovacion_id,))
+        fila = cursor.fetchone()
+        if not fila:
+            return jsonify({"error": "Renovación no encontrada"}), 404
+
+        worker_id, tipo, fecha_proxima, documento_id = fila
+        if tipo != "EMO":
+            return jsonify({"error": "Solo el examen médico admite PDF"}), 400
+        if documento_id:
+            return jsonify({"error": "Este examen ya tiene un PDF"}), 400
+
+        carpeta_id = _carpeta_examen_medico(cursor, worker_id)
+        cursor.execute("""
+            INSERT INTO documentos (
+                trabajador_id, carpeta_id, nombre, archivo_original,
+                tipo_mime, contenido, tamano_bytes, subido_en
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING id
+        """, (
+            worker_id, carpeta_id, f"EMO (vence {fecha_proxima})", archivo.filename,
+            "application/pdf", psycopg2.Binary(contenido), len(contenido), datetime.now()
+        ))
+        documento_id = cursor.fetchone()[0]
+
+        cursor.execute(
+            "UPDATE trabajadores_renovaciones SET documento_id = %s WHERE id = %s",
+            (documento_id, renovacion_id)
+        )
+        conexion.commit()
+        return jsonify({"ok": True, "documentoId": documento_id}), 201
+    except Exception as error:
+        conexion.rollback()
+        print("ERROR SUBIENDO PDF DE RENOVACIÓN:", error)
+        return jsonify({"error": "No se pudo subir el PDF"}), 500
     finally:
         cursor.close()
         conexion.close()
