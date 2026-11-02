@@ -5,6 +5,7 @@
 #   de propiedad, etc.), cada uno con su propio PDF y fecha de
 #   vencimiento -- el sistema calcula solo cuanto falta para que expire.
 
+import unicodedata
 from datetime import date, datetime
 
 from flask import Blueprint, request, render_template, jsonify, Response, abort
@@ -44,7 +45,34 @@ def _estado_documento(fecha_vencimiento):
     return {"estado": estado, "diasRestantes": dias_restantes}
 
 
-def _documento_a_dict(fila):
+def _clave_tipo(tipo):
+    """Normaliza el tipo (texto libre) para que "SOAT", "soat " o "Revisión
+    técnica" / "REVISION TECNICA" cuenten como el mismo documento."""
+    sin_tildes = "".join(
+        c for c in unicodedata.normalize("NFD", tipo or "")
+        if unicodedata.category(c) != "Mn"
+    )
+    return " ".join(sin_tildes.upper().split())
+
+
+def _ultimos_por_tipo(documentos):
+    """Recibe filas (id, tipo, fecha_vencimiento, subido_en) y devuelve solo
+    la version actual de cada tipo: la de vencimiento mas lejano y, si hay
+    empate, la subida mas recientemente. Los documentos sin fecha se ignoran
+    porque no vencen ni reemplazan a otro."""
+    actuales = {}
+    for fila in documentos:
+        _, tipo, fecha_venc, subido_en = fila
+        if not fecha_venc:
+            continue
+        clave = _clave_tipo(tipo)
+        actual = actuales.get(clave)
+        if actual is None or (fecha_venc, subido_en) > (actual[2], actual[3]):
+            actuales[clave] = fila
+    return list(actuales.values())
+
+
+def _documento_a_dict(fila, reemplazado=False):
     doc_id, tipo, fecha_venc, archivo_nombre, subido_en = fila
     resultado = {
         "id": doc_id,
@@ -53,7 +81,11 @@ def _documento_a_dict(fila):
         "archivoNombre": archivo_nombre,
         "subidoEn": str(subido_en)
     }
-    resultado.update(_estado_documento(fecha_venc))
+    if reemplazado:
+        # Queda en el historial, pero su vencimiento ya no aplica.
+        resultado.update({"estado": "reemplazado", "diasRestantes": None})
+    else:
+        resultado.update(_estado_documento(fecha_venc))
     return resultado
 
 
@@ -116,19 +148,18 @@ def api_listar_vehiculos():
          cond_nombres, cond_apellidos) = fila
 
         # El documento "mas urgente" del vehiculo, para mostrar un solo
-        # indicador en la lista (el resto se ve en el detalle).
+        # indicador en la lista (el resto se ve en el detalle). Solo cuenta
+        # la version actual de cada tipo: un SOAT ya renovado no es urgente.
         cursor.execute("""
-            SELECT tipo, fecha_vencimiento
+            SELECT id, tipo, fecha_vencimiento, subido_en
             FROM vehiculos_documentos
             WHERE vehiculo_id = %s AND fecha_vencimiento IS NOT NULL
-            ORDER BY fecha_vencimiento ASC
-            LIMIT 1
         """, (v_id,))
-        fila_doc = cursor.fetchone()
+        documentos_actuales = _ultimos_por_tipo(cursor.fetchall())
 
         documento_urgente = None
-        if fila_doc:
-            doc_tipo, doc_fecha = fila_doc
+        if documentos_actuales:
+            _, doc_tipo, doc_fecha, _ = min(documentos_actuales, key=lambda d: d[2])
             estado_doc = _estado_documento(doc_fecha)
             documento_urgente = {
                 "tipo": doc_tipo,
@@ -263,7 +294,16 @@ def api_detalle_vehiculo(vehiculo_id):
         WHERE vehiculo_id = %s
         ORDER BY fecha_vencimiento IS NULL, fecha_vencimiento DESC, subido_en DESC
     """, (vehiculo_id,))
-    documentos = [_documento_a_dict(f) for f in cursor.fetchall()]
+    filas_documentos = cursor.fetchall()
+    ids_actuales = {
+        d[0] for d in _ultimos_por_tipo(
+            [(f[0], f[1], f[2], f[4]) for f in filas_documentos]
+        )
+    }
+    documentos = [
+        _documento_a_dict(f, reemplazado=bool(f[2]) and f[0] not in ids_actuales)
+        for f in filas_documentos
+    ]
 
     cursor.close()
     conexion.close()

@@ -194,7 +194,7 @@ def api_listar_todos_los_ajustes():
     cursor = conexion.cursor()
     cursor.execute("""
         SELECT a.id, a.fecha, a.motivo, a.creado_por, a.trabajador_id,
-               t.nombres, t.apellidos
+               t.nombres, t.apellidos, a.creado_en
         FROM ajustes_asistencia a
         JOIN trabajadores t ON t.id = a.trabajador_id
         ORDER BY a.fecha DESC
@@ -206,7 +206,8 @@ def api_listar_todos_los_ajustes():
             "motivo": fila[2],
             "creado_por": fila[3],
             "trabajadorId": fila[4],
-            "trabajadorNombre": f"{fila[6]} {fila[5]}"
+            "trabajadorNombre": f"{fila[6]} {fila[5]}",
+            "creadoEn": fila[7].strftime("%Y-%m-%d %H:%M") if fila[7] else None
         }
         for fila in cursor.fetchall()
     ]
@@ -315,6 +316,30 @@ def api_crear_ajuste_masivo():
     finally:
         cursor.close()
         conexion.close()
+
+
+@ajustes_bp.route("/api/ajustes", methods=["DELETE"])
+@login_requerido
+def api_eliminar_ajustes():
+    """Elimina varias justificaciones juntas: todos los dias de una franja."""
+    datos = request.get_json(silent=True) or {}
+    ids = datos.get("ids")
+
+    if (not isinstance(ids, list) or not ids
+            or not all(type(i) is int for i in ids)):
+        return jsonify({"error": "No se indicaron justificaciones válidas"}), 400
+
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    cursor.execute("DELETE FROM ajustes_asistencia WHERE id = ANY(%s)", (ids,))
+    eliminados = cursor.rowcount
+    conexion.commit()
+    cursor.close()
+    conexion.close()
+
+    if not eliminados:
+        return jsonify({"error": "Justificación no encontrada"}), 404
+    return jsonify({"ok": True, "eliminados": eliminados})
 
 
 @ajustes_bp.route("/api/ajustes/<int:ajuste_id>", methods=["DELETE"])

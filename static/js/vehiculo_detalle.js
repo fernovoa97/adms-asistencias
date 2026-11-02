@@ -2,7 +2,8 @@ const ETIQUETA_DOC_ESTADO = {
   vencido: { texto: 'Vencido', clase: 'doc-vencido' },
   por_vencer: { texto: 'Por vencer', clase: 'doc-por-vencer' },
   vigente: { texto: 'Vigente', clase: 'doc-vigente' },
-  sin_fecha: { texto: 'Sin fecha de vencimiento', clase: 'doc-sin-fecha' }
+  sin_fecha: { texto: 'Sin fecha de vencimiento', clase: 'doc-sin-fecha' },
+  reemplazado: { texto: 'Reemplazado', clase: 'doc-reemplazado' }
 };
 
 let conductoresCache = [];
@@ -203,7 +204,7 @@ function renderDocumentos(documentos) {
         <div class="doc-name">${escapeHtml(doc.tipo)}</div>
         <div class="muted" style="font-size:0.8rem;">
           <span class="badge ${info.clase}">${info.texto}</span>
-          ${doc.fechaVencimiento ? `Vence: ${doc.fechaVencimiento} (${detalle})` : ''}
+          ${doc.fechaVencimiento ? `Vence: ${doc.fechaVencimiento}${detalle ? ` (${detalle})` : ''}` : ''}
         </div>
       </div>
       <div class="doc-actions">

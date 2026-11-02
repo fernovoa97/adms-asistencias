@@ -227,11 +227,15 @@ function bindNuevoMotivoModal() {
   });
 }
 
-async function eliminarAjuste(ajusteId) {
-  if (!confirm('¿Eliminar esta justificación?')) return;
+async function eliminarAjustes(ids, mensaje) {
+  if (!confirm(mensaje)) return;
 
   try {
-    const res = await fetch(`/api/ajustes/${ajusteId}`, { method: 'DELETE' });
+    const res = await fetch('/api/ajustes', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids })
+    });
     if (!res.ok) {
       alert('No se pudo eliminar');
       return;
@@ -329,6 +333,60 @@ async function eliminarFeriado(fecha) {
 
 // ---------- Todas las justificaciones (vista general) ----------
 
+const DIAS_SEMANA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+const MS_POR_DIA = 24 * 60 * 60 * 1000;
+
+// Ids de las justificaciones con el detalle abierto: asi sigue abierto al
+// recargar la lista despues de eliminar un dia.
+const ajustesAbiertos = new Set();
+
+function fechaUtc(fecha) {
+  return new Date(`${fecha}T00:00:00Z`);
+}
+
+function nombreDia(fecha) {
+  return DIAS_SEMANA[fechaUtc(fecha).getUTCDay()];
+}
+
+// Dos fechas son de la misma franja si entre ellas solo hay fin de semana
+// (lo mismo que hace /api/ajustes/masivo: guarda solo de lunes a viernes).
+function sonDiasSeguidos(fechaAnterior, fechaSiguiente) {
+  const fin = fechaUtc(fechaSiguiente).getTime();
+  for (let t = fechaUtc(fechaAnterior).getTime() + MS_POR_DIA; t < fin; t += MS_POR_DIA) {
+    const dia = new Date(t).getUTCDay();
+    if (dia !== 0 && dia !== 6) return false;
+  }
+  return true;
+}
+
+// La BD guarda un registro por dia y trabajador; aqui se juntan de nuevo en
+// franjas: mismo trabajador, motivo y autor, en dias laborables seguidos.
+function agruparEnFranjas(ajustes) {
+  const ordenados = [...ajustes].sort((a, b) => a.fecha.localeCompare(b.fecha));
+  const ultimaPorClave = new Map();
+  const franjas = [];
+
+  ordenados.forEach((a) => {
+    const clave = JSON.stringify([a.trabajadorId, a.motivo, a.creado_por]);
+    let franja = ultimaPorClave.get(clave);
+    const ultimoDia = franja && franja.dias[franja.dias.length - 1].fecha;
+
+    if (!franja || !sonDiasSeguidos(ultimoDia, a.fecha)) {
+      franja = {
+        trabajadorNombre: a.trabajadorNombre,
+        motivo: a.motivo,
+        creado_por: a.creado_por,
+        dias: []
+      };
+      ultimaPorClave.set(clave, franja);
+      franjas.push(franja);
+    }
+    franja.dias.push(a);
+  });
+
+  return franjas.sort((a, b) => b.dias[0].fecha.localeCompare(a.dias[0].fecha));
+}
+
 async function cargarTodosLosAjustes() {
   const lista = document.getElementById('listaTodosLosAjustes');
   try {
@@ -340,6 +398,33 @@ async function cargarTodosLosAjustes() {
   }
 }
 
+function periodoDeFranja(franja) {
+  const desde = franja.dias[0].fecha;
+  const hasta = franja.dias[franja.dias.length - 1].fecha;
+  return desde === hasta ? desde : `${desde} al ${hasta}`;
+}
+
+function detalleDeFranja(franja) {
+  const total = franja.dias.length;
+  const dias = franja.dias.map((d) => `
+    <div class="ajuste-dia">
+      <span>${nombreDia(d.fecha)} ${d.fecha}${d.creadoEn ? ` <span class="muted">· registrado ${escapeHtml(d.creadoEn)}</span>` : ''}</span>
+      <button type="button" class="btn danger" data-eliminar-dia="${d.id}">Eliminar día</button>
+    </div>
+  `).join('');
+
+  return `
+    <div class="ajuste-detalle-datos">
+      <div><strong>Trabajador:</strong> ${escapeHtml(franja.trabajadorNombre)}</div>
+      <div><strong>Motivo:</strong> ${escapeHtml(franja.motivo)}</div>
+      <div><strong>Periodo:</strong> ${periodoDeFranja(franja)}</div>
+      <div><strong>Días justificados:</strong> ${total}</div>
+      <div><strong>Registrado por:</strong> ${escapeHtml(franja.creado_por || 'admin')}</div>
+    </div>
+    ${dias}
+  `;
+}
+
 function renderTodosLosAjustes(ajustes) {
   const lista = document.getElementById('listaTodosLosAjustes');
 
@@ -348,19 +433,56 @@ function renderTodosLosAjustes(ajustes) {
     return;
   }
 
-  lista.innerHTML = ajustes
-    .map((a) => `
+  lista.innerHTML = '';
+  agruparEnFranjas(ajustes).forEach((franja) => {
+    const ids = franja.dias.map((d) => d.id);
+    const total = ids.length;
+
+    const contenedor = document.createElement('div');
+    contenedor.innerHTML = `
       <div class="doc-item">
         <div>
-          <div class="doc-name">${a.fecha} — ${escapeHtml(a.trabajadorNombre)}</div>
-          <div class="muted" style="font-size:0.78rem;">${escapeHtml(a.motivo)} · registrado por ${escapeHtml(a.creado_por || 'admin')}</div>
+          <div class="doc-name">${periodoDeFranja(franja)} — ${escapeHtml(franja.trabajadorNombre)}</div>
+          <div class="muted" style="font-size:0.78rem;">${escapeHtml(franja.motivo)} · ${total} día(s) · registrado por ${escapeHtml(franja.creado_por || 'admin')}</div>
         </div>
         <div class="doc-actions">
-          <button class="btn danger" onclick="eliminarAjuste(${a.id})">Eliminar</button>
+          <button type="button" class="btn secondary" data-ver-detalle></button>
+          <button type="button" class="btn danger" data-eliminar-franja>Eliminar</button>
         </div>
       </div>
-    `)
-    .join('');
+      <div class="ajuste-detalle">${detalleDeFranja(franja)}</div>
+    `;
+
+    const detalle = contenedor.querySelector('.ajuste-detalle');
+    const botonDetalle = contenedor.querySelector('[data-ver-detalle]');
+
+    const mostrarDetalle = (abierto) => {
+      detalle.style.display = abierto ? 'block' : 'none';
+      botonDetalle.textContent = abierto ? 'Ocultar detalle' : 'Ver detalle';
+    };
+    mostrarDetalle(ids.some((id) => ajustesAbiertos.has(id)));
+
+    botonDetalle.addEventListener('click', () => {
+      const abrir = detalle.style.display === 'none';
+      ids.forEach((id) => (abrir ? ajustesAbiertos.add(id) : ajustesAbiertos.delete(id)));
+      mostrarDetalle(abrir);
+    });
+
+    contenedor.querySelector('[data-eliminar-franja]').addEventListener('click', () => {
+      const mensaje = total > 1
+        ? `¿Eliminar la justificación completa (${total} días)?`
+        : '¿Eliminar esta justificación?';
+      eliminarAjustes(ids, mensaje);
+    });
+
+    contenedor.querySelectorAll('[data-eliminar-dia]').forEach((boton) => {
+      boton.addEventListener('click', () => {
+        eliminarAjustes([Number(boton.dataset.eliminarDia)], '¿Eliminar la justificación de este día?');
+      });
+    });
+
+    lista.appendChild(contenedor);
+  });
 }
 
 function escapeHtml(str) {

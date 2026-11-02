@@ -677,6 +677,27 @@ tr.fila-finde:hover { background: #f3f4f6; }
 .badge.doc-por-vencer { background: #fef3c7; color: #92400e; }
 .badge.doc-vigente { background: #dcfce7; color: #166534; }
 .badge.doc-sin-fecha { background: #e5e7eb; color: #4b5563; }
+.badge.doc-reemplazado { background: #e5e7eb; color: #4b5563; }
+
+/* ---------- Detalle de justificaciones (Ajustes) ---------- */
+.ajuste-detalle {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  margin-top: -6px;
+  font-size: 0.85rem;
+}
+.ajuste-detalle-datos { display: grid; gap: 4px; margin-bottom: 10px; }
+.ajuste-dia {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 5px 0;
+  border-top: 1px solid var(--border);
+}
+.ajuste-dia button { font-size: 0.78rem; padding: 4px 8px; }
 
 /* ---------- Alerta de inasistencia (sedes remotas) ---------- */
 .alerta-faltantes {
