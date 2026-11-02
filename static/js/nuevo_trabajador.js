@@ -209,6 +209,18 @@ function actualizarIniciales() {
 }
 document.getElementById('nombres').addEventListener('input', actualizarIniciales);
 
+// ---------- Contrato ----------
+
+const camposContrato = {
+  tipo: document.getElementById('tipoContrato'),
+  tiempo: document.getElementById('tiempoRenovacion'),
+  meses: document.getElementById('tiempoRenovacionMeses'),
+  mesesCampo: document.getElementById('tiempoRenovacionMesesCampo'),
+  fechaFin: document.getElementById('fechaFinContrato'),
+  raiz: document.getElementById('workerForm')
+};
+const actualizarCamposContrato = enlazarCamposContrato(camposContrato);
+
 document.getElementById('workerForm').addEventListener('submit', async (e) => {
   e.preventDefault();
 
@@ -216,6 +228,13 @@ document.getElementById('workerForm').addEventListener('submit', async (e) => {
   const successMsg = document.getElementById('successMsg');
   errorMsg.style.display = 'none';
   successMsg.style.display = 'none';
+
+  const errorContrato = errorDeContrato(camposContrato, false);
+  if (errorContrato) {
+    errorMsg.textContent = errorContrato;
+    errorMsg.style.display = 'block';
+    return;
+  }
 
   const formData = new FormData();
   formData.append('nombres', document.getElementById('nombres').value.trim());
@@ -258,10 +277,17 @@ document.getElementById('workerForm').addEventListener('submit', async (e) => {
   formData.append('fechaNacimiento', document.getElementById('fechaNacimiento').value);
   formData.append('fechaFinContrato', document.getElementById('fechaFinContrato').value);
   formData.append('fechaRenovacion', document.getElementById('fechaRenovacion').value);
+  formData.append('tipoContrato', camposContrato.tipo.value);
+  formData.append('tiempoRenovacion', camposContrato.tiempo.value);
+  formData.append('tiempoRenovacionMeses', camposContrato.meses.value);
   formData.append('cargo', document.getElementById('cargo').value.trim());
   formData.append('area', document.getElementById('area').value.trim());
   formData.append('supervisor', document.getElementById('supervisor').value.trim());
   formData.append('sueldoNeto', document.getElementById('sueldoNeto').value);
+  formData.append('pais', document.getElementById('pais').value.trim());
+  formData.append('departamento', document.getElementById('departamento').value.trim());
+  formData.append('provincia', document.getElementById('provincia').value.trim());
+  formData.append('distrito', document.getElementById('distrito').value.trim());
   formData.append('direccion', document.getElementById('direccion').value.trim());
   formData.append('observaciones', document.getElementById('observaciones').value.trim());
 
@@ -295,6 +321,7 @@ document.getElementById('workerForm').addEventListener('submit', async (e) => {
     successMsg.textContent = `Trabajador "${data.worker.apellidos} ${data.worker.nombres}" guardado correctamente.`;
     successMsg.style.display = 'block';
     document.getElementById('workerForm').reset();
+    actualizarCamposContrato();
     document.getElementById('uploadRows').innerHTML = '';
     document.getElementById('previewArea').innerHTML = '';
     document.getElementById('avatarPreview').innerHTML = '<span id="avatarPreviewIniciales">?</span>';

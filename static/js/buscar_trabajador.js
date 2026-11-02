@@ -6,6 +6,15 @@ let debounceTimer = null;
 let uploadRowCount = 0;
 let ultimosResultados = [];
 let tabActual = 'activos';
+let tabFicha = 'datos';
+
+const TABS_FICHA = [
+  ['datos', 'Datos'],
+  ['contrato', 'Contrato y renovaciones'],
+  ['seguros', 'Seguros'],
+  ['familia', 'Familia'],
+  ['documentos', 'Documentos']
+];
 
 searchInput.addEventListener('input', () => {
   clearTimeout(debounceTimer);
@@ -76,7 +85,7 @@ function renderResults(todosLosResultados) {
           <div class="name">
             ${escapeHtml(w.apellidos)} ${escapeHtml(w.nombres)}
             ${inactivo ? '<span class="tag-inactivo">Inactivo</span>' : ''}
-            ${w.excluido_asistencia ? '<span class="tag-inactivo" style="background:#e0e7ff;color:#3730a3;">Sin control asistencia</span>' : ''}
+            ${w.excluido_asistencia ? '<span class="tag-inactivo tag-info">Sin control asistencia</span>' : ''}
           </div>
           <div class="meta">DNI: ${escapeHtml(w.dni || '—')} ${w.cargo ? '· ' + escapeHtml(w.cargo) : ''}</div>
         </div>
@@ -88,13 +97,13 @@ function renderResults(todosLosResultados) {
   });
 }
 
-async function loadDetail(id) {
+async function loadDetail(id, desplazar = true) {
   try {
     const res = await fetch(`/api/trabajadores/${id}`);
     const data = await res.json();
     if (!res.ok) return;
     renderDetail(data.worker, 'view');
-    workerDetail.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (desplazar) workerDetail.scrollIntoView({ behavior: 'smooth', block: 'start' });
   } catch (err) {
     // noop
   }
@@ -108,42 +117,163 @@ function renderDetail(w, mode) {
   }
 }
 
-function renderViewMode(w) {
-  const fields = [
-    ['Nombres', w.nombres],
-    ['Apellidos', w.apellidos],
-    ['DNI', w.dni || '—'],
-    ['Estado', w.estado === 'INACTIVO' ? 'Inactivo' : 'Activo'],
-    ['Código de empleado', w.codigo_empleado || '— (no enrolado en el biométrico)'],
-    ['Cargo', w.cargo || '—'],
-    ['Área', w.area || '—'],
-    ['Sede', w.sede_nombre || '—'],
-    ['Control de asistencias', w.excluido_asistencia ? 'Excluido (no se le calculan tardanzas/faltas)' : 'Normal'],
-    ['Supervisor', w.supervisor || '—'],
-    ['Sueldo neto', w.sueldo_neto != null ? formatearSueldo(w.sueldo_neto) : '—'],
-    ['Teléfono personal', w.telefono || '—'],
-    ['Teléfono corporativo', w.telefono_corporativo || '—'],
-    ['Correo personal', w.email || '—'],
-    ['Correo corporativo', w.email_corporativo || '—'],
-    ['Fecha de ingreso', w.fecha_ingreso || '—'],
-    ['Fecha de nacimiento', w.fecha_nacimiento || '—'],
-    ['Estado civil', w.estado_civil || '—'],
-    ['Cónyuge', (w.estado_civil === 'Casado/a' || w.estado_civil === 'Conviviente') ? (w.conyuge_nombres ? `${w.conyuge_nombres} (DNI: ${w.conyuge_dni || '—'})` : '—') : 'No aplica'],
-    ['¿Tiene hijos?', w.tiene_hijos ? `Sí (${(w.hijos || []).length})` : 'No'],
-    ['Contacto de emergencia', w.contacto_emergencia_nombres ? `${w.contacto_emergencia_nombres} · ${w.contacto_emergencia_telefono || '—'} · ${w.contacto_emergencia_direccion || '—'}` : '—'],
-    ['Horario', (w.hora_entrada || '08:00') + ' a ' + (w.hora_salida || '17:00') + (w.hora_entrada ? ' (personalizado)' : ' (estándar)')],
-    ['Fecha de fin de contrato', w.fecha_fin_contrato || '—'],
-    ['Última renovación', w.fecha_renovacion || '—'],
-    ['Dirección', w.direccion || '—']
-  ];
+function grupoDatosHtml(titulo, campos) {
+  return `
+    <section class="grupo-datos">
+      <h3>${titulo}</h3>
+      <div class="detail-grid">
+        ${campos.map(([label, value]) => `
+          <div class="detail-item">
+            <div class="label">${label}</div>
+            <div class="value">${escapeHtml(String(value))}</div>
+          </div>`).join('')}
+      </div>
+    </section>`;
+}
 
-  const fieldsHtml = fields
-    .map(([label, value]) => `
-      <div class="detail-item">
-        <div class="label">${label}</div>
-        <div class="value">${escapeHtml(String(value))}</div>
-      </div>`)
+function textoTiempoRenovacion(tiempo, meses) {
+  if (!tiempo) return '—';
+  return tiempo === TIEMPO_OTRO ? `${meses} meses` : tiempo;
+}
+
+function contratoTarjetaHtml(w) {
+  const opcionesTipo = ['Necesidad de mercado', CONTRATO_INDETERMINADO]
+    .map((t) => `<option value="${t}" ${w.tipo_contrato === t ? 'selected' : ''}>${t}</option>`)
     .join('');
+  const opcionesTiempo = ['3 meses', '6 meses', 'Anual', TIEMPO_OTRO]
+    .map((t) => `<option value="${t}" ${w.tiempo_renovacion === t ? 'selected' : ''}>${t}</option>`)
+    .join('');
+
+  const historial = [...(w.historial_renovaciones || [])].reverse();
+  const historialHtml = historial.length === 0 ? '' : `
+    <details class="historial">
+      <summary>Historial (${historial.length})</summary>
+      <div class="tabla-scroll">
+        <table>
+          <thead>
+            <tr><th>Tipo</th><th>Renovación cada</th><th>Fin anterior</th><th>Fin nuevo</th><th>Renovación</th><th>Registrado</th></tr>
+          </thead>
+          <tbody>
+            ${historial.map((h) => `
+              <tr>
+                <td>${escapeHtml(h.tipoContrato || '—')}</td>
+                <td>${escapeHtml(textoTiempoRenovacion(h.tiempoRenovacion, h.tiempoRenovacionMeses))}</td>
+                <td>${escapeHtml(h.fechaAnterior || '—')}</td>
+                <td>${escapeHtml(h.fechaNueva || '—')}</td>
+                <td>${escapeHtml(h.fechaRenovacion || '—')}</td>
+                <td>${escapeHtml((h.actualizado || '—').slice(0, 16).replace('T', ' '))}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </details>`;
+
+  return `
+    <div class="panel" id="contratoPanel">
+      <h3>Actualizar contrato</h3>
+      <p class="muted">Registra las condiciones y la nueva fecha de fin de contrato (por ejemplo, tras una renovación).</p>
+      <div class="detail-grid detail-resumen">
+        <div class="detail-item"><div class="label">Tipo de contrato</div><div class="value">${escapeHtml(w.tipo_contrato || '—')}</div></div>
+        <div class="detail-item"><div class="label">Renovación cada</div><div class="value">${escapeHtml(textoTiempoRenovacion(w.tiempo_renovacion, w.tiempo_renovacion_meses))}</div></div>
+        <div class="detail-item"><div class="label">Fin de contrato</div><div class="value">${escapeHtml(w.fecha_fin_contrato || '—')}</div></div>
+        <div class="detail-item"><div class="label">Última renovación</div><div class="value">${escapeHtml(w.fecha_renovacion || '—')}</div></div>
+      </div>
+      <div class="success-msg" id="contratoSuccessMsg"></div>
+      <div class="error-msg" id="contratoErrorMsg"></div>
+      <form id="contratoForm">
+        <div class="grid-2">
+          <div class="field">
+            <label for="contratoTipo">Tipo de contrato *</label>
+            <select id="contratoTipo" required>
+              <option value="">Selecciona...</option>
+              ${opcionesTipo}
+            </select>
+          </div>
+          <div class="field">
+            <label for="contratoTiempo">Tiempo de renovación <span data-obligatorio>*</span></label>
+            <select id="contratoTiempo">
+              <option value="">Selecciona...</option>
+              ${opcionesTiempo}
+            </select>
+          </div>
+          <div class="field" id="contratoMesesCampo" hidden>
+            <label for="contratoMeses">Cantidad de meses *</label>
+            <input type="number" id="contratoMeses" min="1" max="${MAXIMO_MESES_RENOVACION}" step="1" value="${w.tiempo_renovacion === TIEMPO_OTRO ? w.tiempo_renovacion_meses : ''}">
+          </div>
+          <div class="field">
+            <label for="nuevaFechaFinContrato">Nueva fecha de fin de contrato <span data-obligatorio>*</span></label>
+            <input type="date" id="nuevaFechaFinContrato">
+          </div>
+          <div class="field">
+            <label for="nuevaFechaRenovacion">Fecha de renovación</label>
+            <input type="date" id="nuevaFechaRenovacion">
+          </div>
+        </div>
+        <button type="submit" class="btn" id="contratoSubmitBtn">Guardar contrato</button>
+      </form>
+      ${historialHtml}
+    </div>`;
+}
+
+function bindTabsFicha() {
+  document.querySelectorAll('#fichaTabs button').forEach((boton) => {
+    boton.addEventListener('click', () => {
+      tabFicha = boton.dataset.tabFicha;
+      mostrarTabFicha();
+    });
+  });
+  mostrarTabFicha();
+}
+
+function mostrarTabFicha() {
+  document.querySelectorAll('#fichaTabs button').forEach((boton) => {
+    const activa = boton.dataset.tabFicha === tabFicha;
+    boton.classList.toggle('active', activa);
+    boton.setAttribute('aria-selected', activa);
+  });
+  document.querySelectorAll('[data-panel-ficha]').forEach((panel) => {
+    panel.hidden = panel.dataset.panelFicha !== tabFicha;
+  });
+}
+
+function renderViewMode(w) {
+  const tieneConyuge = w.estado_civil === 'Casado/a' || w.estado_civil === 'Conviviente';
+
+  const datosHtml = [
+    grupoDatosHtml('Identificación', [
+      ['Nombres', w.nombres],
+      ['Apellidos', w.apellidos],
+      ['DNI', w.dni || '—'],
+      ['Fecha de nacimiento', w.fecha_nacimiento || '—'],
+      ['Estado civil', w.estado_civil || '—'],
+      ['Código de empleado', w.codigo_empleado || '— (no enrolado en el biométrico)']
+    ]),
+    grupoDatosHtml('Puesto', [
+      ['Cargo', w.cargo || '—'],
+      ['Área', w.area || '—'],
+      ['Sede', w.sede_nombre || '—'],
+      ['Supervisor', w.supervisor || '—'],
+      ['Fecha de ingreso', w.fecha_ingreso || '—'],
+      ['Sueldo neto', w.sueldo_neto != null ? formatearSueldo(w.sueldo_neto) : '—'],
+      ['Horario', (w.hora_entrada || '08:00') + ' a ' + (w.hora_salida || '17:00') + (w.hora_entrada ? ' (personalizado)' : ' (estándar)')],
+      ['Control de asistencias', w.excluido_asistencia ? 'Excluido (no se le calculan tardanzas/faltas)' : 'Normal']
+    ]),
+    grupoDatosHtml('Contacto', [
+      ['Teléfono personal', w.telefono || '—'],
+      ['Teléfono corporativo', w.telefono_corporativo || '—'],
+      ['Correo personal', w.email || '—'],
+      ['Correo corporativo', w.email_corporativo || '—'],
+      ['Contacto de emergencia', w.contacto_emergencia_nombres ? `${w.contacto_emergencia_nombres} · ${w.contacto_emergencia_telefono || '—'} · ${w.contacto_emergencia_direccion || '—'}` : '—']
+    ]),
+    grupoDatosHtml('Dirección', [
+      ['País', w.pais || '—'],
+      ['Departamento', w.departamento || '—'],
+      ['Provincia / Ciudad', w.provincia || '—'],
+      ['Distrito', w.distrito || '—'],
+      ['Dirección', w.direccion || '—']
+    ]),
+    w.observaciones ? grupoDatosHtml('Observaciones', [['Notas', w.observaciones]]) : ''
+  ].join('');
 
   const carpetas = w.carpetas || [];
   const documentos = w.documentos || [];
@@ -170,11 +300,11 @@ function renderViewMode(w) {
         <div class="doc-item">
           <div>
             <div class="doc-name">${escapeHtml(h.nombres_completos)}</div>
-            <div class="muted" style="font-size:0.78rem;">
+            <div class="muted">
               ${h.dni ? 'DNI: ' + escapeHtml(h.dni) : 'Sin DNI'} · ${h.fecha_nacimiento ? h.fecha_nacimiento : 'Sin fecha de nacimiento'}
             </div>
           </div>
-          <button class="btn danger" style="font-size:0.8rem;padding:5px 10px;" onclick="eliminarHijo(${w.id}, ${h.id})">Quitar</button>
+          <button class="btn danger sm" onclick="eliminarHijo(${w.id}, ${h.id})">Quitar</button>
         </div>`).join('');
 
   const docsHtml =
@@ -183,7 +313,7 @@ function renderViewMode(w) {
       : nombresGrupos
           .map((nombreGrupo) => `
         <div class="carpeta-grupo">
-          <div class="carpeta-titulo">📁 ${escapeHtml(nombreGrupo)}</div>
+          <div class="carpeta-titulo">${escapeHtml(nombreGrupo)}</div>
           <div class="doc-list">
             ${grupos[nombreGrupo]
               .map((d) => `
@@ -200,89 +330,101 @@ function renderViewMode(w) {
         </div>`)
           .join('');
 
-  const opcionesCarpetas = carpetas
-    .map((c) => `<option value="${c.id}">${escapeHtml(c.nombre)}</option>`)
-    .join('');
-
   const inicial = (w.nombres || '?')[0].toUpperCase();
   const avatarHtml = w.tiene_foto
     ? `<img src="/foto/${w.id}?v=${Date.now()}" alt="">`
     : `<span>${inicial}</span>`;
 
+  const metaPuesto = [w.cargo, w.area, w.sede_nombre].filter(Boolean).map(escapeHtml).join(' · ');
+
   workerDetail.innerHTML = `
-    <div class="panel">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
-        <div style="display:flex;align-items:center;gap:14px;">
-          <div class="avatar-trabajador" id="avatarFicha">${avatarHtml}</div>
-          <div>
-            <h2 style="margin:0;font-size:1.1rem;">${escapeHtml(w.apellidos)} ${escapeHtml(w.nombres)}</h2>
-            <div style="display:flex;gap:8px;margin-top:6px;">
-              <label class="btn secondary" style="cursor:pointer;font-size:0.8rem;padding:5px 10px;">
-                ${w.tiene_foto ? 'Cambiar foto' : 'Agregar foto'}
-                <input type="file" id="inputFoto" accept="image/jpeg,image/png,image/webp" style="display:none;">
-              </label>
-              ${w.tiene_foto ? `<button type="button" class="btn danger" id="quitarFotoBtn" style="font-size:0.8rem;padding:5px 10px;">Quitar foto</button>` : ''}
-            </div>
+    <div class="ficha-cabecera">
+      <div class="ficha-identidad">
+        <div class="avatar-trabajador" id="avatarFicha">${avatarHtml}</div>
+        <div>
+          <h2>
+            ${escapeHtml(w.apellidos)} ${escapeHtml(w.nombres)}
+            ${w.estado === 'INACTIVO' ? '<span class="tag-inactivo">Inactivo</span>' : ''}
+          </h2>
+          <div class="muted">${metaPuesto || 'Sin cargo asignado'} · DNI ${escapeHtml(w.dni || '—')}</div>
+          <div class="ficha-acciones-foto">
+            <label class="btn secondary sm">
+              ${w.tiene_foto ? 'Cambiar foto' : 'Agregar foto'}
+              <input type="file" id="inputFoto" accept="image/jpeg,image/png,image/webp" hidden>
+            </label>
+            ${w.tiene_foto ? '<button type="button" class="btn danger sm" id="quitarFotoBtn">Quitar foto</button>' : ''}
           </div>
         </div>
-        <button class="btn secondary" id="editWorkerBtn">Editar información</button>
       </div>
-      <div class="detail-grid" style="margin-top:18px;">${fieldsHtml}</div>
-      ${w.observaciones ? `<div class="detail-item" style="margin-bottom:16px;"><div class="label">Observaciones</div><div class="value">${escapeHtml(w.observaciones)}</div></div>` : ''}
-
-      <h3 style="font-size:0.95rem;">Hijos</h3>
-      <div id="hijosListaArea" class="doc-list" style="margin-bottom:12px;">${hijosHtml}</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
-        <input type="text" id="nuevoHijoNombres" placeholder="Nombres completos" style="flex:1.5;min-width:160px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;">
-        <input type="text" id="nuevoHijoDni" placeholder="DNI (opcional)" style="flex:1;min-width:100px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;">
-        <input type="date" id="nuevoHijoFecha" style="flex:1;min-width:140px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;">
-        <button type="button" class="btn secondary" id="agregarHijoBtn">+ Agregar hijo</button>
-      </div>
-
-      <h3 style="font-size:0.95rem;">Documentos</h3>
-      ${docsHtml}
-      <div id="pdfPreviewArea"></div>
-
-      <h3 style="font-size:0.95rem;margin-top:20px;">Carpetas</h3>
-      <p class="muted">Organiza los documentos de este trabajador en carpetas (ej. "DNI", "Contratos", "Certificados").</p>
-      <div class="error-msg" id="carpetaErrorMsg"></div>
-      <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">
-        <input type="text" id="nuevaCarpetaInput" placeholder="Nombre de la nueva carpeta" style="flex:1;min-width:200px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;">
-        <button type="button" class="btn secondary" id="crearCarpetaBtn">+ Crear carpeta</button>
-      </div>
-
-      <h3 style="font-size:0.95rem;">Agregar más documentos</h3>
-      <div id="uploadRows"></div>
-      <button type="button" class="btn secondary" id="addUploadRowBtn">+ Agregar documento PDF</button>
-      <div style="margin-top:12px;">
-        <button type="button" class="btn" id="subirDocsBtn">Subir documentos</button>
-      </div>
-      <div class="error-msg" id="uploadErrorMsg"></div>
+      <button class="btn secondary" id="editWorkerBtn">Editar información</button>
     </div>
 
-    <div class="panel">
-      <h3 style="margin-top:0;font-size:0.95rem;">Actualizar contrato</h3>
-      <p class="muted">Registra la nueva fecha de fin de contrato (por ejemplo, tras una renovación).</p>
-      <div class="success-msg" id="contratoSuccessMsg"></div>
-      <div class="error-msg" id="contratoErrorMsg"></div>
-      <form id="contratoForm">
-        <div class="grid-2">
-          <div class="field">
-            <label for="nuevaFechaFinContrato">Nueva fecha de fin de contrato *</label>
-            <input type="date" id="nuevaFechaFinContrato" required>
-          </div>
-          <div class="field">
-            <label for="nuevaFechaRenovacion">Fecha de renovación</label>
-            <input type="date" id="nuevaFechaRenovacion">
-          </div>
+    <div class="ficha-tabs" id="fichaTabs" role="tablist">
+      ${TABS_FICHA.map(([id, nombre]) => `<button type="button" role="tab" data-tab-ficha="${id}">${nombre}</button>`).join('')}
+    </div>
+
+    <div data-panel-ficha="datos">
+      <div class="panel">${datosHtml}</div>
+    </div>
+
+    <div data-panel-ficha="contrato">
+      <div class="ficha-tarjetas">
+        ${contratoTarjetaHtml(w)}
+        ${tarjetasRenovacionHtml(w)}
+      </div>
+    </div>
+
+    <div data-panel-ficha="seguros">
+      ${segurosSeccionHtml(w)}
+    </div>
+
+    <div data-panel-ficha="familia">
+      <div class="panel">
+        ${grupoDatosHtml('Familia', [
+          ['Cónyuge', tieneConyuge ? (w.conyuge_nombres ? `${w.conyuge_nombres} (DNI: ${w.conyuge_dni || '—'})` : '—') : 'No aplica'],
+          ['¿Tiene hijos?', w.tiene_hijos ? `Sí (${hijos.length})` : 'No']
+        ])}
+        <h3>Hijos</h3>
+        <div id="hijosListaArea" class="doc-list">${hijosHtml}</div>
+        <div class="fila-form">
+          <input type="text" id="nuevoHijoNombres" placeholder="Nombres completos" aria-label="Nombres completos">
+          <input type="text" id="nuevoHijoDni" placeholder="DNI (opcional)" aria-label="DNI">
+          <input type="date" id="nuevoHijoFecha" aria-label="Fecha de nacimiento">
+          <button type="button" class="btn secondary" id="agregarHijoBtn">+ Agregar hijo</button>
         </div>
-        <button type="submit" class="btn" id="contratoSubmitBtn">Guardar nueva fecha</button>
-      </form>
+      </div>
+    </div>
+
+    <div data-panel-ficha="documentos">
+      <div class="panel">
+        <h3>Documentos</h3>
+        ${docsHtml}
+        <div id="pdfPreviewArea"></div>
+
+        <h3>Carpetas</h3>
+        <p class="muted">Organiza los documentos de este trabajador en carpetas (ej. "DNI", "Contratos", "Certificados").</p>
+        <div class="error-msg" id="carpetaErrorMsg"></div>
+        <div class="fila-form">
+          <input type="text" id="nuevaCarpetaInput" placeholder="Nombre de la nueva carpeta" aria-label="Nombre de la nueva carpeta">
+          <button type="button" class="btn secondary" id="crearCarpetaBtn">+ Crear carpeta</button>
+        </div>
+
+        <h3>Agregar más documentos</h3>
+        <div id="uploadRows"></div>
+        <button type="button" class="btn secondary" id="addUploadRowBtn">+ Agregar documento PDF</button>
+        <div class="acciones-form">
+          <button type="button" class="btn" id="subirDocsBtn">Subir documentos</button>
+        </div>
+        <div class="error-msg" id="uploadErrorMsg"></div>
+      </div>
     </div>
   `;
 
   document.getElementById('editWorkerBtn').addEventListener('click', () => renderEditForm(w));
+  bindTabsFicha();
   bindContratoForm(w.id);
+  bindRenovaciones(w);
+  bindSeguros(w);
   bindCarpetas(w);
   bindUploadDocs(w);
   bindFoto(w);
@@ -380,7 +522,7 @@ function bindFoto(w) {
 function renderEditForm(w) {
   workerDetail.innerHTML = `
     <div class="panel">
-      <h2 style="margin-top:0;font-size:1.1rem;">Editar información</h2>
+      <h2>Editar información</h2>
       <div class="error-msg" id="editErrorMsg"></div>
       <form id="editForm">
         <div class="grid-2">
@@ -457,7 +599,7 @@ function renderEditForm(w) {
           </div>
         </div>
 
-        <h3 style="font-size:0.9rem;">Contacto de emergencia</h3>
+        <h3>Contacto de emergencia</h3>
         <div class="grid-2">
           <div class="field">
             <label for="editContactoEmergenciaNombres">Nombres</label>
@@ -504,7 +646,7 @@ function renderEditForm(w) {
               <input type="checkbox" id="editExcluidoAsistencia" ${w.excluido_asistencia ? 'checked' : ''}>
               Excluir de control de asistencias (ej. jefatura, gerencia)
             </label>
-            <span class="muted" style="font-size:0.75rem;">Su marcaje se sigue registrando igual, solo no se le calculan tardanzas, descuentos ni faltas.</span>
+            <span class="muted">Su marcaje se sigue registrando igual, solo no se le calculan tardanzas, descuentos ni faltas.</span>
           </div>
           <div class="field">
             <label for="editSupervisor">Supervisor</label>
@@ -515,8 +657,28 @@ function renderEditForm(w) {
             <input type="number" id="editSueldoNeto" value="${w.sueldo_neto != null ? w.sueldo_neto : ''}" step="0.01" min="0">
           </div>
         </div>
+
+        <h3>Dirección</h3>
+        <div class="grid-2">
+          <div class="field">
+            <label for="editPais">País</label>
+            <input type="text" id="editPais" value="${escapeAttr(w.pais || '')}">
+          </div>
+          <div class="field">
+            <label for="editDepartamento">Departamento</label>
+            <input type="text" id="editDepartamento" value="${escapeAttr(w.departamento || '')}">
+          </div>
+          <div class="field">
+            <label for="editProvincia">Provincia / Ciudad</label>
+            <input type="text" id="editProvincia" value="${escapeAttr(w.provincia || '')}">
+          </div>
+          <div class="field">
+            <label for="editDistrito">Distrito</label>
+            <input type="text" id="editDistrito" value="${escapeAttr(w.distrito || '')}">
+          </div>
+        </div>
         <div class="field">
-          <label for="editDireccion">Dirección</label>
+          <label for="editDireccion">Dirección (calle, número, referencia)</label>
           <input type="text" id="editDireccion" value="${escapeAttr(w.direccion || '')}">
         </div>
         <div class="field">
@@ -572,6 +734,10 @@ function renderEditForm(w) {
       excluidoAsistencia: document.getElementById('editExcluidoAsistencia').checked,
       supervisor: document.getElementById('editSupervisor').value.trim(),
       sueldoNeto: document.getElementById('editSueldoNeto').value,
+      pais: document.getElementById('editPais').value.trim(),
+      departamento: document.getElementById('editDepartamento').value.trim(),
+      provincia: document.getElementById('editProvincia').value.trim(),
+      distrito: document.getElementById('editDistrito').value.trim(),
       direccion: document.getElementById('editDireccion').value.trim(),
       observaciones: document.getElementById('editObservaciones').value.trim()
     };
@@ -609,6 +775,16 @@ function bindContratoForm(workerId) {
   const form = document.getElementById('contratoForm');
   if (!form) return;
 
+  const campos = {
+    tipo: document.getElementById('contratoTipo'),
+    tiempo: document.getElementById('contratoTiempo'),
+    meses: document.getElementById('contratoMeses'),
+    mesesCampo: document.getElementById('contratoMesesCampo'),
+    fechaFin: document.getElementById('nuevaFechaFinContrato'),
+    raiz: form
+  };
+  enlazarCamposContrato(campos);
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -617,11 +793,9 @@ function bindContratoForm(workerId) {
     successMsg.style.display = 'none';
     errorMsg.style.display = 'none';
 
-    const fechaFinContrato = document.getElementById('nuevaFechaFinContrato').value;
-    const fechaRenovacion = document.getElementById('nuevaFechaRenovacion').value;
-
-    if (!fechaFinContrato) {
-      errorMsg.textContent = 'La nueva fecha de fin de contrato es obligatoria';
+    const error = errorDeContrato(campos, true);
+    if (error) {
+      errorMsg.textContent = error;
       errorMsg.style.display = 'block';
       return;
     }
@@ -634,7 +808,13 @@ function bindContratoForm(workerId) {
       const res = await fetch(`/api/trabajadores/${workerId}/contrato`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fechaFinContrato, fechaRenovacion })
+        body: JSON.stringify({
+          tipoContrato: campos.tipo.value,
+          tiempoRenovacion: campos.tiempo.value,
+          tiempoRenovacionMeses: campos.meses.value,
+          fechaFinContrato: campos.fechaFin.value,
+          fechaRenovacion: document.getElementById('nuevaFechaRenovacion').value
+        })
       });
       const data = await res.json();
 
@@ -650,7 +830,7 @@ function bindContratoForm(workerId) {
       errorMsg.style.display = 'block';
     } finally {
       submitBtn.disabled = false;
-      submitBtn.textContent = 'Guardar nueva fecha';
+      submitBtn.textContent = 'Guardar contrato';
     }
   });
 }

@@ -27,7 +27,11 @@ abiertos para que el dispositivo pueda reportar datos.
 - `auth.py` — login, logout y protección de rutas.
 - `trabajadores.py` — todo el módulo de personal (alta, búsqueda, edición,
   contrato, documentos PDF).
-- `templates/` — páginas (login, asistencias, nuevo trabajador, buscar
+- `renovaciones.py` — renovaciones de EMO, activos y EPPs de cada colaborador,
+  con historial, y catálogo administrable de activos.
+- `seguros.py` — seguros de cada colaborador y sus personas adicionales.
+- `validaciones.py` — fechas y cálculo de edad compartidos por esos módulos.
+- `templates/` — `base.html` es la plantilla común; el resto son páginas (login, asistencias, nuevo trabajador, buscar
   trabajador).
 - `static/` — CSS y JS del frontend.
 - `requirements.txt` — dependencias (versiones fijas, sin cambios).

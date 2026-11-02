@@ -110,6 +110,21 @@ def inicializar_base_datos():
         _agregar_columna_si_falta(cursor, "trabajadores", "contacto_emergencia_telefono", "TEXT")
         _agregar_columna_si_falta(cursor, "trabajadores", "contacto_emergencia_direccion", "TEXT")
 
+        # Datos del contrato. tiempo_renovacion guarda la opcion elegida
+        # ("3 meses", "6 meses", "Anual", "Otro") y tiempo_renovacion_meses
+        # su equivalente en meses.
+        _agregar_columna_si_falta(cursor, "trabajadores", "tipo_contrato", "TEXT")
+        _agregar_columna_si_falta(cursor, "trabajadores", "tiempo_renovacion", "TEXT")
+        _agregar_columna_si_falta(cursor, "trabajadores", "tiempo_renovacion_meses", "INTEGER")
+
+        # Direccion separada. La columna "direccion" que ya existia se
+        # conserva tal cual y pasa a ser la linea de calle, numero y
+        # referencia, asi los textos actuales no se pierden ni se mueven.
+        _agregar_columna_si_falta(cursor, "trabajadores", "pais", "TEXT")
+        _agregar_columna_si_falta(cursor, "trabajadores", "departamento", "TEXT")
+        _agregar_columna_si_falta(cursor, "trabajadores", "provincia", "TEXT")
+        _agregar_columna_si_falta(cursor, "trabajadores", "distrito", "TEXT")
+
         # La columna "estado" ya existia desde la version original, pero
         # nunca se expuso en pantalla. Por las dudas, si algun registro
         # viejo quedo con estado en NULL, lo normalizamos a ACTIVO para que
@@ -171,6 +186,62 @@ def inicializar_base_datos():
                 nombres_completos TEXT NOT NULL,
                 dni TEXT,
                 fecha_nacimiento DATE,
+                creado_en TIMESTAMP NOT NULL
+            )
+        """)
+
+        # --- Renovaciones de EMO, activos y EPPs: cada renovacion es una
+        # fila nueva, asi se conserva el historial completo ---
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS trabajadores_renovaciones (
+                id SERIAL PRIMARY KEY,
+                trabajador_id INTEGER NOT NULL REFERENCES trabajadores(id) ON DELETE CASCADE,
+                tipo TEXT NOT NULL,
+                activo TEXT,
+                fecha_renovacion DATE NOT NULL,
+                fecha_proxima DATE NOT NULL,
+                creado_por TEXT,
+                creado_en TIMESTAMP NOT NULL
+            )
+        """)
+
+        # --- Catalogo administrable de activos (Laptop, Celular, ...) ---
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS activos_catalogo (
+                id SERIAL PRIMARY KEY,
+                nombre TEXT NOT NULL UNIQUE,
+                creado_en TIMESTAMP NOT NULL
+            )
+        """)
+
+        cursor.execute("SELECT COUNT(*) FROM activos_catalogo")
+        if cursor.fetchone()[0] == 0:
+            for nombre_activo in ("Laptop", "Celular"):
+                cursor.execute(
+                    "INSERT INTO activos_catalogo (nombre, creado_en) VALUES (%s, %s)",
+                    (nombre_activo, datetime.now())
+                )
+            print("CATÁLOGO DE ACTIVOS POR DEFECTO CREADO")
+
+        # --- Seguros de cada colaborador y sus dependientes ---
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS seguros (
+                id SERIAL PRIMARY KEY,
+                trabajador_id INTEGER NOT NULL REFERENCES trabajadores(id) ON DELETE CASCADE,
+                tipo TEXT NOT NULL,
+                fecha_afiliacion DATE NOT NULL,
+                creado_por TEXT,
+                creado_en TIMESTAMP NOT NULL
+            )
+        """)
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS seguros_dependientes (
+                id SERIAL PRIMARY KEY,
+                seguro_id INTEGER NOT NULL REFERENCES seguros(id) ON DELETE CASCADE,
+                parentesco TEXT NOT NULL,
+                nombre_completo TEXT NOT NULL,
+                fecha_nacimiento DATE NOT NULL,
                 creado_en TIMESTAMP NOT NULL
             )
         """)

@@ -34,7 +34,7 @@ function renderPeriodos(periodos) {
           ${pendientes > 0 ? ' · ' + pendientes + ' pendiente(s)' : ''}
         </div>
       </div>
-      <button type="button" class="btn danger" style="font-size:0.8rem;padding:6px 10px;">Eliminar</button>
+      <button type="button" class="btn danger sm">Eliminar</button>
     `;
 
     item.querySelector('.periodo-link').addEventListener('click', () => {

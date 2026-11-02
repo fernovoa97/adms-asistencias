@@ -21,12 +21,12 @@ function renderLicencias(licencias) {
   licencias.forEach((l) => {
     const archivos = l.archivos || [];
     const archivosHtml = archivos.length === 0
-      ? '<span class="muted" style="font-size:0.8rem;">Sin documentos</span>'
+      ? '<span class="muted">Sin documentos</span>'
       : archivos.map((a) => `
           <div class="archivo-item" data-archivo-id="${a.id}">
             <span title="${escapeHtml(a.nombre)}">${escapeHtml(a.nombre)}</span>
             <span style="display:flex;gap:4px;">
-              <button type="button" class="archivo-ver" data-ver="${a.id}" title="Vista previa">👁</button>
+              <button type="button" class="archivo-ver" data-ver="${a.id}" title="Vista previa">Ver</button>
               <button type="button" class="archivo-quitar" data-quitar="${a.id}" title="Quitar documento">×</button>
             </span>
           </div>
@@ -41,12 +41,12 @@ function renderLicencias(licencias) {
       <td>${l.motivo ? escapeHtml(l.motivo) : '<span class="muted">—</span>'}</td>
       <td>
         <div class="archivos-lista" style="margin-bottom:6px;">${archivosHtml}</div>
-        <label class="btn secondary" style="cursor:pointer;font-size:0.78rem;padding:5px 8px;display:inline-block;">
+        <label class="btn secondary sm" style="cursor:pointer;display:inline-block;">
           + Adjuntar PDF
           <input type="file" accept="application/pdf" class="input-archivo-licencia" style="display:none;">
         </label>
       </td>
-      <td><button type="button" class="btn danger" style="font-size:0.78rem;padding:5px 8px;" data-id="${l.id}">Quitar</button></td>
+      <td><button type="button" class="btn danger sm" data-id="${l.id}">Quitar</button></td>
     `;
     fila.querySelector('[data-id]').addEventListener('click', () => eliminarLicencia(l.id));
     fila.querySelector('.input-archivo-licencia').addEventListener('change', (e) => subirArchivoLicencia(l.id, e.target));

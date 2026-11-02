@@ -15,12 +15,21 @@ from flask import (
 
 from auth import login_requerido
 from db import obtener_conexion
+from renovaciones import obtener_renovaciones
+from seguros import obtener_seguros
+from validaciones import parsear_fecha
 
 trabajadores_bp = Blueprint("trabajadores", __name__)
 
 TAMANO_MAXIMO_PDF = 25 * 1024 * 1024  # 25 MB
 TAMANO_MAXIMO_FOTO = 5 * 1024 * 1024  # 5 MB
 TIPOS_FOTO_PERMITIDOS = {"image/jpeg", "image/png", "image/webp"}
+
+CONTRATO_INDETERMINADO = "Indeterminado"
+TIPOS_CONTRATO = ("Necesidad de mercado", CONTRATO_INDETERMINADO)
+TIEMPO_OTRO = "Otro"
+MESES_POR_TIEMPO = {"3 meses": 3, "6 meses": 6, "Anual": 12}
+MAXIMO_MESES_RENOVACION = 120
 
 
 def _guardar_foto(cursor, worker_id, archivo_foto):
@@ -64,6 +73,57 @@ def _sueldo_o_none(valor):
         return None
 
 
+def _validar_contrato(datos, tipo_obligatorio):
+    """Valida los campos del contrato. "datos" usa las claves del frontend.
+    Devuelve (valores, error): si hay error, valores es None."""
+    tipo = (datos.get("tipoContrato") or "").strip()
+    tiempo = (datos.get("tiempoRenovacion") or "").strip()
+
+    if tipo and tipo not in TIPOS_CONTRATO:
+        return None, "Tipo de contrato no válido"
+    if tipo_obligatorio and not tipo:
+        return None, "Selecciona el tipo de contrato"
+
+    try:
+        fecha_fin = parsear_fecha(datos.get("fechaFinContrato"))
+        fecha_renovacion = parsear_fecha(datos.get("fechaRenovacion"))
+    except ValueError:
+        return None, "Las fechas del contrato no son válidas"
+
+    if tipo and tipo != CONTRATO_INDETERMINADO:
+        if not tiempo:
+            return None, "Selecciona el tiempo de renovación"
+        if not fecha_fin:
+            return None, "La fecha fin de contrato es obligatoria"
+
+    meses = None
+    if tiempo == TIEMPO_OTRO:
+        try:
+            meses = int(str(datos.get("tiempoRenovacionMeses") or "").strip())
+        except ValueError:
+            meses = 0
+        if not 1 <= meses <= MAXIMO_MESES_RENOVACION:
+            return None, f"Indica la cantidad de meses (de 1 a {MAXIMO_MESES_RENOVACION})"
+    elif tiempo:
+        if tiempo not in MESES_POR_TIEMPO:
+            return None, "Tiempo de renovación no válido"
+        meses = MESES_POR_TIEMPO[tiempo]
+
+    return {
+        "tipo": tipo or None,
+        "tiempo": tiempo or None,
+        "meses": meses,
+        "fecha_fin": fecha_fin,
+        "fecha_renovacion": fecha_renovacion
+    }, None
+
+
+def _direccion_completa(direccion, distrito, provincia, departamento, pais):
+    """Una sola linea para listados y resumenes."""
+    partes = (direccion, distrito, provincia, departamento, pais)
+    return ", ".join(p.strip() for p in partes if p and p.strip())
+
+
 def _worker_a_dict(fila, columnas):
     w = dict(zip(columnas, fila))
 
@@ -80,6 +140,11 @@ def _worker_a_dict(fila, columnas):
     if w.get("sueldo_neto") is not None:
         w["sueldo_neto"] = float(w["sueldo_neto"])
 
+    w["direccion_completa"] = _direccion_completa(
+        w.get("direccion"), w.get("distrito"), w.get("provincia"),
+        w.get("departamento"), w.get("pais")
+    )
+
     return w
 
 
@@ -87,10 +152,12 @@ COLUMNAS_TRABAJADOR = [
     "id", "codigo_empleado", "dni", "nombres", "apellidos", "cargo", "area",
     "estado", "supervisor", "sueldo_neto", "telefono", "telefono_corporativo",
     "email", "email_corporativo", "fecha_ingreso", "fecha_fin_contrato",
-    "fecha_renovacion", "fecha_nacimiento", "estado_civil", "tiene_hijos",
+    "fecha_renovacion", "tipo_contrato", "tiempo_renovacion",
+    "tiempo_renovacion_meses", "fecha_nacimiento", "estado_civil", "tiene_hijos",
     "cantidad_hijos", "conyuge_nombres", "conyuge_dni",
     "contacto_emergencia_nombres", "contacto_emergencia_telefono",
-    "contacto_emergencia_direccion", "direccion", "observaciones",
+    "contacto_emergencia_direccion", "pais", "departamento", "provincia",
+    "distrito", "direccion", "observaciones",
     "historial_renovaciones", "hora_entrada", "hora_salida", "sede_id",
     "excluido_asistencia", "fecha_registro"
 ]
@@ -170,6 +237,8 @@ def _agregar_datos_completos(cursor, worker):
     worker["documentos"] = _obtener_documentos(cursor, worker["id"])
     worker["carpetas"] = _obtener_carpetas(cursor, worker["id"])
     worker["hijos"] = _obtener_hijos(cursor, worker["id"])
+    worker["renovaciones"] = obtener_renovaciones(cursor, worker["id"])
+    worker["seguros"] = obtener_seguros(cursor, worker["id"])
     return worker
 
 
@@ -302,7 +371,7 @@ def api_resumen_personal():
     cursor.execute("""
         SELECT
             id, nombres, apellidos, dni, fecha_ingreso, fecha_nacimiento,
-            email, telefono, direccion,
+            email, telefono, direccion, distrito, provincia, departamento, pais,
             contacto_emergencia_nombres, contacto_emergencia_telefono,
             contacto_emergencia_direccion, (foto IS NOT NULL) AS tiene_foto
         FROM trabajadores
@@ -313,8 +382,8 @@ def api_resumen_personal():
     trabajadores = []
     for fila in cursor.fetchall():
         (t_id, nombres, apellidos, dni, fecha_ingreso, fecha_nacimiento,
-         email, telefono, direccion, contacto_nombres, contacto_telefono,
-         contacto_direccion, tiene_foto) = fila
+         email, telefono, direccion, distrito, provincia, departamento, pais,
+         contacto_nombres, contacto_telefono, contacto_direccion, tiene_foto) = fila
 
         trabajadores.append({
             "id": t_id,
@@ -324,7 +393,7 @@ def api_resumen_personal():
             "fechaNacimiento": str(fecha_nacimiento) if fecha_nacimiento else None,
             "email": email,
             "telefono": telefono,
-            "direccion": direccion,
+            "direccion": _direccion_completa(direccion, distrito, provincia, departamento, pais),
             "contactoEmergenciaNombres": contacto_nombres,
             "contactoEmergenciaTelefono": contacto_telefono,
             "contactoEmergenciaDireccion": contacto_direccion,
@@ -375,8 +444,6 @@ def api_crear_trabajador():
     email = request.form.get("email", "").strip()
     email_corporativo = request.form.get("emailCorporativo", "").strip()
     fecha_ingreso = _fecha_o_none(request.form.get("fechaIngreso"))
-    fecha_fin = _fecha_o_none(request.form.get("fechaFinContrato"))
-    fecha_renovacion = _fecha_o_none(request.form.get("fechaRenovacion"))
     fecha_nacimiento = _fecha_o_none(request.form.get("fechaNacimiento"))
     estado_civil = request.form.get("estadoCivil", "").strip()
     tiene_hijos = request.form.get("tieneHijos") == "true"
@@ -388,8 +455,16 @@ def api_crear_trabajador():
     contacto_emergencia_direccion = request.form.get("contactoEmergenciaDireccion", "").strip()
     sede_id = request.form.get("sedeId", type=int)
     excluido_asistencia = request.form.get("excluidoAsistencia") == "true"
+    pais = request.form.get("pais", "").strip()
+    departamento = request.form.get("departamento", "").strip()
+    provincia = request.form.get("provincia", "").strip()
+    distrito = request.form.get("distrito", "").strip()
     direccion = request.form.get("direccion", "").strip()
     observaciones = request.form.get("observaciones", "").strip()
+
+    contrato, error_contrato = _validar_contrato(request.form, tipo_obligatorio=False)
+    if error_contrato:
+        return jsonify({"error": error_contrato}), 400
 
     conexion = obtener_conexion()
     cursor = conexion.cursor()
@@ -403,21 +478,25 @@ def api_crear_trabajador():
             INSERT INTO trabajadores (
                 dni, nombres, apellidos, cargo, area, supervisor, sueldo_neto,
                 telefono, telefono_corporativo, email, email_corporativo,
-                fecha_ingreso, fecha_fin_contrato, fecha_renovacion, fecha_nacimiento,
+                fecha_ingreso, fecha_fin_contrato, fecha_renovacion,
+                tipo_contrato, tiempo_renovacion, tiempo_renovacion_meses, fecha_nacimiento,
                 estado_civil, tiene_hijos, cantidad_hijos, conyuge_nombres, conyuge_dni,
                 contacto_emergencia_nombres, contacto_emergencia_telefono,
                 contacto_emergencia_direccion, sede_id, excluido_asistencia,
+                pais, departamento, provincia, distrito,
                 direccion, observaciones, estado, fecha_registro
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'ACTIVO', %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'ACTIVO', %s)
             RETURNING id
         """, (
             dni, nombres, apellidos, cargo, area, supervisor, sueldo_neto,
             telefono, telefono_corporativo, email, email_corporativo,
-            fecha_ingreso, fecha_fin, fecha_renovacion, fecha_nacimiento,
+            fecha_ingreso, contrato["fecha_fin"], contrato["fecha_renovacion"],
+            contrato["tipo"], contrato["tiempo"], contrato["meses"], fecha_nacimiento,
             estado_civil, tiene_hijos, cantidad_hijos, conyuge_nombres, conyuge_dni,
             contacto_emergencia_nombres, contacto_emergencia_telefono,
             contacto_emergencia_direccion, sede_id, excluido_asistencia,
+            pais, departamento, provincia, distrito,
             direccion, observaciones, datetime.now()
         ))
         worker_id = cursor.fetchone()[0]
@@ -635,6 +714,7 @@ def api_actualizar(worker_id):
                 contacto_emergencia_nombres = %s, contacto_emergencia_telefono = %s,
                 contacto_emergencia_direccion = %s,
                 sede_id = %s, excluido_asistencia = %s,
+                pais = %s, departamento = %s, provincia = %s, distrito = %s,
                 direccion = %s, observaciones = %s,
                 hora_entrada = %s, hora_salida = %s
             WHERE id = %s
@@ -661,6 +741,10 @@ def api_actualizar(worker_id):
             (datos.get("contactoEmergenciaDireccion") or "").strip(),
             datos.get("sedeId") or None,
             bool(datos.get("excluidoAsistencia")),
+            (datos.get("pais") or "").strip(),
+            (datos.get("departamento") or "").strip(),
+            (datos.get("provincia") or "").strip(),
+            (datos.get("distrito") or "").strip(),
             (datos.get("direccion") or "").strip(),
             (datos.get("observaciones") or "").strip(),
             (datos.get("horaEntrada") or "").strip() or None,
@@ -696,11 +780,13 @@ def api_actualizar(worker_id):
 @login_requerido
 def api_actualizar_contrato(worker_id):
     datos = request.get_json(silent=True) or {}
-    fecha_fin_contrato = _fecha_o_none(datos.get("fechaFinContrato"))
-    fecha_renovacion = _fecha_o_none(datos.get("fechaRenovacion"))
 
-    if not fecha_fin_contrato:
-        return jsonify({"error": "La fecha fin de contrato es obligatoria"}), 400
+    contrato, error_contrato = _validar_contrato(datos, tipo_obligatorio=True)
+    if error_contrato:
+        return jsonify({"error": error_contrato}), 400
+
+    fecha_fin_contrato = contrato["fecha_fin"]
+    fecha_renovacion = contrato["fecha_renovacion"]
 
     conexion = obtener_conexion()
     cursor = conexion.cursor()
@@ -713,8 +799,11 @@ def api_actualizar_contrato(worker_id):
         historial = trabajador.get("historial_renovaciones") or []
         historial.append({
             "fechaAnterior": trabajador.get("fecha_fin_contrato"),
-            "fechaNueva": fecha_fin_contrato,
-            "fechaRenovacion": fecha_renovacion,
+            "fechaNueva": str(fecha_fin_contrato) if fecha_fin_contrato else None,
+            "fechaRenovacion": str(fecha_renovacion) if fecha_renovacion else None,
+            "tipoContrato": contrato["tipo"],
+            "tiempoRenovacion": contrato["tiempo"],
+            "tiempoRenovacionMeses": contrato["meses"],
             "actualizado": datetime.now().isoformat()
         })
 
@@ -722,9 +811,15 @@ def api_actualizar_contrato(worker_id):
             UPDATE trabajadores SET
                 fecha_fin_contrato = %s,
                 fecha_renovacion = %s,
+                tipo_contrato = %s,
+                tiempo_renovacion = %s,
+                tiempo_renovacion_meses = %s,
                 historial_renovaciones = %s
             WHERE id = %s
-        """, (fecha_fin_contrato, fecha_renovacion, json.dumps(historial), worker_id))
+        """, (
+            fecha_fin_contrato, fecha_renovacion, contrato["tipo"], contrato["tiempo"],
+            contrato["meses"], json.dumps(historial), worker_id
+        ))
 
         conexion.commit()
 

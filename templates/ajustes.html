@@ -1,101 +1,91 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ajustes · Personal y Asistencias</title>
-<link rel="icon" href="{{ url_for('static', filename='img/logo.png') }}">
-<link rel="stylesheet" href="/static/css/style.css">
-</head>
-<body>
-  <div class="app-shell">
-    {% include '_sidebar.html' %}
+{% extends "base.html" %}
 
-    <main class="main">
-      <h1>Ajustes</h1>
-      <p class="lead">Justifica tardanzas puntuales y define los días feriados de la empresa.</p>
+{% block titulo %}Ajustes · Personal y Asistencias{% endblock %}
 
-      <div class="panel">
-        <h2 style="margin-top:0;font-size:1.05rem;">Justificar asistencia</h2>
-        <p class="muted">Busca y agrega a uno o varios trabajadores, elige el rango de fechas y el motivo (ej. "conferencia 3 días"). Se justifican todos los días de lunes a viernes dentro del rango, para cada trabajador seleccionado — sin importar la hora real que marcaron.</p>
+{% block contenido %}
+<h1>Ajustes</h1>
+<p class="lead">Justifica tardanzas puntuales y define los días feriados de la empresa.</p>
 
-        <div class="search-box">
-          <input type="text" id="searchWorkerInput" placeholder="Buscar trabajador por nombre, DNI o código..." autocomplete="off">
-        </div>
-        <div id="workerResults" class="result-list"></div>
+<div class="panel">
+  <h2>Justificar asistencia</h2>
+  <p class="muted">Busca y agrega a uno o varios trabajadores, elige el rango de fechas y el motivo (ej. "conferencia 3 días"). Se justifican todos los días de lunes a viernes dentro del rango, para cada trabajador seleccionado — sin importar la hora real que marcaron.</p>
 
-        <div id="seleccionadosArea" style="margin-top:10px;"></div>
-
-        <div class="success-msg" id="ajusteSuccessMsg"></div>
-        <div class="error-msg" id="ajusteErrorMsg"></div>
-
-        <form id="ajusteForm" class="grid-2" style="align-items:end;margin-top:12px;">
-          <div class="field">
-            <label for="fechaInicioAjuste">Desde</label>
-            <input type="date" id="fechaInicioAjuste" required>
-          </div>
-          <div class="field">
-            <label for="fechaFinAjuste">Hasta</label>
-            <input type="date" id="fechaFinAjuste" required>
-          </div>
-          <div class="field" style="grid-column: span 2;">
-            <label for="motivoAjuste">Motivo</label>
-            <div style="display:flex;gap:8px;">
-              <select id="motivoAjuste" style="flex:1;" required>
-                <option value="">Elige un motivo...</option>
-              </select>
-              <button type="button" class="btn secondary" id="nuevoMotivoBtn" style="white-space:nowrap;">+ Nuevo</button>
-            </div>
-          </div>
-          <div class="field" style="grid-column: span 2;">
-            <button type="submit" class="btn" id="ajusteSubmitBtn">Guardar justificación</button>
-          </div>
-        </form>
-
-        <h3 style="font-size:0.85rem;margin-top:20px;margin-bottom:8px;">Todas las justificaciones registradas</h3>
-        <div id="listaTodosLosAjustes" class="doc-list"></div>
-      </div>
-
-      <div class="panel">
-        <h2 style="margin-top:0;font-size:1.05rem;">Días feriados</h2>
-        <p class="muted">Estas fechas no cuentan como tardanza para ningún trabajador, aunque marquen algo raro ese día.</p>
-
-        <div class="error-msg" id="feriadoErrorMsg"></div>
-
-        <form id="feriadoForm" class="grid-2" style="align-items:end;margin-bottom:16px;">
-          <div class="field">
-            <label for="nuevaFechaFeriado">Fecha</label>
-            <input type="date" id="nuevaFechaFeriado" required>
-          </div>
-          <div class="field">
-            <label for="nuevaDescripcionFeriado">Descripción</label>
-            <input type="text" id="nuevaDescripcionFeriado" placeholder="Ej. Día de la Independencia">
-          </div>
-          <div class="field" style="grid-column: span 2;">
-            <button type="submit" class="btn">Agregar feriado</button>
-          </div>
-        </form>
-
-        <div id="feriadosList" class="doc-list"></div>
-      </div>
-
-      <div id="nuevoMotivoModalOverlay" class="modal-overlay" style="display:none;">
-        <div class="modal-box">
-          <h2 style="margin-top:0;font-size:1.05rem;">Nuevo motivo</h2>
-          <div class="error-msg" id="nuevoMotivoErrorMsg"></div>
-          <div class="field">
-            <label for="nuevoMotivoNombre">Nombre del motivo</label>
-            <input type="text" id="nuevoMotivoNombre" placeholder="Ej. Trabajo remoto">
-          </div>
-          <div style="display:flex;gap:10px;">
-            <button type="button" class="btn secondary" id="nuevoMotivoCancelarBtn">Cancelar</button>
-            <button type="button" class="btn" id="nuevoMotivoGuardarBtn">Guardar motivo</button>
-          </div>
-        </div>
-      </div>
-    </main>
+  <div class="search-box">
+    <input type="text" id="searchWorkerInput" placeholder="Buscar trabajador por nombre, DNI o código..." autocomplete="off">
   </div>
+  <div id="workerResults" class="result-list"></div>
 
-  <script src="/static/js/ajustes.js"></script>
-</body>
-</html>
+  <div id="seleccionadosArea" style="margin-top:10px;"></div>
+
+  <div class="success-msg" id="ajusteSuccessMsg"></div>
+  <div class="error-msg" id="ajusteErrorMsg"></div>
+
+  <form id="ajusteForm" class="grid-2" style="align-items:end;margin-top:12px;">
+    <div class="field">
+      <label for="fechaInicioAjuste">Desde</label>
+      <input type="date" id="fechaInicioAjuste" required>
+    </div>
+    <div class="field">
+      <label for="fechaFinAjuste">Hasta</label>
+      <input type="date" id="fechaFinAjuste" required>
+    </div>
+    <div class="field" style="grid-column: span 2;">
+      <label for="motivoAjuste">Motivo</label>
+      <div style="display:flex;gap:8px;">
+        <select id="motivoAjuste" style="flex:1;" required>
+          <option value="">Elige un motivo...</option>
+        </select>
+        <button type="button" class="btn secondary" id="nuevoMotivoBtn" style="white-space:nowrap;">+ Nuevo</button>
+      </div>
+    </div>
+    <div class="field" style="grid-column: span 2;">
+      <button type="submit" class="btn" id="ajusteSubmitBtn">Guardar justificación</button>
+    </div>
+  </form>
+
+  <h3 style="margin-top:20px;margin-bottom:8px;">Todas las justificaciones registradas</h3>
+  <div id="listaTodosLosAjustes" class="doc-list"></div>
+</div>
+
+<div class="panel">
+  <h2>Días feriados</h2>
+  <p class="muted">Estas fechas no cuentan como tardanza para ningún trabajador, aunque marquen algo raro ese día.</p>
+
+  <div class="error-msg" id="feriadoErrorMsg"></div>
+
+  <form id="feriadoForm" class="grid-2" style="align-items:end;margin-bottom:16px;">
+    <div class="field">
+      <label for="nuevaFechaFeriado">Fecha</label>
+      <input type="date" id="nuevaFechaFeriado" required>
+    </div>
+    <div class="field">
+      <label for="nuevaDescripcionFeriado">Descripción</label>
+      <input type="text" id="nuevaDescripcionFeriado" placeholder="Ej. Día de la Independencia">
+    </div>
+    <div class="field" style="grid-column: span 2;">
+      <button type="submit" class="btn">Agregar feriado</button>
+    </div>
+  </form>
+
+  <div id="feriadosList" class="doc-list"></div>
+</div>
+
+<div id="nuevoMotivoModalOverlay" class="modal-overlay" style="display:none;">
+  <div class="modal-box">
+    <h2>Nuevo motivo</h2>
+    <div class="error-msg" id="nuevoMotivoErrorMsg"></div>
+    <div class="field">
+      <label for="nuevoMotivoNombre">Nombre del motivo</label>
+      <input type="text" id="nuevoMotivoNombre" placeholder="Ej. Trabajo remoto">
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button type="button" class="btn secondary" id="nuevoMotivoCancelarBtn">Cancelar</button>
+      <button type="button" class="btn" id="nuevoMotivoGuardarBtn">Guardar motivo</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/ajustes.js"></script>
+{% endblock %}

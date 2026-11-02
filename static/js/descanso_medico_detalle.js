@@ -21,12 +21,12 @@ function renderPeriodos(periodos) {
   periodos.forEach((p) => {
     const archivos = p.archivos || [];
     const archivosHtml = archivos.length === 0
-      ? '<span class="muted" style="font-size:0.8rem;">Sin documentos</span>'
+      ? '<span class="muted">Sin documentos</span>'
       : archivos.map((a) => `
           <div class="archivo-item" data-archivo-id="${a.id}">
             <span title="${escapeHtml(a.nombre)}">${escapeHtml(a.nombre)}</span>
             <span style="display:flex;gap:4px;">
-              <button type="button" class="archivo-ver" data-ver="${a.id}" title="Vista previa">👁</button>
+              <button type="button" class="archivo-ver" data-ver="${a.id}" title="Vista previa">Ver</button>
               <button type="button" class="archivo-quitar" data-quitar="${a.id}" title="Quitar documento">×</button>
             </span>
           </div>
@@ -40,12 +40,12 @@ function renderPeriodos(periodos) {
       <td>${p.observacion ? escapeHtml(p.observacion) : '<span class="muted">—</span>'}</td>
       <td>
         <div class="archivos-lista" style="margin-bottom:6px;">${archivosHtml}</div>
-        <label class="btn secondary" style="cursor:pointer;font-size:0.78rem;padding:5px 8px;display:inline-block;">
+        <label class="btn secondary sm" style="cursor:pointer;display:inline-block;">
           + Adjuntar PDF
           <input type="file" accept="application/pdf" class="input-archivo-periodo" style="display:none;">
         </label>
       </td>
-      <td><button type="button" class="btn danger" style="font-size:0.78rem;padding:5px 8px;" data-id="${p.id}">Quitar periodo</button></td>
+      <td><button type="button" class="btn danger sm" data-id="${p.id}">Quitar periodo</button></td>
     `;
     fila.querySelector('[data-id]').addEventListener('click', () => eliminarPeriodo(p.id));
     fila.querySelector('.input-archivo-periodo').addEventListener('change', (e) => subirArchivoPeriodo(p.id, e.target));

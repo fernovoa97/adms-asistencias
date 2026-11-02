@@ -80,7 +80,7 @@ function renderTarjetas() {
         <div class="avatar-trabajador">${avatarHtml}</div>
         <div>
           <div class="tarjeta-personal-nombre">${escapeHtml(t.nombreCompleto)}</div>
-          <div class="muted" style="font-size:0.8rem;">DNI: ${escapeHtml(t.dni || '—')}</div>
+          <div class="muted">DNI: ${escapeHtml(t.dni || '—')}</div>
         </div>
       </div>
       <div class="tarjeta-personal-datos">
@@ -98,7 +98,7 @@ function renderTarjetas() {
           ` : '—'}
         </div>
       </div>
-      <a class="btn secondary" href="/buscar-trabajador?id=${t.id}" style="margin-top:10px;font-size:0.8rem;">Ver ficha completa</a>
+      <a class="btn secondary sm" href="/buscar-trabajador?id=${t.id}" style="margin-top:10px;">Ver ficha completa</a>
     `;
     cont.appendChild(tarjeta);
   });

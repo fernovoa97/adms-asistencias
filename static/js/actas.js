@@ -87,7 +87,7 @@ function renderActas(actas) {
         <div class="name">${escapeHtml(a.nombre)}</div>
         <div class="meta">${a.total_items} ítem(s) · ${a.trabajadores_con_entrega} trabajador(es) con al menos una entrega</div>
       </div>
-      <button type="button" class="btn danger" style="font-size:0.8rem;padding:6px 10px;">Eliminar</button>
+      <button type="button" class="btn danger sm">Eliminar</button>
     `;
 
     item.querySelector('.acta-link').addEventListener('click', () => {

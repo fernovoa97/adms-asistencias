@@ -50,7 +50,7 @@ function renderTabla(trabajadores) {
       <td>${escapeHtml(t.nombre)}</td>
       <td>
         <div class="archivos-lista">${listaArchivos || '<span class="muted">Sin archivos</span>'}</div>
-        <label class="btn secondary" style="cursor:pointer;font-size:0.82rem;padding:6px 10px;margin-top:4px;display:inline-block;">
+        <label class="btn secondary sm" style="cursor:pointer;margin-top:4px;display:inline-block;">
           + Agregar PDF
           <input type="file" accept="application/pdf" class="input-archivo" multiple style="display:none;">
         </label>

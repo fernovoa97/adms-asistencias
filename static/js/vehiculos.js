@@ -179,13 +179,13 @@ function renderTarjetas(vehiculos) {
     tarjeta.style.cursor = 'pointer';
     tarjeta.innerHTML = `
       <div class="tarjeta-personal-header">
-        <div class="avatar-trabajador"><span>🚗</span></div>
+        <div class="avatar-trabajador"><span>${escapeHtml(v.placa.slice(0, 3))}</span></div>
         <div>
           <div class="tarjeta-personal-nombre">
             ${escapeHtml(v.placa)}
             ${v.estado !== 'ACTIVO' ? `<span class="tag-inactivo">${escapeHtml(v.estado)}</span>` : ''}
           </div>
-          <div class="muted" style="font-size:0.8rem;">${[v.marca, v.modelo].filter(Boolean).map(escapeHtml).join(' ') || 'Sin marca/modelo'}</div>
+          <div class="muted">${[v.marca, v.modelo].filter(Boolean).map(escapeHtml).join(' ') || 'Sin marca/modelo'}</div>
         </div>
       </div>
       <div class="tarjeta-personal-datos">

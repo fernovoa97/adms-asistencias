@@ -20,6 +20,8 @@ from vacaciones import vacaciones_bp, obtener_rangos_vacaciones, fecha_en_vacaci
 from descansos_medicos import descansos_medicos_bp
 from licencias import licencias_bp
 from vehiculos import vehiculos_bp
+from renovaciones import renovaciones_bp
+from seguros import seguros_bp
 from reglas_asistencia import horario_del_trabajador, evaluar_marcaje_entrada
 
 app = Flask(__name__)
@@ -85,6 +87,8 @@ app.register_blueprint(vacaciones_bp)
 app.register_blueprint(descansos_medicos_bp)
 app.register_blueprint(licencias_bp)
 app.register_blueprint(vehiculos_bp)
+app.register_blueprint(renovaciones_bp)
+app.register_blueprint(seguros_bp)
 
 
 # ==========================================

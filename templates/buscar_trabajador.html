@@ -1,53 +1,86 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Buscar trabajador · Personal y Asistencias</title>
-<link rel="icon" href="{{ url_for('static', filename='img/logo.png') }}">
-<link rel="stylesheet" href="/static/css/style.css">
-</head>
-<body>
-  <div class="app-shell">
-    {% include '_sidebar.html' %}
+{% extends "base.html" %}
 
-    <main class="main">
-      <h1>Buscar trabajador</h1>
-      <p class="lead">Todos tus trabajadores. Escribe para filtrar por nombre, apellido, DNI o código de empleado.</p>
+{% block titulo %}Buscar trabajador · Personal y Asistencias{% endblock %}
 
-      <div class="search-box">
-        <input type="text" id="searchInput" placeholder="Buscar..." autocomplete="off">
-      </div>
+{% block contenido %}
+<h1>Buscar trabajador</h1>
+<p class="lead">Todos tus trabajadores. Escribe para filtrar por nombre, apellido, DNI o código de empleado.</p>
 
-      <div class="vista-toggle" id="tabsEstado" style="margin-bottom:14px;">
-        <a href="#" data-tab="activos" class="active">Activos <span id="contadorActivos"></span></a>
-        <a href="#" data-tab="inactivos">Inactivos <span id="contadorInactivos"></span></a>
-      </div>
+<div class="search-box">
+  <input type="text" id="searchInput" placeholder="Buscar..." autocomplete="off">
+</div>
 
-      <div id="resultList" class="result-list"></div>
-      <div id="workerDetail"></div>
+<div class="vista-toggle" id="tabsEstado" style="margin-bottom:14px;">
+  <a href="#" data-tab="activos" class="active">Activos <span id="contadorActivos"></span></a>
+  <a href="#" data-tab="inactivos">Inactivos <span id="contadorInactivos"></span></a>
+</div>
 
-      <div id="nuevaSedeModalOverlay" class="modal-overlay" style="display:none;">
-        <div class="modal-box">
-          <h2 style="margin-top:0;font-size:1.05rem;">Nueva sede</h2>
-          <div class="error-msg" id="nuevaSedeErrorMsg"></div>
-          <div class="field">
-            <label for="nuevaSedeNombre">Nombre de la sede</label>
-            <input type="text" id="nuevaSedeNombre" placeholder="Ej. Lurín">
-          </div>
-          <label style="display:flex;align-items:center;gap:8px;font-size:0.85rem;margin-bottom:16px;">
-            <input type="checkbox" id="nuevaSedeAlerta">
-            Avisar si un trabajador de esta sede no marca asistencia (sedes remotas)
-          </label>
-          <div style="display:flex;gap:10px;">
-            <button type="button" class="btn secondary" id="nuevaSedeCancelarBtn">Cancelar</button>
-            <button type="button" class="btn" id="nuevaSedeGuardarBtn">Guardar sede</button>
-          </div>
-        </div>
-      </div>
-    </main>
+<div id="resultList" class="result-list"></div>
+<div id="workerDetail"></div>
+
+<div id="nuevaSedeModalOverlay" class="modal-overlay" style="display:none;">
+  <div class="modal-box">
+    <h2>Nueva sede</h2>
+    <div class="error-msg" id="nuevaSedeErrorMsg"></div>
+    <div class="field">
+      <label for="nuevaSedeNombre">Nombre de la sede</label>
+      <input type="text" id="nuevaSedeNombre" placeholder="Ej. Lurín">
+    </div>
+    <label class="check-linea">
+      <input type="checkbox" id="nuevaSedeAlerta">
+      Avisar si un trabajador de esta sede no marca asistencia (sedes remotas)
+    </label>
+    <div class="modal-acciones">
+      <button type="button" class="btn secondary" id="nuevaSedeCancelarBtn">Cancelar</button>
+      <button type="button" class="btn" id="nuevaSedeGuardarBtn">Guardar sede</button>
+    </div>
   </div>
+</div>
 
-  <script src="/static/js/buscar_trabajador.js"></script>
-</body>
-</html>
+<div id="nuevoActivoModalOverlay" class="modal-overlay" style="display:none;">
+  <div class="modal-box">
+    <h2>Nuevo activo</h2>
+    <div class="error-msg" id="nuevoActivoErrorMsg"></div>
+    <div class="field">
+      <label for="nuevoActivoNombre">Nombre del activo</label>
+      <input type="text" id="nuevoActivoNombre" placeholder="Ej. Tablet">
+    </div>
+    <div class="modal-acciones">
+      <button type="button" class="btn secondary" id="nuevoActivoCancelarBtn">Cancelar</button>
+      <button type="button" class="btn" id="nuevoActivoGuardarBtn">Guardar activo</button>
+    </div>
+  </div>
+</div>
+
+<div id="seguroModalOverlay" class="modal-overlay" style="display:none;">
+  <div class="modal-box modal-ancho">
+    <h2 id="seguroModalTitulo">Registrar seguro</h2>
+    <div class="error-msg" id="seguroErrorMsg"></div>
+    <div class="grid-2">
+      <div class="field">
+        <label for="seguroTipo">Tipo de seguro *</label>
+        <select id="seguroTipo"></select>
+      </div>
+      <div class="field">
+        <label for="seguroFechaAfiliacion">Fecha de afiliación *</label>
+        <input type="date" id="seguroFechaAfiliacion">
+      </div>
+    </div>
+    <h3>Personas adicionales / dependientes</h3>
+    <p class="muted">La edad se calcula automáticamente con la fecha de nacimiento.</p>
+    <div id="dependientesFilas"></div>
+    <button type="button" class="btn secondary" id="agregarDependienteBtn">+ Agregar persona</button>
+    <div class="modal-acciones">
+      <button type="button" class="btn secondary" id="seguroCancelarBtn">Cancelar</button>
+      <button type="button" class="btn" id="seguroGuardarBtn">Guardar seguro</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/contrato_form.js"></script>
+<script src="/static/js/ficha_renovaciones.js"></script>
+<script src="/static/js/ficha_seguros.js"></script>
+<script src="/static/js/buscar_trabajador.js"></script>
+{% endblock %}

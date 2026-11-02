@@ -1,68 +1,56 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Resumen · Personal y Asistencias</title>
-<link rel="icon" href="{{ url_for('static', filename='img/logo.png') }}">
-<link rel="stylesheet" href="/static/css/style.css">
-</head>
-<body>
-  <div class="app-shell">
-    {% include '_sidebar.html' %}
+{% extends "base.html" %}
 
-    <main class="main">
-      <h1>Resumen de tardanzas</h1>
-      <p class="lead">Minutos de tardanza acumulados por semana (lunes a viernes), por trabajador. Cuenta desde el primer minuto tarde, aunque ese día no haya generado descuento de pago.</p>
+{% block titulo %}Resumen · Personal y Asistencias{% endblock %}
 
-      <div class="barra">
-        <h2 style="margin:0;">{{ mes_nombre }} {{ anio }}</h2>
-        <div style="display:flex;gap:8px;">
-          <a class="btn secondary" href="{{ url_for('resumen.pagina_resumen', anio=anio_prev, mes=mes_prev) }}">← Mes anterior</a>
-          <a class="btn secondary" href="{{ url_for('resumen.pagina_resumen', anio=anio_next, mes=mes_next) }}">Mes siguiente →</a>
-        </div>
-      </div>
+{% block contenido %}
+<h1>Resumen de tardanzas</h1>
+<p class="lead">Minutos de tardanza acumulados por semana (lunes a viernes), por trabajador. Cuenta desde el primer minuto tarde, aunque ese día no haya generado descuento de pago.</p>
 
-      <p class="muted" style="margin-top:-8px;margin-bottom:16px;">
-        <span class="leyenda-punto leyenda-alto"></span> 1 hora o más de tardanza acumulada en la semana
-      </p>
-
-      <div class="tabla-contenedor">
-        {% if filas %}
-        <table>
-          <thead>
-            <tr>
-              <th>Trabajador</th>
-              {% for semana in semanas %}
-              <th>{{ semana.etiqueta }}</th>
-              {% endfor %}
-            </tr>
-          </thead>
-          <tbody>
-            {% for fila in filas %}
-            <tr>
-              <td>
-                <a href="{{ url_for('historial.pagina_historial', trabajador_id=fila.trabajador_id, anio=anio, mes=mes) }}">
-                  {{ fila.nombre }}
-                </a>
-              </td>
-              {% for semana in semanas %}
-              {% set total = fila.totales[semana.numero] %}
-              <td class="{{ 'descuento-alto' if total.alto else '' }}">
-                {{ total.texto }}
-              </td>
-              {% endfor %}
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-        {% else %}
-        <div style="padding:40px;text-align:center">
-          No hay trabajadores con código de empleado registrado todavía.
-        </div>
-        {% endif %}
-      </div>
-    </main>
+<div class="barra">
+  <h2>{{ mes_nombre }} {{ anio }}</h2>
+  <div style="display:flex;gap:8px;">
+    <a class="btn secondary" href="{{ url_for('resumen.pagina_resumen', anio=anio_prev, mes=mes_prev) }}">← Mes anterior</a>
+    <a class="btn secondary" href="{{ url_for('resumen.pagina_resumen', anio=anio_next, mes=mes_next) }}">Mes siguiente →</a>
   </div>
-</body>
-</html>
+</div>
+
+<p class="muted" style="margin-top:-8px;margin-bottom:16px;">
+  <span class="leyenda-punto leyenda-alto"></span> 1 hora o más de tardanza acumulada en la semana
+</p>
+
+<div class="tabla-contenedor">
+  {% if filas %}
+  <table>
+    <thead>
+      <tr>
+        <th>Trabajador</th>
+        {% for semana in semanas %}
+        <th>{{ semana.etiqueta }}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for fila in filas %}
+      <tr>
+        <td>
+          <a href="{{ url_for('historial.pagina_historial', trabajador_id=fila.trabajador_id, anio=anio, mes=mes) }}">
+            {{ fila.nombre }}
+          </a>
+        </td>
+        {% for semana in semanas %}
+        {% set total = fila.totales[semana.numero] %}
+        <td class="{{ 'descuento-alto' if total.alto else '' }}">
+          {{ total.texto }}
+        </td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div style="padding:40px;text-align:center">
+    No hay trabajadores con código de empleado registrado todavía.
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

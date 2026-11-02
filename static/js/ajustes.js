@@ -69,12 +69,12 @@ function quitarSeleccionado(id) {
 
 function renderSeleccionados() {
   if (trabajadoresSeleccionados.length === 0) {
-    seleccionadosArea.innerHTML = '<p class="muted" style="font-size:0.85rem;">Todavía no agregaste a ningún trabajador.</p>';
+    seleccionadosArea.innerHTML = '<p class="muted">Todavía no agregaste a ningún trabajador.</p>';
     return;
   }
 
   seleccionadosArea.innerHTML = `
-    <p class="muted" style="font-size:0.8rem;margin-bottom:6px;">${trabajadoresSeleccionados.length} trabajador(es) seleccionado(s):</p>
+    <p class="muted" style="margin-bottom:6px;">${trabajadoresSeleccionados.length} trabajador(es) seleccionado(s):</p>
     <div style="display:flex;flex-wrap:wrap;gap:6px;">
       ${trabajadoresSeleccionados.map((w) => `
         <span class="tag" style="display:inline-flex;align-items:center;gap:6px;">
@@ -443,7 +443,7 @@ function renderTodosLosAjustes(ajustes) {
       <div class="doc-item">
         <div>
           <div class="doc-name">${periodoDeFranja(franja)} — ${escapeHtml(franja.trabajadorNombre)}</div>
-          <div class="muted" style="font-size:0.78rem;">${escapeHtml(franja.motivo)} · ${total} día(s) · registrado por ${escapeHtml(franja.creado_por || 'admin')}</div>
+          <div class="muted">${escapeHtml(franja.motivo)} · ${total} día(s) · registrado por ${escapeHtml(franja.creado_por || 'admin')}</div>
         </div>
         <div class="doc-actions">
           <button type="button" class="btn secondary" data-ver-detalle></button>

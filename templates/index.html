@@ -1,137 +1,125 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Asistencias · Personal y Asistencias</title>
-<link rel="icon" href="{{ url_for('static', filename='img/logo.png') }}">
-<link rel="stylesheet" href="/static/css/style.css">
-</head>
-<body>
-  <div class="app-shell">
-    {% include '_sidebar.html' %}
+{% extends "base.html" %}
 
-    <main class="main">
-      <h1>📋 Control de Asistencias</h1>
-      <p class="lead">Marcajes recibidos desde el dispositivo biométrico.</p>
+{% block titulo %}Asistencias · Personal y Asistencias{% endblock %}
 
-      {% if faltantes_hoy %}
-      <div class="alerta-faltantes">
-        <div class="alerta-faltantes-titulo">⚠ {{ faltantes_hoy|length }} trabajador(es) sin marcar hoy en sede remota</div>
-        <div class="alerta-faltantes-lista">
-          {% for f in faltantes_hoy %}
-          <span class="badge doc-vencido">{{ f.nombre }} — {{ f.sede }}</span>
-          {% endfor %}
-        </div>
-        <p class="muted" style="margin:8px 0 0;font-size:0.8rem;">
-          Si entraron sin marcar, avísales. Si ya tienen una justificación válida, agrégala en
-          <a href="{{ url_for('ajustes.pagina_ajustes') }}">Ajustes</a> y desaparecen de aquí solos.
-        </p>
-      </div>
-      {% endif %}
+{% block contenido %}
+<h1>Control de asistencias</h1>
+<p class="lead">Marcajes recibidos desde el dispositivo biométrico.</p>
 
-      <div class="kpis">
-        <div class="card azul">
-          <h3>Total marcajes</h3>
-          <div class="numero">{{ total_marcajes }}</div>
-        </div>
-        <div class="card verde">
-          <h3>Trabajadores registrados</h3>
-          <div class="numero">{{ total_trabajadores }}</div>
-        </div>
-        <div class="card morado">
-          <h3>Entradas hoy</h3>
-          <div class="numero">{{ entradas_hoy }}</div>
-        </div>
-        <div class="card rojo">
-          <h3>Salidas hoy</h3>
-          <div class="numero">{{ salidas_hoy }}</div>
-        </div>
-      </div>
-
-      <div class="info-box">
-        <b>Última recepción:</b> {{ ultimo_marcaje }}
-        <br>
-        <b>Dispositivos:</b>
-        {% for d in dispositivos %}{{ d["sn_dispositivo"] }} {% endfor %}
-      </div>
-
-      <div class="barra">
-        <h2 style="margin:0;">Últimos marcajes</h2>
-        <a class="boton" href="/exportar">Exportar CSV</a>
-      </div>
-
-      <div class="filtro-rango">
-        <a href="{{ url_for('inicio', rango='hoy') }}" class="{{ 'active' if rango == 'hoy' }}">Hoy</a>
-        <a href="{{ url_for('inicio', rango='semana') }}" class="{{ 'active' if rango == 'semana' }}">Últimos 7 días</a>
-        <a href="{{ url_for('inicio', rango='mes') }}" class="{{ 'active' if rango == 'mes' }}">Últimos 30 días</a>
-        <a href="{{ url_for('inicio', rango='todos') }}" class="{{ 'active' if rango == 'todos' }}">Todos</a>
-      </div>
-
-      <div class="tabla-contenedor">
-        {% if grupos %}
-        <table>
-          <thead>
-            <tr>
-              <th>Código</th>
-              <th>Nombre</th>
-              <th>Entrada</th>
-              <th>Salida</th>
-              <th>Estado</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for grupo in grupos %}
-            <tr class="fila-fecha">
-              <td colspan="5">
-                {{ grupo.fecha_larga }}
-                {% if grupo.es_feriado %}<span class="tag-feriado">Feriado</span>{% endif %}
-              </td>
-            </tr>
-            {% for registro in grupo.registros %}
-            <tr>
-              <td>{{ registro["codigo_empleado"] }}</td>
-              <td>
-                {% if registro["nombres_trabajador"] %}
-                  {{ registro["apellidos_trabajador"] }} {{ registro["nombres_trabajador"] }}
-                {% else %}
-                  <span class="sin-registrar">Sin registrar</span>
-                {% endif %}
-              </td>
-              <td>
-                {% if registro["entrada"] %}
-                  {{ registro["entrada"] }}
-                {% else %}
-                  <span class="muted">—</span>
-                {% endif %}
-              </td>
-              <td>
-                {% if registro["salida"] %}
-                  {{ registro["salida"] }}
-                {% else %}
-                  <span class="muted">—</span>
-                {% endif %}
-              </td>
-              <td>
-                {% if registro["evaluacion"] %}
-                  <span class="badge estado-{{ registro['evaluacion']['estado'] }}"
-                        {% if registro['evaluacion']['detalle'] %}title="{{ registro['evaluacion']['detalle'] }}"{% endif %}>
-                    {{ registro["evaluacion"]["etiqueta"] }}
-                  </span>
-                {% else %}
-                  <span class="muted">—</span>
-                {% endif %}
-              </td>
-            </tr>
-            {% endfor %}
-            {% endfor %}
-          </tbody>
-        </table>
-        {% else %}
-        <div style="padding:40px;text-align:center">No existen registros en este rango</div>
-        {% endif %}
-      </div>
-    </main>
+{% if faltantes_hoy %}
+<div class="alerta-faltantes">
+  <div class="alerta-faltantes-titulo">{{ faltantes_hoy|length }} trabajador(es) sin marcar hoy en sede remota</div>
+  <div class="alerta-faltantes-lista">
+    {% for f in faltantes_hoy %}
+    <span class="badge doc-vencido">{{ f.nombre }} — {{ f.sede }}</span>
+    {% endfor %}
   </div>
-</body>
-</html>
+  <p class="muted" style="margin:8px 0 0;">
+    Si entraron sin marcar, avísales. Si ya tienen una justificación válida, agrégala en
+    <a href="{{ url_for('ajustes.pagina_ajustes') }}">Ajustes</a> y desaparecen de aquí solos.
+  </p>
+</div>
+{% endif %}
+
+<div class="kpis">
+  <div class="card azul">
+    <h3>Total marcajes</h3>
+    <div class="numero">{{ total_marcajes }}</div>
+  </div>
+  <div class="card verde">
+    <h3>Trabajadores registrados</h3>
+    <div class="numero">{{ total_trabajadores }}</div>
+  </div>
+  <div class="card morado">
+    <h3>Entradas hoy</h3>
+    <div class="numero">{{ entradas_hoy }}</div>
+  </div>
+  <div class="card rojo">
+    <h3>Salidas hoy</h3>
+    <div class="numero">{{ salidas_hoy }}</div>
+  </div>
+</div>
+
+<div class="info-box">
+  <b>Última recepción:</b> {{ ultimo_marcaje }}
+  <br>
+  <b>Dispositivos:</b>
+  {% for d in dispositivos %}{{ d["sn_dispositivo"] }} {% endfor %}
+</div>
+
+<div class="barra">
+  <h2>Últimos marcajes</h2>
+  <a class="btn secondary" href="/exportar">Exportar CSV</a>
+</div>
+
+<div class="filtro-rango">
+  <a href="{{ url_for('inicio', rango='hoy') }}" class="{{ 'active' if rango == 'hoy' }}">Hoy</a>
+  <a href="{{ url_for('inicio', rango='semana') }}" class="{{ 'active' if rango == 'semana' }}">Últimos 7 días</a>
+  <a href="{{ url_for('inicio', rango='mes') }}" class="{{ 'active' if rango == 'mes' }}">Últimos 30 días</a>
+  <a href="{{ url_for('inicio', rango='todos') }}" class="{{ 'active' if rango == 'todos' }}">Todos</a>
+</div>
+
+<div class="tabla-contenedor">
+  {% if grupos %}
+  <table>
+    <thead>
+      <tr>
+        <th>Código</th>
+        <th>Nombre</th>
+        <th>Entrada</th>
+        <th>Salida</th>
+        <th>Estado</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for grupo in grupos %}
+      <tr class="fila-fecha">
+        <td colspan="5">
+          {{ grupo.fecha_larga }}
+          {% if grupo.es_feriado %}<span class="tag-feriado">Feriado</span>{% endif %}
+        </td>
+      </tr>
+      {% for registro in grupo.registros %}
+      <tr>
+        <td>{{ registro["codigo_empleado"] }}</td>
+        <td>
+          {% if registro["nombres_trabajador"] %}
+            {{ registro["apellidos_trabajador"] }} {{ registro["nombres_trabajador"] }}
+          {% else %}
+            <span class="sin-registrar">Sin registrar</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if registro["entrada"] %}
+            {{ registro["entrada"] }}
+          {% else %}
+            <span class="muted">—</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if registro["salida"] %}
+            {{ registro["salida"] }}
+          {% else %}
+            <span class="muted">—</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if registro["evaluacion"] %}
+            <span class="badge estado-{{ registro['evaluacion']['estado'] }}"
+                  {% if registro['evaluacion']['detalle'] %}title="{{ registro['evaluacion']['detalle'] }}"{% endif %}>
+              {{ registro["evaluacion"]["etiqueta"] }}
+            </span>
+          {% else %}
+            <span class="muted">—</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div style="padding:40px;text-align:center">No existen registros en este rango</div>
+  {% endif %}
+</div>
+{% endblock %}

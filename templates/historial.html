@@ -1,104 +1,92 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Historial de {{ trabajador.apellidos }} {{ trabajador.nombres }} · Personal y Asistencias</title>
-<link rel="icon" href="{{ url_for('static', filename='img/logo.png') }}">
-<link rel="stylesheet" href="/static/css/style.css">
-</head>
-<body>
-  <div class="app-shell">
-    {% include '_sidebar.html' %}
+{% extends "base.html" %}
 
-    <main class="main">
-      <a href="{{ url_for('resumen.pagina_resumen', anio=anio, mes=mes) }}" class="muted" style="text-decoration:none;">← Volver al resumen</a>
+{% block titulo %}Historial de {{ trabajador.apellidos }} {{ trabajador.nombres }} · Personal y Asistencias{% endblock %}
 
-      <h1 style="margin-top:8px;">{{ trabajador.apellidos }} {{ trabajador.nombres }}</h1>
-      <p class="lead">
-        DNI: {{ trabajador.dni or '—' }}
-        {% if trabajador.cargo %} · {{ trabajador.cargo }}{% endif %}
-        {% if trabajador.area %} · {{ trabajador.area }}{% endif %}
-      </p>
+{% block contenido %}
+<a href="{{ url_for('resumen.pagina_resumen', anio=anio, mes=mes) }}" class="muted" style="text-decoration:none;">← Volver al resumen</a>
 
-      <div class="barra">
-        <h2 style="margin:0;">{{ mes_nombre }} {{ anio }}</h2>
-        {% if not inactivo %}
-        <span class="badge {{ 'estado-tardanza' if total_texto != '0:00:00' else 'estado-puntual' }}" style="font-size:0.85rem;">
-          Total del mes: {{ total_texto }}
-        </span>
-        <div style="display:flex;gap:8px;">
-          <a class="btn secondary" href="{{ url_for('historial.pagina_historial', trabajador_id=trabajador.id, anio=anio_prev, mes=mes_prev) }}">← Mes anterior</a>
-          <a class="btn secondary" href="{{ url_for('historial.pagina_historial', trabajador_id=trabajador.id, anio=anio_next, mes=mes_next) }}">Mes siguiente →</a>
-        </div>
-        {% else %}
-        <div style="display:flex;gap:8px;">
-          <a class="btn secondary" href="{{ url_for('historial.pagina_historial', trabajador_id=trabajador.id, anio=anio_prev, mes=mes_prev) }}">← Mes anterior</a>
-          <a class="btn secondary" href="{{ url_for('historial.pagina_historial', trabajador_id=trabajador.id, anio=anio_next, mes=mes_next) }}">Mes siguiente →</a>
-        </div>
-        {% endif %}
-      </div>
-      <p class="muted" style="margin-top:-8px;font-size:0.8rem;">
-        Este total debe coincidir con la suma de las semanas de este trabajador en el <a href="{{ url_for('resumen.pagina_resumen', anio=anio, mes=mes) }}">Resumen mensual</a>.
-      </p>
+<h1 style="margin-top:8px;">{{ trabajador.apellidos }} {{ trabajador.nombres }}</h1>
+<p class="lead">
+  DNI: {{ trabajador.dni or '—' }}
+  {% if trabajador.cargo %} · {{ trabajador.cargo }}{% endif %}
+  {% if trabajador.area %} · {{ trabajador.area }}{% endif %}
+</p>
 
-      <div class="tabla-contenedor">
-        {% if inactivo %}
-        <div style="padding:40px;text-align:center">
-          Este trabajador está <strong>inactivo</strong>. No se muestra su historial de asistencia.
-          <br>
-          <a href="{{ url_for('trabajadores.pagina_buscar_trabajador') }}" class="muted">Ir a Buscar trabajador para reactivarlo</a>
-        </div>
-        {% else %}
-        <table>
-          <thead>
-            <tr>
-              <th>Fecha</th>
-              <th>Entrada</th>
-              <th>Salida</th>
-              <th>Estado</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for dia in dias %}
-            <tr>
-              <td>
-                {{ dia.dia_semana }} {{ dia.fecha.day }}
-                {% if dia.es_feriado %}<span class="tag-feriado">Feriado</span>{% endif %}
-              </td>
-              <td>
-                {% if dia.entrada %}
-                  {{ dia.entrada }}
-                {% else %}
-                  <span class="muted">—</span>
-                {% endif %}
-              </td>
-              <td>
-                {% if dia.salida %}
-                  {{ dia.salida }}
-                {% else %}
-                  <span class="muted">—</span>
-                {% endif %}
-              </td>
-              <td>
-                {% if dia.evaluacion %}
-                  <span class="badge estado-{{ dia['evaluacion']['estado'] }}">
-                    {{ dia["evaluacion"]["etiqueta"] }}
-                  </span>
-                  {% if dia['evaluacion']['detalle'] %}
-                  <span class="muted" style="font-size:0.78rem;margin-left:4px;">{{ dia['evaluacion']['detalle'] }}</span>
-                  {% endif %}
-                {% else %}
-                  <span class="muted">—</span>
-                {% endif %}
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-        {% endif %}
-      </div>
-    </main>
+<div class="barra">
+  <h2>{{ mes_nombre }} {{ anio }}</h2>
+  {% if not inactivo %}
+  <span class="badge {{ 'estado-tardanza' if total_texto != '0:00:00' else 'estado-puntual' }}" style="font-size:0.85rem;">
+    Total del mes: {{ total_texto }}
+  </span>
+  <div style="display:flex;gap:8px;">
+    <a class="btn secondary" href="{{ url_for('historial.pagina_historial', trabajador_id=trabajador.id, anio=anio_prev, mes=mes_prev) }}">← Mes anterior</a>
+    <a class="btn secondary" href="{{ url_for('historial.pagina_historial', trabajador_id=trabajador.id, anio=anio_next, mes=mes_next) }}">Mes siguiente →</a>
   </div>
-</body>
-</html>
+  {% else %}
+  <div style="display:flex;gap:8px;">
+    <a class="btn secondary" href="{{ url_for('historial.pagina_historial', trabajador_id=trabajador.id, anio=anio_prev, mes=mes_prev) }}">← Mes anterior</a>
+    <a class="btn secondary" href="{{ url_for('historial.pagina_historial', trabajador_id=trabajador.id, anio=anio_next, mes=mes_next) }}">Mes siguiente →</a>
+  </div>
+  {% endif %}
+</div>
+<p class="muted" style="margin-top:-8px;">
+  Este total debe coincidir con la suma de las semanas de este trabajador en el <a href="{{ url_for('resumen.pagina_resumen', anio=anio, mes=mes) }}">Resumen mensual</a>.
+</p>
+
+<div class="tabla-contenedor">
+  {% if inactivo %}
+  <div style="padding:40px;text-align:center">
+    Este trabajador está <strong>inactivo</strong>. No se muestra su historial de asistencia.
+    <br>
+    <a href="{{ url_for('trabajadores.pagina_buscar_trabajador') }}" class="muted">Ir a Buscar trabajador para reactivarlo</a>
+  </div>
+  {% else %}
+  <table>
+    <thead>
+      <tr>
+        <th>Fecha</th>
+        <th>Entrada</th>
+        <th>Salida</th>
+        <th>Estado</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for dia in dias %}
+      <tr>
+        <td>
+          {{ dia.dia_semana }} {{ dia.fecha.day }}
+          {% if dia.es_feriado %}<span class="tag-feriado">Feriado</span>{% endif %}
+        </td>
+        <td>
+          {% if dia.entrada %}
+            {{ dia.entrada }}
+          {% else %}
+            <span class="muted">—</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if dia.salida %}
+            {{ dia.salida }}
+          {% else %}
+            <span class="muted">—</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if dia.evaluacion %}
+            <span class="badge estado-{{ dia['evaluacion']['estado'] }}">
+              {{ dia["evaluacion"]["etiqueta"] }}
+            </span>
+            {% if dia['evaluacion']['detalle'] %}
+            <span class="muted" style="margin-left:4px;">{{ dia['evaluacion']['detalle'] }}</span>
+            {% endif %}
+          {% else %}
+            <span class="muted">—</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+</div>
+{% endblock %}

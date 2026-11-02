@@ -1,215 +1,256 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Nuevo trabajador · Personal y Asistencias</title>
-<link rel="icon" href="{{ url_for('static', filename='img/logo.png') }}">
-<link rel="stylesheet" href="/static/css/style.css">
-</head>
-<body>
-  <div class="app-shell">
-    {% include '_sidebar.html' %}
+{% extends "base.html" %}
 
-    <main class="main">
-      <h1>Nuevo trabajador</h1>
-      <p class="lead">Completa los datos y adjunta los documentos en PDF del trabajador.</p>
+{% block titulo %}Nuevo trabajador · Personal y Asistencias{% endblock %}
 
-      <div class="success-msg" id="successMsg"></div>
-      <div class="error-msg" id="errorMsg"></div>
+{% block contenido %}
+<h1>Nuevo trabajador</h1>
+<p class="lead">Completa los datos y adjunta los documentos en PDF del trabajador.</p>
 
-      <form id="workerForm">
-        <div class="panel">
-          <h2 style="margin-top:0;font-size:1rem;">Foto de perfil</h2>
-          <p class="muted">Opcional. Se muestra como avatar en la ficha del trabajador.</p>
-          <div style="display:flex;align-items:center;gap:16px;">
-            <div class="avatar-preview" id="avatarPreview">
-              <span id="avatarPreviewIniciales">?</span>
-            </div>
-            <label class="btn secondary" style="cursor:pointer;">
-              Elegir foto
-              <input type="file" id="foto" name="foto" accept="image/jpeg,image/png,image/webp" style="display:none;">
-            </label>
-          </div>
-        </div>
+<div class="success-msg" id="successMsg"></div>
+<div class="error-msg" id="errorMsg"></div>
 
-        <div class="panel">
-          <h2 style="margin-top:0;font-size:1rem;">Datos personales</h2>
-          <div class="grid-2">
-            <div class="field">
-              <label for="nombres">Nombres *</label>
-              <input type="text" id="nombres" name="nombres" required>
-            </div>
-            <div class="field">
-              <label for="apellidos">Apellidos *</label>
-              <input type="text" id="apellidos" name="apellidos" required>
-            </div>
-            <div class="field">
-              <label for="dni">DNI *</label>
-              <input type="text" id="dni" name="dni" required>
-            </div>
-            <div class="field">
-              <label for="telefono">Teléfono personal</label>
-              <input type="text" id="telefono" name="telefono">
-            </div>
-            <div class="field">
-              <label for="telefonoCorporativo">Teléfono corporativo</label>
-              <input type="text" id="telefonoCorporativo" name="telefonoCorporativo">
-            </div>
-            <div class="field">
-              <label for="email">Correo personal</label>
-              <input type="email" id="email" name="email">
-            </div>
-            <div class="field">
-              <label for="emailCorporativo">Correo corporativo</label>
-              <input type="email" id="emailCorporativo" name="emailCorporativo">
-            </div>
-            <div class="field">
-              <label for="fechaIngreso">Fecha de ingreso</label>
-              <input type="date" id="fechaIngreso" name="fechaIngreso">
-            </div>
-            <div class="field">
-              <label for="fechaNacimiento">Fecha de nacimiento</label>
-              <input type="date" id="fechaNacimiento" name="fechaNacimiento">
-            </div>
-            <div class="field">
-              <label for="estadoCivil">Estado civil</label>
-              <select id="estadoCivil" name="estadoCivil">
-                <option value="">Sin especificar</option>
-                <option value="Soltero/a">Soltero/a</option>
-                <option value="Casado/a">Casado/a</option>
-                <option value="Conviviente">Conviviente</option>
-                <option value="Divorciado/a">Divorciado/a</option>
-                <option value="Viudo/a">Viudo/a</option>
-              </select>
-            </div>
-            <div class="field">
-              <label style="display:flex;align-items:center;gap:8px;font-weight:400;margin-top:22px;">
-                <input type="checkbox" id="tieneHijos">
-                ¿Tiene hijos?
-              </label>
-            </div>
-            <div class="field">
-              <label for="fechaFinContrato">Fecha de fin de contrato</label>
-              <input type="date" id="fechaFinContrato" name="fechaFinContrato">
-            </div>
-            <div class="field">
-              <label for="fechaRenovacion">Fecha de renovación</label>
-              <input type="date" id="fechaRenovacion" name="fechaRenovacion">
-            </div>
-            <div class="field">
-              <label for="cargo">Cargo</label>
-              <input type="text" id="cargo" name="cargo">
-            </div>
-            <div class="field">
-              <label for="area">Área / Departamento</label>
-              <input type="text" id="area" name="area">
-            </div>
-            <div class="field">
-              <label for="sedeId">Sede</label>
-              <div style="display:flex;gap:8px;">
-                <select id="sedeId" name="sedeId" style="flex:1;">
-                  <option value="">Sin asignar</option>
-                </select>
-                <button type="button" class="btn secondary" id="nuevaSedeBtn" style="white-space:nowrap;">+ Nueva</button>
-              </div>
-            </div>
-            <div class="field" style="display:flex;flex-direction:column;justify-content:flex-end;">
-              <label style="display:flex;align-items:center;gap:8px;font-weight:400;margin-bottom:2px;">
-                <input type="checkbox" id="excluidoAsistencia">
-                Excluir de control de asistencias (ej. jefatura, gerencia)
-              </label>
-              <span class="muted" style="font-size:0.75rem;">Su marcaje se sigue registrando igual, solo no se le calculan tardanzas, descuentos ni faltas.</span>
-            </div>
-            <div class="field">
-              <label for="supervisor">Supervisor</label>
-              <input type="text" id="supervisor" name="supervisor">
-            </div>
-            <div class="field">
-              <label for="sueldoNeto">Sueldo neto (S/)</label>
-              <input type="number" id="sueldoNeto" name="sueldoNeto" step="0.01" min="0">
-            </div>
-          </div>
-          <div class="field">
-            <label for="direccion">Dirección</label>
-            <input type="text" id="direccion" name="direccion">
-          </div>
-          <div class="field">
-            <label for="observaciones">Observaciones</label>
-            <textarea id="observaciones" name="observaciones" rows="3"></textarea>
-          </div>
-        </div>
-
-        <div class="panel">
-          <h2 style="margin-top:0;font-size:1rem;">Familia y contacto de emergencia</h2>
-
-          <div id="conyugeCampos" class="grid-2" style="display:none;">
-            <div class="field">
-              <label for="conyugeNombres">Nombres completos del cónyuge</label>
-              <input type="text" id="conyugeNombres">
-            </div>
-            <div class="field">
-              <label for="conyugeDni">DNI del cónyuge</label>
-              <input type="text" id="conyugeDni">
-            </div>
-          </div>
-
-          <p class="muted" style="margin-top:16px;">Datos de los hijos (para navidad, seguro, etc.)</p>
-          <div id="hijosRows"></div>
-          <button type="button" class="btn secondary" id="addHijoBtn" style="display:none;">+ Agregar hijo</button>
-
-          <h3 style="font-size:0.9rem;margin-top:20px;">Contacto de emergencia</h3>
-          <div class="grid-2">
-            <div class="field">
-              <label for="contactoEmergenciaNombres">Nombres</label>
-              <input type="text" id="contactoEmergenciaNombres">
-            </div>
-            <div class="field">
-              <label for="contactoEmergenciaTelefono">Teléfono</label>
-              <input type="text" id="contactoEmergenciaTelefono">
-            </div>
-          </div>
-          <div class="field">
-            <label for="contactoEmergenciaDireccion">Dirección</label>
-            <input type="text" id="contactoEmergenciaDireccion">
-          </div>
-        </div>
-
-        <div class="panel">
-          <h2 style="margin-top:0;font-size:1rem;">Documentos (PDF)</h2>
-          <p class="muted">Agrega uno o más archivos PDF. Puedes ponerle un nombre a cada uno (ej. "DNI", "Contrato", "CV").</p>
-
-          <div id="uploadRows"></div>
-
-          <button type="button" class="btn secondary" id="addFileBtn">+ Agregar documento PDF</button>
-
-          <div id="previewArea"></div>
-        </div>
-
-        <button type="submit" class="btn" id="submitBtn">Guardar trabajador</button>
-      </form>
-
-      <div id="nuevaSedeModalOverlay" class="modal-overlay" style="display:none;">
-        <div class="modal-box">
-          <h2 style="margin-top:0;font-size:1.05rem;">Nueva sede</h2>
-          <div class="error-msg" id="nuevaSedeErrorMsg"></div>
-          <div class="field">
-            <label for="nuevaSedeNombre">Nombre de la sede</label>
-            <input type="text" id="nuevaSedeNombre" placeholder="Ej. Lurín">
-          </div>
-          <label style="display:flex;align-items:center;gap:8px;font-size:0.85rem;margin-bottom:16px;">
-            <input type="checkbox" id="nuevaSedeAlerta">
-            Avisar si un trabajador de esta sede no marca asistencia (sedes remotas)
-          </label>
-          <div style="display:flex;gap:10px;">
-            <button type="button" class="btn secondary" id="nuevaSedeCancelarBtn">Cancelar</button>
-            <button type="button" class="btn" id="nuevaSedeGuardarBtn">Guardar sede</button>
-          </div>
-        </div>
+<form id="workerForm">
+  <div class="panel">
+    <h2>Foto de perfil</h2>
+    <p class="muted">Opcional. Se muestra como avatar en la ficha del trabajador.</p>
+    <div class="ficha-identidad">
+      <div class="avatar-preview" id="avatarPreview">
+        <span id="avatarPreviewIniciales">?</span>
       </div>
-    </main>
+      <label class="btn secondary">
+        Elegir foto
+        <input type="file" id="foto" name="foto" accept="image/jpeg,image/png,image/webp" hidden>
+      </label>
+    </div>
   </div>
 
-  <script src="/static/js/nuevo_trabajador.js"></script>
-</body>
-</html>
+  <div class="panel">
+    <h2>Datos personales</h2>
+    <div class="grid-2">
+      <div class="field">
+        <label for="nombres">Nombres *</label>
+        <input type="text" id="nombres" name="nombres" required>
+      </div>
+      <div class="field">
+        <label for="apellidos">Apellidos *</label>
+        <input type="text" id="apellidos" name="apellidos" required>
+      </div>
+      <div class="field">
+        <label for="dni">DNI *</label>
+        <input type="text" id="dni" name="dni" required>
+      </div>
+      <div class="field">
+        <label for="fechaNacimiento">Fecha de nacimiento</label>
+        <input type="date" id="fechaNacimiento" name="fechaNacimiento">
+      </div>
+      <div class="field">
+        <label for="telefono">Teléfono personal</label>
+        <input type="text" id="telefono" name="telefono">
+      </div>
+      <div class="field">
+        <label for="telefonoCorporativo">Teléfono corporativo</label>
+        <input type="text" id="telefonoCorporativo" name="telefonoCorporativo">
+      </div>
+      <div class="field">
+        <label for="email">Correo personal</label>
+        <input type="email" id="email" name="email">
+      </div>
+      <div class="field">
+        <label for="emailCorporativo">Correo corporativo</label>
+        <input type="email" id="emailCorporativo" name="emailCorporativo">
+      </div>
+      <div class="field">
+        <label for="estadoCivil">Estado civil</label>
+        <select id="estadoCivil" name="estadoCivil">
+          <option value="">Sin especificar</option>
+          <option value="Soltero/a">Soltero/a</option>
+          <option value="Casado/a">Casado/a</option>
+          <option value="Conviviente">Conviviente</option>
+          <option value="Divorciado/a">Divorciado/a</option>
+          <option value="Viudo/a">Viudo/a</option>
+        </select>
+      </div>
+      <div class="field campo-check">
+        <label>
+          <input type="checkbox" id="tieneHijos">
+          ¿Tiene hijos?
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Dirección</h2>
+    <div class="grid-2">
+      <div class="field">
+        <label for="pais">País</label>
+        <input type="text" id="pais" name="pais" value="Perú">
+      </div>
+      <div class="field">
+        <label for="departamento">Departamento</label>
+        <input type="text" id="departamento" name="departamento">
+      </div>
+      <div class="field">
+        <label for="provincia">Provincia / Ciudad</label>
+        <input type="text" id="provincia" name="provincia">
+      </div>
+      <div class="field">
+        <label for="distrito">Distrito</label>
+        <input type="text" id="distrito" name="distrito">
+      </div>
+    </div>
+    <div class="field">
+      <label for="direccion">Dirección (calle, número, referencia)</label>
+      <input type="text" id="direccion" name="direccion">
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Puesto y contrato</h2>
+    <div class="grid-2">
+      <div class="field">
+        <label for="cargo">Cargo</label>
+        <input type="text" id="cargo" name="cargo">
+      </div>
+      <div class="field">
+        <label for="area">Área / Departamento</label>
+        <input type="text" id="area" name="area">
+      </div>
+      <div class="field">
+        <label for="sedeId">Sede</label>
+        <div class="campo-con-boton">
+          <select id="sedeId" name="sedeId">
+            <option value="">Sin asignar</option>
+          </select>
+          <button type="button" class="btn secondary" id="nuevaSedeBtn">+ Nueva</button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="supervisor">Supervisor</label>
+        <input type="text" id="supervisor" name="supervisor">
+      </div>
+      <div class="field">
+        <label for="sueldoNeto">Sueldo neto (S/)</label>
+        <input type="number" id="sueldoNeto" name="sueldoNeto" step="0.01" min="0">
+      </div>
+      <div class="field">
+        <label for="fechaIngreso">Fecha de ingreso</label>
+        <input type="date" id="fechaIngreso" name="fechaIngreso">
+      </div>
+      <div class="field">
+        <label for="tipoContrato">Tipo de contrato</label>
+        <select id="tipoContrato" name="tipoContrato">
+          <option value="">Sin especificar</option>
+          <option value="Necesidad de mercado">Necesidad de mercado</option>
+          <option value="Indeterminado">Indeterminado</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="tiempoRenovacion">Tiempo de renovación <span data-obligatorio>*</span></label>
+        <select id="tiempoRenovacion" name="tiempoRenovacion">
+          <option value="">Sin especificar</option>
+          <option value="3 meses">3 meses</option>
+          <option value="6 meses">6 meses</option>
+          <option value="Anual">Anual</option>
+          <option value="Otro">Otro</option>
+        </select>
+      </div>
+      <div class="field" id="tiempoRenovacionMesesCampo" hidden>
+        <label for="tiempoRenovacionMeses">Cantidad de meses *</label>
+        <input type="number" id="tiempoRenovacionMeses" name="tiempoRenovacionMeses" min="1" max="120" step="1">
+      </div>
+      <div class="field">
+        <label for="fechaFinContrato">Fecha de fin de contrato <span data-obligatorio>*</span></label>
+        <input type="date" id="fechaFinContrato" name="fechaFinContrato">
+      </div>
+      <div class="field">
+        <label for="fechaRenovacion">Fecha de renovación</label>
+        <input type="date" id="fechaRenovacion" name="fechaRenovacion">
+      </div>
+      <div class="field campo-check">
+        <label>
+          <input type="checkbox" id="excluidoAsistencia">
+          Excluir de control de asistencias (ej. jefatura, gerencia)
+        </label>
+        <span class="muted">Su marcaje se sigue registrando igual, solo no se le calculan tardanzas, descuentos ni faltas.</span>
+      </div>
+    </div>
+    <div class="field">
+      <label for="observaciones">Observaciones</label>
+      <textarea id="observaciones" name="observaciones" rows="3"></textarea>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Familia y contacto de emergencia</h2>
+
+    <div id="conyugeCampos" class="grid-2" style="display:none;">
+      <div class="field">
+        <label for="conyugeNombres">Nombres completos del cónyuge</label>
+        <input type="text" id="conyugeNombres">
+      </div>
+      <div class="field">
+        <label for="conyugeDni">DNI del cónyuge</label>
+        <input type="text" id="conyugeDni">
+      </div>
+    </div>
+
+    <p class="muted">Datos de los hijos (para navidad, seguro, etc.)</p>
+    <div id="hijosRows"></div>
+    <button type="button" class="btn secondary" id="addHijoBtn" style="display:none;">+ Agregar hijo</button>
+
+    <h3>Contacto de emergencia</h3>
+    <div class="grid-2">
+      <div class="field">
+        <label for="contactoEmergenciaNombres">Nombres</label>
+        <input type="text" id="contactoEmergenciaNombres">
+      </div>
+      <div class="field">
+        <label for="contactoEmergenciaTelefono">Teléfono</label>
+        <input type="text" id="contactoEmergenciaTelefono">
+      </div>
+    </div>
+    <div class="field">
+      <label for="contactoEmergenciaDireccion">Dirección</label>
+      <input type="text" id="contactoEmergenciaDireccion">
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Documentos (PDF)</h2>
+    <p class="muted">Agrega uno o más archivos PDF. Puedes ponerle un nombre a cada uno (ej. "DNI", "Contrato", "CV").</p>
+
+    <div id="uploadRows"></div>
+
+    <button type="button" class="btn secondary" id="addFileBtn">+ Agregar documento PDF</button>
+
+    <div id="previewArea"></div>
+  </div>
+
+  <button type="submit" class="btn" id="submitBtn">Guardar trabajador</button>
+</form>
+
+<div id="nuevaSedeModalOverlay" class="modal-overlay" style="display:none;">
+  <div class="modal-box">
+    <h2>Nueva sede</h2>
+    <div class="error-msg" id="nuevaSedeErrorMsg"></div>
+    <div class="field">
+      <label for="nuevaSedeNombre">Nombre de la sede</label>
+      <input type="text" id="nuevaSedeNombre" placeholder="Ej. Lurín">
+    </div>
+    <label class="check-linea">
+      <input type="checkbox" id="nuevaSedeAlerta">
+      Avisar si un trabajador de esta sede no marca asistencia (sedes remotas)
+    </label>
+    <div class="modal-acciones">
+      <button type="button" class="btn secondary" id="nuevaSedeCancelarBtn">Cancelar</button>
+      <button type="button" class="btn" id="nuevaSedeGuardarBtn">Guardar sede</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/contrato_form.js"></script>
+<script src="/static/js/nuevo_trabajador.js"></script>
+{% endblock %}

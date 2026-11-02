@@ -1,58 +1,48 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{{ periodo.nombre }} · Boletas de pago</title>
-<link rel="icon" href="{{ url_for('static', filename='img/logo.png') }}">
-<link rel="stylesheet" href="/static/css/style.css">
-</head>
-<body>
-  <div class="app-shell">
-    {% include '_sidebar.html' %}
+{% extends "base.html" %}
 
-    <main class="main">
-      <a href="{{ url_for('boletas.pagina_boletas') }}" class="muted" style="text-decoration:none;">← Volver a periodos</a>
+{% block titulo %}{{ periodo.nombre }} · Boletas de pago{% endblock %}
 
-      <div class="barra" style="margin-top:8px;">
-        <h1 style="margin:0;">{{ periodo.nombre }}</h1>
-      </div>
-      <p class="lead">Sube uno o más PDF por trabajador y elige a qué correo(s) se le enviarán.</p>
+{% block contenido %}
+<a href="{{ url_for('boletas.pagina_boletas') }}" class="muted" style="text-decoration:none;">← Volver a periodos</a>
 
-      <div class="info-box">
-        <b>El envío se hace desde tu computadora, no desde esta página.</b>
-        <br>
-        Corre <code>enviar_boletas_gui.pyw</code> (o <code>enviar_boletas.py</code>) en tu equipo, el que tiene Outlook instalado con tu sesión iniciada. Te va a preguntar qué periodo enviar — elige <strong>"{{ periodo.nombre }}"</strong> — y va a mandar automáticamente todas las boletas que aparezcan como "Pendiente" aquí abajo, con todos sus PDF adjuntos a todos los correos marcados. El estado de cada una se actualiza solo en esta tabla apenas termine.
-      </div>
+<div class="barra" style="margin-top:8px;">
+  <h1>{{ periodo.nombre }}</h1>
+</div>
+<p class="lead">Sube uno o más PDF por trabajador y elige a qué correo(s) se le enviarán.</p>
 
-      <div class="error-msg" id="errorMsg"></div>
+<div class="info-box">
+  <b>El envío se hace desde tu computadora, no desde esta página.</b>
+  <br>
+  Corre <code>enviar_boletas_gui.pyw</code> (o <code>enviar_boletas.py</code>) en tu equipo, el que tiene Outlook instalado con tu sesión iniciada. Te va a preguntar qué periodo enviar — elige <strong>"{{ periodo.nombre }}"</strong> — y va a mandar automáticamente todas las boletas que aparezcan como "Pendiente" aquí abajo, con todos sus PDF adjuntos a todos los correos marcados. El estado de cada una se actualiza solo en esta tabla apenas termine.
+</div>
 
-      <div style="margin-bottom:12px;">
-        <button type="button" class="btn secondary" id="btnMarcarTodos">Marcar todos los correos</button>
-        <span class="muted" style="margin-left:8px;">Marca Personal y Corporativo (los que existan) para todos los trabajadores de la lista.</span>
-      </div>
+<div class="error-msg" id="errorMsg"></div>
 
-      <div class="tabla-contenedor">
-        <table>
-          <thead>
-            <tr>
-              <th>Trabajador</th>
-              <th>PDFs de la boleta</th>
-              <th>Enviar a</th>
-              <th>Estado</th>
-            </tr>
-          </thead>
-          <tbody id="tablaTrabajadores">
-            <tr><td colspan="4" class="muted" style="text-align:center;padding:24px;">Cargando…</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </main>
-  </div>
+<div style="margin-bottom:12px;">
+  <button type="button" class="btn secondary" id="btnMarcarTodos">Marcar todos los correos</button>
+  <span class="muted" style="margin-left:8px;">Marca Personal y Corporativo (los que existan) para todos los trabajadores de la lista.</span>
+</div>
 
-  <script>
-    const PERIODO_ID = {{ periodo.id }};
-  </script>
-  <script src="/static/js/boleta_periodo.js"></script>
-</body>
-</html>
+<div class="tabla-contenedor">
+  <table>
+    <thead>
+      <tr>
+        <th>Trabajador</th>
+        <th>PDFs de la boleta</th>
+        <th>Enviar a</th>
+        <th>Estado</th>
+      </tr>
+    </thead>
+    <tbody id="tablaTrabajadores">
+      <tr><td colspan="4" class="muted" style="text-align:center;padding:24px;">Cargando…</td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const PERIODO_ID = {{ periodo.id }};
+</script>
+<script src="/static/js/boleta_periodo.js"></script>
+{% endblock %}

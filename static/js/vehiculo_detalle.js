@@ -40,7 +40,7 @@ function renderDetalle(v) {
   cont.innerHTML = `
     <div class="panel">
       <div class="barra" style="margin-bottom:10px;">
-        <h1 style="margin:0;">${escapeHtml(v.placa)}</h1>
+        <h1>${escapeHtml(v.placa)}</h1>
         <button type="button" class="btn danger" id="eliminarVehiculoBtn">Eliminar vehículo</button>
       </div>
       <div class="error-msg" id="errorVehiculo"></div>
@@ -202,7 +202,7 @@ function renderDocumentos(documentos) {
     item.innerHTML = `
       <div>
         <div class="doc-name">${escapeHtml(doc.tipo)}</div>
-        <div class="muted" style="font-size:0.8rem;">
+        <div class="muted">
           <span class="badge ${info.clase}">${info.texto}</span>
           ${doc.fechaVencimiento ? `Vence: ${doc.fechaVencimiento}${detalle ? ` (${detalle})` : ''}` : ''}
         </div>
