@@ -526,6 +526,47 @@ def inicializar_base_datos():
             )
         """)
 
+        # --- Ordenes de compra. El correlativo (ADM-AAAA-C<numero>) se
+        # reinicia cada anio; el anio sale de la fecha de la orden. Los
+        # importes se guardan ya calculados (ver montos.py) ---
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS ordenes_compra (
+                id SERIAL PRIMARY KEY,
+                anio INTEGER NOT NULL,
+                numero INTEGER NOT NULL,
+                fecha DATE NOT NULL,
+                proveedor_nombre TEXT NOT NULL,
+                proveedor_ruc TEXT NOT NULL,
+                proveedor_direccion TEXT,
+                moneda TEXT NOT NULL DEFAULT 'PEN',
+                forma_pago TEXT,
+                autorizado_por TEXT,
+                nota TEXT,
+                entrega TEXT,
+                atencion TEXT,
+                observaciones TEXT,
+                valor_venta NUMERIC(14,2) NOT NULL,
+                igv NUMERIC(14,2) NOT NULL,
+                total NUMERIC(14,2) NOT NULL,
+                creado_por TEXT,
+                creado_en TIMESTAMP NOT NULL,
+                actualizado_en TIMESTAMP,
+                UNIQUE(anio, numero)
+            )
+        """)
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS ordenes_compra_items (
+                id SERIAL PRIMARY KEY,
+                orden_id INTEGER NOT NULL REFERENCES ordenes_compra(id) ON DELETE CASCADE,
+                orden INTEGER NOT NULL,
+                cantidad NUMERIC(14,3) NOT NULL,
+                descripcion TEXT NOT NULL,
+                valor_unitario NUMERIC(14,4) NOT NULL,
+                total NUMERIC(14,2) NOT NULL
+            )
+        """)
+
         # --- Sedes (combo administrable, con alerta opcional de inasistencia) ---
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS sedes (

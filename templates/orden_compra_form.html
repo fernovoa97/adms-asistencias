@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block titulo %}{{ 'Editar' if orden.id else 'Nueva' }} orden de compra · Personal y Asistencias{% endblock %}
+
+{% block contenido %}
+<p class="muted" style="margin:0 0 6px;"><a href="{{ url_for('ordenes_compra.pagina_ordenes_compra') }}">← Órdenes de compra</a></p>
+<h1>{{ 'Editar orden de compra ' ~ orden.correlativo if orden.id else 'Nueva orden de compra' }}</h1>
+<p class="lead">Ingresa la cantidad y el valor unitario sin IGV: los totales, el IGV y el monto en letras se calculan solos.</p>
+
+<form id="ordenForm" novalidate>
+  <div class="panel">
+    <h2>Datos de la orden</h2>
+    <div class="oc-datos">
+      <div class="field">
+        <label for="numeroOC">N.° de O/C</label>
+        <div class="oc-correlativo">
+          <span id="prefijoOC">ADM-{{ orden.anio }}-C</span>
+          <input type="number" id="numeroOC" min="1" step="1" value="{{ orden.numero }}" required>
+        </div>
+        <div class="muted" id="ayudaCorrelativo">Puedes cambiarlo; las siguientes órdenes continuarán desde el número más alto.</div>
+      </div>
+      <div class="field">
+        <label for="fechaOC">Fecha</label>
+        <input type="date" id="fechaOC" value="{{ orden.fecha }}" required>
+      </div>
+      <div class="field">
+        <label for="monedaOC">Moneda</label>
+        <select id="monedaOC">
+          {% for codigo, m in monedas.items() %}
+          <option value="{{ codigo }}" {{ 'selected' if orden.moneda == codigo }}>{{ m.simbolo }} · {{ m.nombre|capitalize }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Proveedor</h2>
+    <div class="oc-proveedor">
+      <div class="field">
+        <label for="rucOC">RUC</label>
+        <input type="text" id="rucOC" inputmode="numeric" maxlength="11" placeholder="11 dígitos" value="{{ orden.proveedor_ruc }}" required>
+        <div class="muted" id="ayudaRuc"></div>
+      </div>
+      <div class="field">
+        <label for="proveedorOC">Nombre o razón social</label>
+        <input type="text" id="proveedorOC" value="{{ orden.proveedor_nombre }}" required>
+      </div>
+    </div>
+    <div class="field">
+      <label for="direccionOC">Dirección</label>
+      <input type="text" id="direccionOC" value="{{ orden.proveedor_direccion }}">
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Ítems</h2>
+    <div class="tabla-scroll">
+      <table class="oc-items">
+        <thead>
+          <tr>
+            <th class="oc-col-item">Ítem</th>
+            <th class="oc-col-cant">Cantidad</th>
+            <th>Descripción</th>
+            <th class="oc-col-monto num">Valor unit. sin IGV</th>
+            <th class="oc-col-monto num">Total</th>
+            <th class="oc-col-quitar"></th>
+          </tr>
+        </thead>
+        <tbody id="itemsBody"></tbody>
+      </table>
+    </div>
+    <button type="button" class="btn secondary" id="agregarItem" style="margin-top:10px;">+ Agregar ítem</button>
+
+    <div class="oc-resumen">
+      <div class="oc-son">
+        <div class="muted">Son:</div>
+        <div id="totalLetras" class="oc-son-texto">—</div>
+      </div>
+      <dl class="oc-totales">
+        <dt>V. venta</dt><dd id="valorVenta">0.00</dd>
+        <dt>I.G.V. 18%</dt><dd id="igv">0.00</dd>
+        <dt id="etiquetaTotal">Total</dt><dd id="total" class="oc-total-final">0.00</dd>
+      </dl>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Condiciones y pie de página</h2>
+    <div class="grid-2">
+      <div class="field">
+        <label for="formaPagoOC">Forma de pago</label>
+        <input type="text" id="formaPagoOC" list="formasPago" value="{{ orden.forma_pago }}">
+        <datalist id="formasPago">
+          <option value="Contado"><option value="Crédito a 7 días"><option value="Crédito a 15 días"><option value="Crédito a 30 días">
+        </datalist>
+      </div>
+      <div class="field">
+        <label for="autorizadoOC">Autorizado por</label>
+        <input type="text" id="autorizadoOC" value="{{ orden.autorizado_por }}">
+      </div>
+    </div>
+    <div class="field">
+      <label for="notaOC">Nota</label>
+      <input type="text" id="notaOC" value="{{ orden.nota }}">
+    </div>
+    <div class="field">
+      <label for="entregaOC">Entrega de mercadería o servicio a realizar</label>
+      <textarea id="entregaOC" rows="2">{{ orden.entrega }}</textarea>
+    </div>
+    <div class="field">
+      <label for="atencionOC">Atención</label>
+      <input type="text" id="atencionOC" value="{{ orden.atencion }}">
+    </div>
+    <div class="field">
+      <label for="observacionesOC">Observaciones (opcional)</label>
+      <textarea id="observacionesOC" rows="2">{{ orden.observaciones }}</textarea>
+    </div>
+  </div>
+
+  <div class="error-msg" id="errorMsg"></div>
+  <div class="acciones-form" style="display:flex;gap:8px;">
+    <button type="submit" class="btn" id="guardarBtn">{{ 'Guardar cambios' if orden.id else 'Guardar orden de compra' }}</button>
+    <a class="btn secondary" href="{{ url_for('ordenes_compra.pagina_ver_orden', orden_id=orden.id) if orden.id else url_for('ordenes_compra.pagina_ordenes_compra') }}">Cancelar</a>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const ORDEN = {{ orden|tojson }};
+  const MONEDAS = {{ monedas|tojson }};
+</script>
+<script src="/static/js/orden_compra_form.js"></script>
+{% endblock %}

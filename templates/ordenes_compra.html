@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block titulo %}Órdenes de compra · Personal y Asistencias{% endblock %}
+
+{% block contenido %}
+<div class="barra">
+  <div>
+    <h1>Órdenes de compra</h1>
+    <p class="lead" style="margin:0;">Correlativo ADM-AAAA-C##, totales con IGV y monto en letras calculados automáticamente.</p>
+  </div>
+  <a class="btn" href="{{ url_for('ordenes_compra.pagina_nueva_orden') }}">+ Nueva orden de compra</a>
+</div>
+
+<div class="search-box">
+  <input type="text" id="busquedaOC" placeholder="Buscar por número (ADM-2026-C69), proveedor o RUC" autocomplete="off">
+</div>
+
+<div class="tabla-contenedor tabla-scroll">
+  <table>
+    <thead>
+      <tr>
+        <th>O/C</th>
+        <th>Fecha</th>
+        <th>Proveedor</th>
+        <th>RUC</th>
+        <th class="num">Total</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="ordenesBody">
+      <tr><td colspan="6" class="empty-state">Cargando…</td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/ordenes_compra.js"></script>
+{% endblock %}

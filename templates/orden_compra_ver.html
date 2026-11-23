@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% macro monto(valor) -%}
+{{ moneda.simbolo }} {{ "{:,.2f}".format(valor|float) }}
+{%- endmacro %}
+
+{% macro valor_unit(valor) -%}
+{%- set decimales = (valor.split('.')[1]|length) if '.' in valor else 0 -%}
+{{ moneda.simbolo }} {{ ("{:,.%df}" % (decimales if decimales > 2 else 2)).format(valor|float) }}
+{%- endmacro %}
+
+{% block titulo %}O/C {{ orden.correlativo }} · Personal y Asistencias{% endblock %}
+
+{% block contenido %}
+<div class="barra no-print">
+  <p class="muted" style="margin:0;"><a href="{{ url_for('ordenes_compra.pagina_ordenes_compra') }}">← Órdenes de compra</a></p>
+  <div class="doc-actions">
+    <button type="button" class="btn" onclick="window.print()">Imprimir / PDF</button>
+    <a class="btn secondary" href="{{ url_for('ordenes_compra.exportar_orden_excel', orden_id=orden.id) }}">Descargar Excel</a>
+    <a class="btn secondary" href="{{ url_for('ordenes_compra.pagina_editar_orden', orden_id=orden.id) }}">Editar</a>
+  </div>
+</div>
+
+<article class="oc-hoja">
+  <table class="oc-cabecera">
+    <tr>
+      <td rowspan="3" class="oc-logo"><img src="{{ url_for('static', filename='img/logo.png') }}" alt="Drillco"></td>
+      <td class="oc-empresa">{{ encabezado.empresa }}</td>
+      <td class="oc-meta">Código: {{ encabezado.codigo }}</td>
+    </tr>
+    <tr>
+      <td class="oc-sistema">{{ encabezado.sistema }}</td>
+      <td class="oc-meta">Versión: {{ encabezado.version }}</td>
+    </tr>
+    <tr>
+      <td class="oc-titulo">ORDEN DE COMPRA</td>
+      <td class="oc-meta">Aprobación: {{ encabezado.aprobacion }}<br>Página 1 de 1</td>
+    </tr>
+  </table>
+
+  <div class="oc-numero"><span>O/C:</span> <strong>{{ orden.correlativo }}</strong></div>
+
+  <dl class="oc-datos-proveedor">
+    <dt>FECHA:</dt><dd>{{ orden.fecha[8:10] }}/{{ orden.fecha[5:7] }}/{{ orden.fecha[0:4] }}</dd>
+    <dt>PROVEEDOR:</dt><dd>{{ orden.proveedor_nombre }}</dd>
+    <dt>RUC:</dt><dd>{{ orden.proveedor_ruc }}</dd>
+    <dt>DIRECCIÓN:</dt><dd>{{ orden.proveedor_direccion or '—' }}</dd>
+  </dl>
+
+  <table class="oc-tabla">
+    <thead>
+      <tr>
+        <th class="oc-col-item">ITEM</th>
+        <th class="oc-col-cant">CANTIDAD</th>
+        <th>DESCRIPCIÓN</th>
+        <th class="oc-col-monto">VALOR UNIT.</th>
+        <th class="oc-col-monto">TOTAL</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in orden["items"] %}
+      <tr>
+        <td class="centro">{{ loop.index }}</td>
+        <td class="centro">{{ item.cantidad }}</td>
+        <td class="oc-desc">{{ item.descripcion }}</td>
+        <td class="num">{{ valor_unit(item.valor_unitario) }}</td>
+        <td class="num">{{ monto(item.total) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="oc-pie-totales">
+    <div class="oc-son-bloque">
+      <p><strong>Son:</strong> {{ orden.total_letras }}</p>
+      <p><strong>Forma de pago:</strong> {{ orden.forma_pago or '—' }}</p>
+      {% if orden.observaciones %}<p class="oc-desc"><strong>Observaciones:</strong> {{ orden.observaciones }}</p>{% endif %}
+    </div>
+    <table class="oc-tabla oc-tabla-totales">
+      <tr><th>V. VENTA</th><td class="num">{{ monto(orden.valor_venta) }}</td></tr>
+      <tr><th>I.G.V. 18%</th><td class="num">{{ monto(orden.igv) }}</td></tr>
+      <tr class="oc-total-fila"><th>{{ moneda.etiqueta_total }}</th><td class="num">{{ monto(orden.total) }}</td></tr>
+    </table>
+  </div>
+
+  <div class="oc-firma">
+    <div class="oc-firma-linea">Autorizado por:</div>
+    <div>{{ orden.autorizado_por }}</div>
+  </div>
+
+  {% if orden.nota %}<p class="oc-nota"><strong>NOTA:</strong> {{ orden.nota }}</p>{% endif %}
+  {% if orden.entrega %}
+  <div class="oc-caja">
+    <strong>ENTREGA DE MERCADERÍA O SERVICIO A REALIZAR</strong>
+    <div class="oc-desc">{{ orden.entrega }}</div>
+  </div>
+  {% endif %}
+  {% if orden.atencion %}<div class="oc-caja"><strong>ATENCIÓN:</strong> {{ orden.atencion }}</div>{% endif %}
+</article>
+{% endblock %}

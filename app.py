@@ -23,6 +23,7 @@ from vehiculos import vehiculos_bp
 from renovaciones import renovaciones_bp
 from seguros import seguros_bp
 from contratos import contratos_bp
+from ordenes_compra import ordenes_compra_bp
 from asistencia import asistencia_bp, resumen_del_dia, SN_MANUAL, SN_IMPORTADO
 from ajustes import obtener_config_asistencia
 from reglas_asistencia import horario_del_trabajador, evaluar_marcaje_entrada
@@ -94,6 +95,7 @@ app.register_blueprint(vehiculos_bp)
 app.register_blueprint(renovaciones_bp)
 app.register_blueprint(seguros_bp)
 app.register_blueprint(contratos_bp)
+app.register_blueprint(ordenes_compra_bp)
 
 
 # ==========================================

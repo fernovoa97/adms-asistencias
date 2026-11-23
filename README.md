@@ -34,6 +34,10 @@ abiertos para que el dispositivo pueda reportar datos.
 - `seguros.py` — seguros de cada colaborador y sus personas adicionales.
 - `contratos.py` — registro general de contratos por módulo, adendas, cierre
   manual y alertas de vencimiento.
+- `ordenes_compra.py` — órdenes de compra (correlativo ADM-AAAA-C## que se
+  reinicia cada año y se puede ajustar a mano), vista imprimible y
+  exportación a Excel.
+- `montos.py` — cálculo de totales con IGV y monto en letras.
 - `validaciones.py` — fechas y cálculo de edad compartidos por esos módulos.
 - `templates/` — `base.html` es la plantilla común; el resto son páginas (login, asistencias, nuevo trabajador, buscar
   trabajador).
