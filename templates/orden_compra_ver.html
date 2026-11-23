@@ -23,46 +23,64 @@
 
 <article class="oc-hoja">
   <table class="oc-cabecera">
+    <colgroup><col style="width:19%"><col><col style="width:28%"></colgroup>
     <tr>
-      <td rowspan="3" class="oc-logo"><img src="{{ url_for('static', filename='img/logo.png') }}" alt="Drillco"></td>
+      <td rowspan="4" class="oc-logo"><img src="{{ url_for('static', filename='img/logo.png') }}" alt="Drillco"></td>
       <td class="oc-empresa">{{ encabezado.empresa }}</td>
-      <td class="oc-meta">Código: {{ encabezado.codigo }}</td>
+      <td>Código: {{ encabezado.codigo }}</td>
     </tr>
     <tr>
-      <td class="oc-sistema">{{ encabezado.sistema }}</td>
-      <td class="oc-meta">Versión: {{ encabezado.version }}</td>
+      <td>{{ encabezado.sistema }}</td>
+      <td>Versión: {{ encabezado.version }}</td>
     </tr>
     <tr>
-      <td class="oc-titulo">ORDEN DE COMPRA</td>
-      <td class="oc-meta">Aprobación: {{ encabezado.aprobacion }}<br>Página 1 de 1</td>
+      <td rowspan="2" class="oc-titulo">ORDEN DE COMPRA</td>
+      <td>Aprobación: {{ encabezado.aprobacion }}</td>
+    </tr>
+    <tr>
+      <td>Página 1 de 1</td>
     </tr>
   </table>
 
-  <div class="oc-numero"><span>O/C:</span> <strong>{{ orden.correlativo }}</strong></div>
+  <div class="oc-bloques">
+    <section class="oc-caja oc-caja-proveedor">
+      <h3 class="oc-barra">DATOS DEL PROVEEDOR</h3>
+      <dl class="oc-dl">
+        <dt>Razón social:</dt><dd>{{ orden.proveedor_nombre }}</dd>
+        <dt>RUC:</dt><dd>{{ orden.proveedor_ruc }}</dd>
+        <dt>Dirección:</dt><dd>{{ orden.proveedor_direccion or '—' }}</dd>
+      </dl>
+    </section>
+    <section class="oc-caja oc-caja-orden">
+      <h3 class="oc-barra">DATOS DE LA ORDEN</h3>
+      <dl class="oc-dl">
+        <dt>N° O/C:</dt><dd class="oc-correlativo-doc">{{ orden.correlativo }}</dd>
+        <dt>Fecha:</dt><dd>{{ orden.fecha[8:10] }}/{{ orden.fecha[5:7] }}/{{ orden.fecha[0:4] }}</dd>
+        <dt>Moneda:</dt><dd>{{ 'Soles (PEN)' if orden.moneda == 'PEN' else 'Dólares (USD)' }}</dd>
+        <dt>Forma de pago:</dt><dd>{{ orden.forma_pago or '—' }}</dd>
+      </dl>
+    </section>
+  </div>
 
-  <dl class="oc-datos-proveedor">
-    <dt>FECHA:</dt><dd>{{ orden.fecha[8:10] }}/{{ orden.fecha[5:7] }}/{{ orden.fecha[0:4] }}</dd>
-    <dt>PROVEEDOR:</dt><dd>{{ orden.proveedor_nombre }}</dd>
-    <dt>RUC:</dt><dd>{{ orden.proveedor_ruc }}</dd>
-    <dt>DIRECCIÓN:</dt><dd>{{ orden.proveedor_direccion or '—' }}</dd>
-  </dl>
-
-  <table class="oc-tabla">
+  <table class="oc-items-doc">
+    <colgroup>
+      <col style="width:7%"><col><col style="width:9%"><col style="width:14%"><col style="width:14%">
+    </colgroup>
     <thead>
       <tr>
-        <th class="oc-col-item">ITEM</th>
-        <th class="oc-col-cant">CANTIDAD</th>
+        <th>ÍTEM</th>
         <th>DESCRIPCIÓN</th>
-        <th class="oc-col-monto">VALOR UNIT.</th>
-        <th class="oc-col-monto">TOTAL</th>
+        <th>CANT.</th>
+        <th>V. UNITARIO</th>
+        <th>V. TOTAL</th>
       </tr>
     </thead>
     <tbody>
       {% for item in orden["items"] %}
       <tr>
         <td class="centro">{{ loop.index }}</td>
-        <td class="centro">{{ item.cantidad }}</td>
         <td class="oc-desc">{{ item.descripcion }}</td>
+        <td class="centro">{{ item.cantidad }}</td>
         <td class="num">{{ valor_unit(item.valor_unitario) }}</td>
         <td class="num">{{ monto(item.total) }}</td>
       </tr>
@@ -71,30 +89,37 @@
   </table>
 
   <div class="oc-pie-totales">
-    <div class="oc-son-bloque">
-      <p><strong>Son:</strong> {{ orden.total_letras }}</p>
-      <p><strong>Forma de pago:</strong> {{ orden.forma_pago or '—' }}</p>
-      {% if orden.observaciones %}<p class="oc-desc"><strong>Observaciones:</strong> {{ orden.observaciones }}</p>{% endif %}
-    </div>
-    <table class="oc-tabla oc-tabla-totales">
-      <tr><th>V. VENTA</th><td class="num">{{ monto(orden.valor_venta) }}</td></tr>
-      <tr><th>I.G.V. 18%</th><td class="num">{{ monto(orden.igv) }}</td></tr>
-      <tr class="oc-total-fila"><th>{{ moneda.etiqueta_total }}</th><td class="num">{{ monto(orden.total) }}</td></tr>
+    <p class="oc-son"><strong>Son:</strong> {{ orden.total_letras }}</p>
+    <table class="oc-totales-doc">
+      <tr><td>Valor venta</td><td class="num">{{ monto(orden.valor_venta) }}</td></tr>
+      <tr><td>I.G.V. 18%</td><td class="num">{{ monto(orden.igv) }}</td></tr>
+      <tr class="oc-total-fila"><td>TOTAL</td><td class="num">{{ monto(orden.total) }}</td></tr>
     </table>
   </div>
 
+  {% if orden.nota or orden.observaciones %}
+  <section class="oc-caja oc-caja-condiciones">
+    <h3 class="oc-barra">CONDICIONES</h3>
+    <dl class="oc-dl">
+      {% if orden.nota %}<dt>Nota:</dt><dd>{{ orden.nota }}</dd>{% endif %}
+      {% if orden.observaciones %}<dt>Observaciones:</dt><dd class="oc-desc">{{ orden.observaciones }}</dd>{% endif %}
+    </dl>
+  </section>
+  {% endif %}
+
   <div class="oc-firma">
-    <div class="oc-firma-linea">Autorizado por:</div>
-    <div>{{ orden.autorizado_por }}</div>
+    <div class="oc-firma-nombre">{{ orden.autorizado_por or '&nbsp;'|safe }}</div>
+    <div class="oc-firma-cargo">Autorizado por</div>
   </div>
 
-  {% if orden.nota %}<p class="oc-nota"><strong>NOTA:</strong> {{ orden.nota }}</p>{% endif %}
-  {% if orden.entrega %}
-  <div class="oc-caja">
-    <strong>ENTREGA DE MERCADERÍA O SERVICIO A REALIZAR</strong>
-    <div class="oc-desc">{{ orden.entrega }}</div>
-  </div>
+  {% if orden.entrega or orden.atencion %}
+  <section class="oc-caja oc-caja-entrega">
+    <h3 class="oc-barra">LUGAR DE ENTREGA DE MERCADERÍA / SERVICIO</h3>
+    <div class="oc-caja-cuerpo">
+      {% if orden.entrega %}<div class="oc-desc">{{ orden.entrega }}</div>{% endif %}
+      {% if orden.atencion %}<div><strong>Atención:</strong> {{ orden.atencion }}</div>{% endif %}
+    </div>
+  </section>
   {% endif %}
-  {% if orden.atencion %}<div class="oc-caja"><strong>ATENCIÓN:</strong> {{ orden.atencion }}</div>{% endif %}
 </article>
 {% endblock %}
