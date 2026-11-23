@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block titulo %}Iniciar sesión · Personal y Asistencias{% endblock %}
+{% block titulo %}Iniciar sesión · {{ 'Órdenes de compra' if modo_compras else 'Personal y Asistencias' }}{% endblock %}
 
 {% block cuerpo %}
 <div class="login-wrap">
@@ -9,8 +9,13 @@
       <img src="{{ url_for('static', filename='img/logo-transparente.png') }}" alt="Shareate Drillco">
     </div>
     <div>
+      {% if modo_compras %}
+      <p class="login-marca-titulo">Órdenes de compra</p>
+      <p class="login-marca-texto">Emisión de órdenes de compra con correlativo, cálculo de IGV e impresión en el formato de Drillco.</p>
+      {% else %}
       <p class="login-marca-titulo">Personal y Asistencias</p>
       <p class="login-marca-texto">Colaboradores, contratos, renovaciones, seguros y control de marcajes en un solo lugar.</p>
+      {% endif %}
     </div>
   </aside>
 
@@ -23,7 +28,7 @@
       <div class="error-msg" style="display:block;">{{ error }}</div>
       {% endif %}
 
-      <form method="POST" action="{{ url_for('auth.login') }}">
+      <form method="POST" action="{{ url_for('auth.login_compras' if modo_compras else 'auth.login', next=siguiente) }}">
         <div class="field">
           <label for="username">Usuario</label>
           <input type="text" id="username" name="username" autocomplete="username" required autofocus>

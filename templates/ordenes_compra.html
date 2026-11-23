@@ -35,5 +35,6 @@
 {% endblock %}
 
 {% block scripts %}
+<script>const PUEDE_ELIMINAR = {{ es_admin|tojson }};</script>
 <script src="/static/js/ordenes_compra.js"></script>
 {% endblock %}

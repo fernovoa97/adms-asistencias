@@ -3,6 +3,7 @@
     <img src="{{ url_for('static', filename='img/logo-transparente.png') }}" alt="Shareate Drillco">
   </div>
   <nav>
+    {% if es_admin %}
     <details class="nav-group" {% if active_page in ['inicio', 'asistencia', 'resumen', 'ajustes', 'historial'] %}open{% endif %}>
       <summary>Asistencias</summary>
       <div class="nav-submenu">
@@ -43,7 +44,11 @@
 
     <a href="{{ url_for('calendario.pagina_calendario') }}" class="nav-toplink {{ 'active' if active_page == 'calendario' }}">Calendario</a>
     <a href="{{ url_for('vehiculos.pagina_vehiculos') }}" class="nav-toplink {{ 'active' if active_page == 'vehiculos' }}">Vehículos</a>
+    {% endif %}
     <a href="{{ url_for('ordenes_compra.pagina_ordenes_compra') }}" class="nav-toplink {{ 'active' if active_page == 'ordenes_compra' }}">Órdenes de compra</a>
+    {% if es_admin %}
+    <a href="{{ url_for('usuarios.pagina_usuarios') }}" class="nav-toplink {{ 'active' if active_page == 'usuarios' }}">Usuarios</a>
+    {% endif %}
   </nav>
   <div class="user-box">
     {% set username = session.get('username', 'usuario') %}

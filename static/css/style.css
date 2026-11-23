@@ -998,6 +998,11 @@ td.celda-nombre { white-space: nowrap; }
 .color-swatch { width: 26px; height: 26px; border-radius: var(--radius-chico); border: 2px solid transparent; cursor: pointer; }
 .color-swatch.selected { border-color: var(--text); box-shadow: 0 0 0 2px #fff inset; }
 
+/* ---------- Usuarios ---------- */
+select.usuarios-rol { min-height: 34px; padding: 4px 8px; border: 1px solid var(--border-fuerte); border-radius: var(--radius-chico); font: inherit; background: #fff; }
+.usuarios-clave { min-height: 30px; padding: 4px 8px; border: 1px solid var(--border-fuerte); border-radius: var(--radius-chico); font: inherit; min-width: 180px; }
+.fila-form select.usuarios-rol { flex: 0 0 auto; }
+
 /* ---------- Ordenes de compra ---------- */
 th.num, td.num { text-align: right; }
 input.num { text-align: right; }

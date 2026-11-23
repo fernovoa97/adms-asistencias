@@ -675,6 +675,9 @@ def inicializar_base_datos():
                 password_hash TEXT NOT NULL
             )
         """)
+        # admin = Administracion (todo el sistema); logistica = solo
+        # ordenes de compra. Los usuarios que ya existian quedan como admin.
+        _agregar_columna_si_falta(cursor, "usuarios", "rol", "TEXT NOT NULL DEFAULT 'admin'")
 
         cursor.execute("SELECT COUNT(*) FROM usuarios")
         total_usuarios = cursor.fetchone()[0]

@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block titulo %}Usuarios · Personal y Asistencias{% endblock %}
+
+{% block contenido %}
+<h1>Usuarios</h1>
+<p class="lead">
+  <strong>Administración</strong> ve todo el sistema. <strong>Logística</strong> solo ve las órdenes de compra
+  (no puede eliminarlas) y entra por el link
+  <a href="{{ url_for('auth.login_compras') }}" id="linkCompras">{{ url_for('auth.login_compras') }}</a>
+  <button type="button" class="btn secondary sm" id="copiarLink">Copiar link</button>
+</p>
+
+<div class="panel">
+  <h2>Nuevo usuario</h2>
+  <div class="error-msg" id="errorNuevo"></div>
+  <form id="nuevoUsuarioForm" class="fila-form" autocomplete="off">
+    <input type="text" id="nuevoUsername" placeholder="Usuario (ej. jperez)" autocomplete="off" required>
+    <input type="password" id="nuevoPassword" placeholder="Contraseña (mín. 6 caracteres)" autocomplete="new-password" required>
+    <select id="nuevoRol" class="usuarios-rol">
+      {% for codigo, nombre in roles.items() %}
+      <option value="{{ codigo }}" {{ 'selected' if codigo == 'logistica' }}>{{ nombre }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn">Crear usuario</button>
+  </form>
+</div>
+
+<div class="error-msg" id="errorLista"></div>
+<div class="tabla-contenedor tabla-scroll">
+  <table>
+    <thead>
+      <tr><th>Usuario</th><th>Rol</th><th>Nueva contraseña</th><th></th></tr>
+    </thead>
+    <tbody id="usuariosBody">
+      <tr><td colspan="4" class="empty-state">Cargando…</td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/usuarios.js"></script>
+{% endblock %}

@@ -53,11 +53,12 @@ function renderOrdenes(ordenes, q) {
           <a class="btn secondary sm" href="/ordenes-compra/${o.id}">Ver</a>
           <a class="btn secondary sm" href="/ordenes-compra/${o.id}/editar">Editar</a>
           <a class="btn secondary sm" href="/ordenes-compra/${o.id}/excel">Excel</a>
-          <button type="button" class="btn danger sm">Eliminar</button>
+          ${PUEDE_ELIMINAR ? '<button type="button" class="btn danger sm">Eliminar</button>' : ''}
         </div>
       </td>
     `;
-    tr.querySelector('.btn.danger').addEventListener('click', async () => {
+    const botonEliminar = tr.querySelector('.btn.danger');
+    if (botonEliminar) botonEliminar.addEventListener('click', async () => {
       if (!confirm(`¿Eliminar la orden de compra ${o.correlativo}? Esta acción no se puede deshacer.`)) return;
       try {
         const res = await fetch(`/api/ordenes-compra/${o.id}`, { method: 'DELETE' });

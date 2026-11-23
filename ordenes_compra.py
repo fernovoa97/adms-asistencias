@@ -18,7 +18,7 @@ from flask import Blueprint, Response, abort, jsonify, render_template, request,
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 
-from auth import login_requerido
+from auth import acceso_compras, login_requerido
 from db import obtener_conexion
 from montos import MONEDAS, a_decimal, calcular_totales, formatear_correlativo, monto_en_letras
 from validaciones import hoy_local, parsear_fecha
@@ -212,13 +212,13 @@ def _respuesta_duplicado(orden):
 # ==========================================================
 
 @ordenes_compra_bp.route("/ordenes-compra")
-@login_requerido
+@acceso_compras
 def pagina_ordenes_compra():
     return render_template("ordenes_compra.html", active_page="ordenes_compra")
 
 
 @ordenes_compra_bp.route("/ordenes-compra/nueva")
-@login_requerido
+@acceso_compras
 def pagina_nueva_orden():
     conexion = obtener_conexion()
     cursor = conexion.cursor()
@@ -243,7 +243,7 @@ def pagina_nueva_orden():
 
 
 @ordenes_compra_bp.route("/ordenes-compra/<int:orden_id>/editar")
-@login_requerido
+@acceso_compras
 def pagina_editar_orden(orden_id):
     conexion = obtener_conexion()
     cursor = conexion.cursor()
@@ -257,7 +257,7 @@ def pagina_editar_orden(orden_id):
 
 
 @ordenes_compra_bp.route("/ordenes-compra/<int:orden_id>")
-@login_requerido
+@acceso_compras
 def pagina_ver_orden(orden_id):
     conexion = obtener_conexion()
     cursor = conexion.cursor()
@@ -275,7 +275,7 @@ def pagina_ver_orden(orden_id):
 # ==========================================================
 
 @ordenes_compra_bp.route("/api/ordenes-compra")
-@login_requerido
+@acceso_compras
 def api_listar_ordenes():
     busqueda = (request.args.get("q") or "").strip()
     filtro, parametros = "", []
@@ -300,7 +300,7 @@ def api_listar_ordenes():
 
 
 @ordenes_compra_bp.route("/api/ordenes-compra/siguiente")
-@login_requerido
+@acceso_compras
 def api_siguiente_numero():
     try:
         anio = int(request.args.get("anio") or hoy_local().year)
@@ -315,7 +315,7 @@ def api_siguiente_numero():
 
 
 @ordenes_compra_bp.route("/api/ordenes-compra/proveedor")
-@login_requerido
+@acceso_compras
 def api_buscar_proveedor():
     """Datos del proveedor tal como quedaron en su ultima orden, para
     autocompletar el formulario al escribir un RUC conocido."""
@@ -337,7 +337,7 @@ def api_buscar_proveedor():
 
 
 @ordenes_compra_bp.route("/api/ordenes-compra/calcular", methods=["POST"])
-@login_requerido
+@acceso_compras
 def api_calcular():
     """Totales y monto en letras para la vista previa del formulario. Las
     filas incompletas se cuentan como cero, para poder calcular mientras
@@ -364,7 +364,7 @@ def api_calcular():
 
 
 @ordenes_compra_bp.route("/api/ordenes-compra", methods=["POST"])
-@login_requerido
+@acceso_compras
 def api_crear_orden():
     try:
         orden = _leer_orden(request.get_json(silent=True) or {})
@@ -405,7 +405,7 @@ def api_crear_orden():
 
 
 @ordenes_compra_bp.route("/api/ordenes-compra/<int:orden_id>", methods=["PUT"])
-@login_requerido
+@acceso_compras
 def api_editar_orden(orden_id):
     try:
         orden = _leer_orden(request.get_json(silent=True) or {})
@@ -448,7 +448,7 @@ def api_editar_orden(orden_id):
 
 
 @ordenes_compra_bp.route("/api/ordenes-compra/<int:orden_id>", methods=["DELETE"])
-@login_requerido
+@login_requerido  # eliminar: solo Administracion
 def api_eliminar_orden(orden_id):
     conexion = obtener_conexion()
     cursor = conexion.cursor()
@@ -577,7 +577,7 @@ def _hoja_orden(hoja, orden):
 
 
 @ordenes_compra_bp.route("/ordenes-compra/<int:orden_id>/excel")
-@login_requerido
+@acceso_compras
 def exportar_orden_excel(orden_id):
     conexion = obtener_conexion()
     cursor = conexion.cursor()
