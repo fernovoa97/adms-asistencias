@@ -20,6 +20,7 @@ from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 
 from auth import acceso_compras, login_requerido
 from db import obtener_conexion
+from proveedores import registrar_proveedor
 from montos import MONEDAS, a_decimal, calcular_totales, formatear_correlativo, monto_en_letras
 from validaciones import hoy_local, parsear_fecha
 
@@ -314,28 +315,6 @@ def api_siguiente_numero():
     return jsonify({"anio": anio, "numero": numero})
 
 
-@ordenes_compra_bp.route("/api/ordenes-compra/proveedor")
-@acceso_compras
-def api_buscar_proveedor():
-    """Datos del proveedor tal como quedaron en su ultima orden, para
-    autocompletar el formulario al escribir un RUC conocido."""
-    ruc = re.sub(r"\s", "", request.args.get("ruc") or "")
-    if not re.fullmatch(r"\d{11}", ruc):
-        return jsonify({"proveedor": None})
-    conexion = obtener_conexion()
-    cursor = conexion.cursor()
-    cursor.execute("""
-        SELECT proveedor_nombre, proveedor_direccion FROM ordenes_compra
-        WHERE proveedor_ruc = %s ORDER BY creado_en DESC LIMIT 1
-    """, (ruc,))
-    fila = cursor.fetchone()
-    cursor.close()
-    conexion.close()
-    if not fila:
-        return jsonify({"proveedor": None})
-    return jsonify({"proveedor": {"nombre": fila[0], "direccion": fila[1] or ""}})
-
-
 @ordenes_compra_bp.route("/api/ordenes-compra/calcular", methods=["POST"])
 @acceso_compras
 def api_calcular():
@@ -390,6 +369,8 @@ def api_crear_orden():
         ))
         orden_id = cursor.fetchone()[0]
         _guardar_items(cursor, orden_id, orden)
+        registrar_proveedor(cursor, orden["proveedor_ruc"], orden["proveedor_nombre"],
+                            orden["proveedor_direccion"])
         conexion.commit()
         return jsonify({"ok": True, "id": orden_id}), 201
     except psycopg2.errors.UniqueViolation:
@@ -433,6 +414,10 @@ def api_editar_orden(orden_id):
             conexion.rollback()
             return jsonify({"error": "Orden de compra no encontrada"}), 404
         _guardar_items(cursor, orden_id, orden)
+        # Al editar una orden (quiza antigua) solo se registra el proveedor si
+        # es nuevo, para no pisar sus datos actuales con los de esa fecha.
+        registrar_proveedor(cursor, orden["proveedor_ruc"], orden["proveedor_nombre"],
+                            orden["proveedor_direccion"], actualizar=False)
         conexion.commit()
         return jsonify({"ok": True, "id": orden_id})
     except psycopg2.errors.UniqueViolation:

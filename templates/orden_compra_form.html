@@ -36,6 +36,13 @@
 
   <div class="panel">
     <h2>Proveedor</h2>
+    <div class="field oc-buscador">
+      <label for="buscarProveedor">Buscar proveedor registrado</label>
+      <input type="text" id="buscarProveedor" placeholder="Escribe el RUC o parte de la razón social" autocomplete="off">
+      <div class="oc-sugerencias" id="sugerenciasProveedor" hidden></div>
+      <div class="muted">Al elegirlo se completan RUC, razón social y dirección. Un proveedor nuevo se registra solo al guardar la orden.
+        <a href="{{ url_for('proveedores.pagina_proveedores') }}" target="_blank">Ver proveedores</a></div>
+    </div>
     <div class="oc-proveedor">
       <div class="field">
         <label for="rucOC">RUC</label>

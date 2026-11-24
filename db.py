@@ -567,6 +567,32 @@ def inicializar_base_datos():
             )
         """)
 
+        # --- Proveedores de las ordenes de compra (uno por RUC). Al crear la
+        # tabla se llena con los proveedores de las ordenes ya registradas
+        # (sus datos de la ultima orden); solo esa vez, para que un proveedor
+        # eliminado a mano no vuelva a aparecer en cada reinicio ---
+        cursor.execute("SELECT to_regclass('proveedores') IS NULL")
+        proveedores_nueva = cursor.fetchone()[0]
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS proveedores (
+                id SERIAL PRIMARY KEY,
+                ruc TEXT NOT NULL UNIQUE,
+                nombre TEXT NOT NULL,
+                direccion TEXT,
+                creado_en TIMESTAMP NOT NULL,
+                actualizado_en TIMESTAMP
+            )
+        """)
+        if proveedores_nueva:
+            cursor.execute("""
+                INSERT INTO proveedores (ruc, nombre, direccion, creado_en)
+                SELECT DISTINCT ON (proveedor_ruc) proveedor_ruc, proveedor_nombre, proveedor_direccion, creado_en
+                FROM ordenes_compra
+                ORDER BY proveedor_ruc, creado_en DESC, id DESC
+            """)
+            if cursor.rowcount:
+                print(f"MIGRACIÓN: {cursor.rowcount} proveedores cargados desde las órdenes de compra")
+
         # --- Sedes (combo administrable, con alerta opcional de inasistencia) ---
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS sedes (

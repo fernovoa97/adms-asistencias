@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block titulo %}Proveedores · Personal y Asistencias{% endblock %}
+
+{% block contenido %}
+<p class="muted" style="margin:0 0 6px;"><a href="{{ url_for('ordenes_compra.pagina_ordenes_compra') }}">← Órdenes de compra</a></p>
+<h1>Proveedores</h1>
+<p class="lead">
+  Se registran solos al guardar una orden de compra y aparecen en el buscador del formulario.
+  Corregir aquí la razón social o la dirección no cambia las órdenes ya emitidas.
+</p>
+
+<div class="panel">
+  <h2>Nuevo proveedor</h2>
+  <div class="error-msg" id="errorNuevo"></div>
+  <form id="nuevoProveedorForm" class="fila-form" autocomplete="off">
+    <input type="text" id="nuevoRuc" inputmode="numeric" maxlength="11" placeholder="RUC (11 dígitos)" required>
+    <input type="text" id="nuevoNombre" placeholder="Razón social" required>
+    <input type="text" id="nuevaDireccion" placeholder="Dirección">
+    <button type="submit" class="btn">Agregar</button>
+  </form>
+</div>
+
+<div class="search-box">
+  <input type="text" id="busquedaProveedor" placeholder="Buscar por RUC o razón social" autocomplete="off">
+</div>
+
+<div class="error-msg" id="errorLista"></div>
+<div class="tabla-contenedor tabla-scroll">
+  <table class="proveedores-tabla">
+    <thead>
+      <tr>
+        <th class="col-ruc">RUC</th>
+        <th>Razón social</th>
+        <th>Dirección</th>
+        <th class="col-ordenes num">O/C</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="proveedoresBody">
+      <tr><td colspan="5" class="empty-state">Cargando…</td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>const PUEDE_ELIMINAR = {{ es_admin|tojson }};</script>
+<script src="/static/js/proveedores.js"></script>
+{% endblock %}

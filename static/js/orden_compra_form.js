@@ -136,23 +136,117 @@ async function actualizarCorrelativoPorAnio() {
 
 campoFecha.addEventListener('change', actualizarCorrelativoPorAnio);
 
-// ---------- Proveedor: autocompletar por RUC ----------
+// ---------- Proveedor: buscador y autocompletar por RUC ----------
+
+const campoBuscar = document.getElementById('buscarProveedor');
+const cajaSugerencias = document.getElementById('sugerenciasProveedor');
+const ayudaRuc = document.getElementById('ayudaRuc');
+let temporizadorProveedor = null;
+let sugerencias = [];
+let sugerenciaActiva = -1;
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str == null ? '' : String(str);
+  return div.innerHTML;
+}
+
+function usarProveedor(p) {
+  campoRuc.value = p.ruc;
+  document.getElementById('proveedorOC').value = p.nombre;
+  document.getElementById('direccionOC').value = p.direccion;
+  ayudaRuc.textContent = 'Proveedor registrado: datos completados.';
+  campoBuscar.value = '';
+  cerrarSugerencias();
+}
+
+function cerrarSugerencias() {
+  cajaSugerencias.hidden = true;
+  cajaSugerencias.innerHTML = '';
+  sugerencias = [];
+  sugerenciaActiva = -1;
+}
+
+function marcarSugerencia(indice) {
+  sugerenciaActiva = indice;
+  cajaSugerencias.querySelectorAll('button').forEach((b, i) => b.classList.toggle('activa', i === indice));
+}
+
+async function buscarProveedores() {
+  const q = campoBuscar.value.trim();
+  if (q.length < 2) { cerrarSugerencias(); return; }
+  try {
+    const res = await fetch(`/api/proveedores?limite=8&q=${encodeURIComponent(q)}`);
+    const data = await res.json();
+    if (campoBuscar.value.trim() !== q) return;
+    sugerencias = data.proveedores || [];
+    sugerenciaActiva = -1;
+    if (sugerencias.length === 0) {
+      cajaSugerencias.innerHTML = '<div class="oc-sugerencia-vacia">Sin resultados: llénalo abajo y se registrará al guardar.</div>';
+    } else {
+      cajaSugerencias.innerHTML = sugerencias.map((p, i) => `
+        <button type="button" data-i="${i}">
+          <strong>${escapeHtml(p.nombre)}</strong>
+          <span>RUC ${escapeHtml(p.ruc)}${p.direccion ? ' · ' + escapeHtml(p.direccion) : ''}</span>
+        </button>`).join('');
+    }
+    cajaSugerencias.hidden = false;
+  } catch (err) {
+    cerrarSugerencias();
+  }
+}
+
+campoBuscar.addEventListener('input', () => {
+  clearTimeout(temporizadorProveedor);
+  temporizadorProveedor = setTimeout(buscarProveedores, 200);
+});
+
+campoBuscar.addEventListener('keydown', (e) => {
+  if (cajaSugerencias.hidden || sugerencias.length === 0) {
+    if (e.key === 'Enter') e.preventDefault();
+    return;
+  }
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    marcarSugerencia((sugerenciaActiva + 1) % sugerencias.length);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    marcarSugerencia((sugerenciaActiva - 1 + sugerencias.length) % sugerencias.length);
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    usarProveedor(sugerencias[Math.max(sugerenciaActiva, 0)]);
+  } else if (e.key === 'Escape') {
+    cerrarSugerencias();
+  }
+});
+
+// mousedown para elegir antes de que el blur cierre la lista
+cajaSugerencias.addEventListener('mousedown', (e) => {
+  const boton = e.target.closest('button[data-i]');
+  if (!boton) return;
+  e.preventDefault();
+  usarProveedor(sugerencias[Number(boton.dataset.i)]);
+});
+
+campoBuscar.addEventListener('blur', () => setTimeout(cerrarSugerencias, 100));
 
 campoRuc.addEventListener('input', async () => {
   campoRuc.value = campoRuc.value.replace(/\D/g, '').slice(0, 11);
-  const ayuda = document.getElementById('ayudaRuc');
-  ayuda.textContent = '';
+  ayudaRuc.textContent = '';
   if (campoRuc.value.length !== 11) return;
+  const ruc = campoRuc.value;
 
   try {
-    const res = await fetch(`/api/ordenes-compra/proveedor?ruc=${campoRuc.value}`);
+    const res = await fetch(`/api/proveedores/ruc/${ruc}`);
     const data = await res.json();
-    if (!data.proveedor) return;
-    const nombre = document.getElementById('proveedorOC');
-    const direccion = document.getElementById('direccionOC');
-    if (!nombre.value.trim()) nombre.value = data.proveedor.nombre;
-    if (!direccion.value.trim()) direccion.value = data.proveedor.direccion;
-    ayuda.textContent = 'Proveedor ya registrado: se completaron sus datos de la última orden.';
+    if (campoRuc.value !== ruc) return;
+    if (data.proveedor) {
+      document.getElementById('proveedorOC').value = data.proveedor.nombre;
+      document.getElementById('direccionOC').value = data.proveedor.direccion;
+      ayudaRuc.textContent = 'Proveedor registrado: datos completados.';
+    } else {
+      ayudaRuc.textContent = 'RUC nuevo: se registrará al guardar la orden.';
+    }
   } catch (err) {
     // Sin autocompletado; se llena a mano.
   }

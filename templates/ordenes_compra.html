@@ -8,7 +8,10 @@
     <h1>Órdenes de compra</h1>
     <p class="lead" style="margin:0;">Correlativo ADM-AAAA-C##, totales con IGV y monto en letras calculados automáticamente.</p>
   </div>
-  <a class="btn" href="{{ url_for('ordenes_compra.pagina_nueva_orden') }}">+ Nueva orden de compra</a>
+  <div class="doc-actions">
+    <a class="btn secondary" href="{{ url_for('proveedores.pagina_proveedores') }}">Proveedores</a>
+    <a class="btn" href="{{ url_for('ordenes_compra.pagina_nueva_orden') }}">+ Nueva orden de compra</a>
+  </div>
 </div>
 
 <div class="search-box">

@@ -37,6 +37,8 @@ abiertos para que el dispositivo pueda reportar datos.
 - `ordenes_compra.py` — órdenes de compra (correlativo ADM-AAAA-C## que se
   reinicia cada año y se puede ajustar a mano), vista imprimible y
   exportación a Excel.
+- `proveedores.py` — registro de proveedores (uno por RUC) que se llena al
+  guardar órdenes de compra y alimenta el buscador del formulario.
 - `montos.py` — cálculo de totales con IGV y monto en letras.
 - `validaciones.py` — fechas y cálculo de edad compartidos por esos módulos.
 - `templates/` — `base.html` es la plantilla común; el resto son páginas (login, asistencias, nuevo trabajador, buscar

@@ -1009,6 +1009,23 @@ input.num { text-align: right; }
 td.centro { text-align: center; }
 
 .oc-datos { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr); gap: 0 16px; }
+.oc-buscador { position: relative; }
+.oc-sugerencias {
+  position: absolute; z-index: 20; left: 0; right: 0; top: 64px;
+  background: var(--panel); border: 1px solid var(--border-fuerte); border-radius: var(--radius);
+  box-shadow: 0 6px 18px rgba(11, 27, 61, 0.14); max-height: 320px; overflow-y: auto;
+}
+.oc-sugerencias button {
+  display: block; width: 100%; text-align: left; padding: 8px 12px; border: none;
+  border-bottom: 1px solid var(--border); background: none; font: inherit; color: var(--text); cursor: pointer;
+}
+.oc-sugerencias button:last-child { border-bottom: none; }
+.oc-sugerencias button:hover, .oc-sugerencias button.activa { background: var(--primary-light); }
+.oc-sugerencias button span { display: block; font-size: var(--t-sm); color: var(--muted); }
+.oc-sugerencia-vacia { padding: 10px 12px; font-size: var(--t-sm); color: var(--muted); }
+.proveedores-tabla input { width: 100%; min-width: 0; }
+.proveedores-tabla .col-ruc { width: 140px; }
+.proveedores-tabla .col-ordenes { width: 70px; }
 .oc-proveedor { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 0 16px; }
 .oc-correlativo { display: flex; align-items: stretch; }
 .oc-correlativo span {
