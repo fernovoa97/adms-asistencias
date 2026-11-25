@@ -39,9 +39,14 @@
         <span class="dia-numero">{{ dia.dia_numero }}</span>
         <button type="button" class="dia-add-btn" title="Agregar evento">+</button>
       </div>
+      {# Celdas de alto fijo: caben 3 lineas; si hay mas, se muestran 2 y "+N mas" #}
+      {% set total_items = dia.eventos|length + dia.cumpleanos|length %}
+      {% set cabe = 3 if total_items <= 3 else 2 %}
+      {% set eventos_visibles = dia.eventos[:cabe] %}
+      {% set cumples_visibles = dia.cumpleanos[:cabe - eventos_visibles|length] %}
       <div class="dia-eventos">
-        {% for ev in dia.eventos[:3] %}
-        <div class="evento-chip"
+        {% for ev in eventos_visibles %}
+        <div class="evento-chip" title="{{ (ev.hora_texto ~ ' ' if ev.hora_texto) ~ ev.titulo }}"
              style="background:{{ ev.color }}22;border-left:3px solid {{ ev.color }};color:{{ ev.color }};"
              data-id="{{ ev.id }}"
              data-titulo="{{ ev.titulo }}"
@@ -52,12 +57,13 @@
           {% if ev.hora_texto %}<strong>{{ ev.hora_texto }}</strong>{% endif %} {{ ev.titulo }}
         </div>
         {% endfor %}
-        {% if dia.eventos|length > 3 %}
-        <div class="evento-mas">+{{ dia.eventos|length - 3 }} más</div>
-        {% endif %}
-        {% for nombre in dia.cumpleanos %}
+        {% for nombre in cumples_visibles %}
         <div class="cumple-chip" title="Cumpleaños de {{ nombre }}">Cumpleaños: {{ nombre }}</div>
         {% endfor %}
+        {% set ocultos = total_items - eventos_visibles|length - cumples_visibles|length %}
+        {% if ocultos > 0 %}
+        <a class="evento-mas" href="{{ url_for('calendario.pagina_calendario', vista='semana', anio=dia.fecha.year, mes=dia.fecha.month, dia=dia.fecha.day) }}">+{{ ocultos }} más</a>
+        {% endif %}
       </div>
     </div>
     {% endfor %}

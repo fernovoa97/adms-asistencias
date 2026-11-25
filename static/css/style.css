@@ -827,6 +827,7 @@ td.descuento-alto { background: var(--danger-suave); color: var(--danger); font-
 .asist-celda button:hover { box-shadow: inset 0 0 0 2px var(--primary); }
 .asist-celda.con-texto button { font-size: var(--t-xs); }
 .asist-celda.tarde { color: var(--danger); font-weight: 600; }
+.asist-celda.sin-marcar { font-weight: 600; }
 
 .asist-total-semana, .panel-asistencia th.asist-total-semana { background: var(--semana-resaltada); color: var(--text); font-weight: 600; min-width: 96px; }
 .panel-asistencia td.asist-total-semana.supera { color: var(--danger); font-weight: 700; }
@@ -874,9 +875,10 @@ td.celda-nombre { white-space: nowrap; }
   overflow: hidden;
 }
 
+/* minmax(0, 1fr): columnas siempre iguales, el texto largo no las ensancha */
 .calendario-dias-header {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   border-bottom: 1px solid var(--border-fuerte);
 }
 .calendario-dias-header div {
@@ -887,10 +889,12 @@ td.celda-nombre { white-space: nowrap; }
   text-align: center;
 }
 
-.calendario-semana { display: grid; grid-template-columns: repeat(7, 1fr); }
+.calendario-semana { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
 
 .dia-celda {
-  min-height: 92px;
+  height: 108px;
+  min-width: 0;
+  overflow: hidden;
   border-right: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
   padding: 6px;
@@ -928,9 +932,12 @@ td.celda-nombre { white-space: nowrap; }
 .dia-celda:hover .dia-add-btn, .dia-add-btn:focus-visible { opacity: 1; }
 .dia-add-btn:hover { background: var(--border); }
 
-.dia-eventos { display: flex; flex-direction: column; gap: 2px; }
+.dia-eventos { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 
 .evento-chip, .cumple-chip {
+  flex: none;
+  height: 20px;
+  line-height: 16px;
   font-size: var(--t-xs);
   padding: 2px 6px;
   border-radius: var(--radius-chico);
@@ -941,10 +948,11 @@ td.celda-nombre { white-space: nowrap; }
 }
 .evento-chip { cursor: pointer; }
 .evento-chip:hover { filter: brightness(0.95); }
-.evento-mas { font-size: var(--t-xs); color: var(--muted); padding: 1px 6px; }
+.evento-mas { font-size: var(--t-xs); line-height: 16px; color: var(--muted); padding: 2px 6px; font-weight: 600; }
+.evento-mas:hover { color: var(--primary); }
 .cumple-chip { background: var(--alerta-suave); color: var(--alerta); }
 
-.calendario-semana-vista { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
+.calendario-semana-vista { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
 
 .semana-dia-card {
   background: var(--panel);
@@ -952,6 +960,7 @@ td.celda-nombre { white-space: nowrap; }
   border-radius: var(--radius);
   padding: 10px;
   min-height: 220px;
+  min-width: 0;
 }
 .semana-dia-card.dia-hoy { border-color: var(--primary); background: var(--panel); }
 
@@ -968,7 +977,8 @@ td.celda-nombre { white-space: nowrap; }
 .semana-dia-header strong { font-size: var(--t-lg); color: var(--text); }
 .semana-dia-header .dia-add-btn { margin-left: auto; opacity: 1; }
 .semana-dia-eventos { display: flex; flex-direction: column; gap: 4px; }
-.evento-chip-semana { white-space: normal; }
+.evento-chip-semana { white-space: normal; height: auto; overflow-wrap: anywhere; }
+.semana-dia-eventos .cumple-chip { white-space: normal; height: auto; }
 
 /* ---------- Modales ---------- */
 .modal-overlay {

@@ -4,7 +4,7 @@
 
 {% block contenido %}
 <h1>Panel de asistencia</h1>
-<p class="lead">Hora de entrada por día y tardanzas de cada periodo. Entrada: {{ panel.hora_entrada }}, salvo horario propio en la ficha. Total semanal en rojo si supera {{ panel.umbral }}.</p>
+<p class="lead">Hora de entrada por día y tardanzas de cada periodo. Entrada: {{ panel.hora_entrada }}, salvo horario propio en la ficha. Total semanal en rojo si supera {{ panel.umbral }}. Los días sin marcar ni justificar salen en rojo.</p>
 
 <div class="barra">
   <h2>Periodo {{ panel.titulo }} <span class="muted">({{ panel.rango }})</span></h2>
@@ -57,7 +57,7 @@
         <td class="col-nombre" title="{{ fila.nombre }}">{{ fila.nombre }}</td>
         {% for semana in fila.semanas %}
         {% for celda in semana.celdas %}
-        <td class="asist-celda {{ 'tarde' if celda.segundos > 0 }} {{ 'con-texto' if not celda.hora and celda.tipo }}"
+        <td class="asist-celda {{ 'tarde' if celda.segundos > 0 }} {{ 'con-texto' if not celda.hora and celda.tipo }} {{ 'sin-marcar' if celda.estado == 'sin_marcar' }}"
             {% if celda.color %}style="background:{{ celda.color }};color:{{ celda.color_texto }};"{% endif %}>
           <button type="button" data-celda='{{ celda|tojson }}'
                   aria-label="{{ fila.nombre }}, {{ celda.fecha }}{{ ': ' ~ celda.texto if celda.texto }}">{{ celda.texto }}</button>

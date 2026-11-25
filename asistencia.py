@@ -65,6 +65,11 @@ COLOR_SEMANA = "#ffe94d"
 COLOR_TOTAL_PERIODO = "#e7ecf6"
 COLOR_TEXTO = "#17202f"
 COLOR_ROJO = "#ad2f26"
+COLOR_SIN_MARCAR = "#f6cdc9"
+
+# Minutos despues de la hora de entrada en los que un dia de hoy sin marcar
+# pasa a rojo (la misma tolerancia que usan Resumen e Historial).
+TOLERANCIA_SIN_MARCAR_MIN = 30
 
 
 def _hoy():
@@ -252,6 +257,31 @@ def evaluar_dia(trabajador, fecha, datos, hora_estandar):
     return celda
 
 
+def marcar_sin_marcacion(celda, trabajador, fecha, ahora, hora_estandar):
+    """Solo visual: pinta de rojo un dia laborable sin marcacion ni nada que
+    lo cubra (feriado, justificacion, vacaciones o descanso ya dejan la celda
+    en otro estado). No cambia faltas ni tardanzas. No aplica a dias
+    futuros, a dias previos al ingreso ni a hoy antes de la tolerancia."""
+    if celda["estado"] != "vacio":
+        return
+    if trabajador["fecha_ingreso"] and fecha < trabajador["fecha_ingreso"]:
+        return
+    hoy = ahora.date()
+    if fecha > hoy:
+        return
+    if fecha == hoy:
+        hora_programada, _ = horario_del_trabajador(
+            trabajador["hora_entrada"], trabajador["hora_salida"], hora_estandar
+        )
+        limite = datetime.combine(hoy, hora_programada) + timedelta(minutes=TOLERANCIA_SIN_MARCAR_MIN)
+        if ahora.replace(tzinfo=None) < limite:
+            return
+    celda.update(
+        estado="sin_marcar", tipo="Sin marcar", texto="Sin marcar",
+        color=COLOR_SIN_MARCAR, color_texto=COLOR_ROJO
+    )
+
+
 # ---------------------------------------------------------------------------
 # Armado del panel
 # ---------------------------------------------------------------------------
@@ -273,7 +303,8 @@ def armar_panel(cursor, anio, mes):
     trabajadores = _trabajadores_del_panel(cursor)
     tipos = _tipos_de_justificacion(cursor)
     datos = _datos_de_rango(cursor, inicio, fin)
-    hoy = _hoy()
+    ahora = datetime.now(ZONA_HORARIA_LOCAL)
+    hoy = ahora.date()
 
     semanas = [
         {
@@ -298,7 +329,11 @@ def armar_panel(cursor, anio, mes):
         conteos = {}
 
         for semana in semanas:
-            celdas = [evaluar_dia(trabajador, d["fecha"], datos, config["hora_entrada"]) for d in semana["dias"]]
+            celdas = []
+            for d in semana["dias"]:
+                celda = evaluar_dia(trabajador, d["fecha"], datos, config["hora_entrada"])
+                marcar_sin_marcacion(celda, trabajador, d["fecha"], ahora, config["hora_entrada"])
+                celdas.append(celda)
             total_semana = sum(c["segundos"] for c in celdas)
             total_periodo += total_semana
 
@@ -339,7 +374,8 @@ def armar_panel(cursor, anio, mes):
     leyenda = (
         [{"nombre": t["nombre"], "color": t["color"]} for t in tipos]
         + [{"nombre": e["nombre"], "color": e["color"]} for e in estados_propios]
-        + [{"nombre": "Feriado", "color": COLOR_FERIADO}]
+        + [{"nombre": "Feriado", "color": COLOR_FERIADO},
+           {"nombre": "Sin marcar", "color": COLOR_SIN_MARCAR}]
     )
     if hay_sin_tipo:
         leyenda.append({"nombre": "Otros (sin tipo)", "color": COLOR_SIN_TIPO})
