@@ -809,7 +809,8 @@ td.descuento-alto { background: var(--danger-suave); color: var(--danger); font-
 .panel-asistencia thead th.col-numero, .panel-asistencia thead th.col-nombre { z-index: 3; }
 .panel-asistencia .col-dia-hoy { box-shadow: inset 0 -2px 0 var(--primary); color: var(--primary); }
 
-.asist-celda { min-width: 76px; max-width: 96px; padding: 0 !important; }
+/* Todas las columnas de dia del mismo ancho, tengan hora o un tipo largo. */
+.asist-celda { width: 92px; min-width: 92px; max-width: 92px; padding: 0 !important; }
 .asist-celda button {
   display: block;
   width: 100%;
@@ -835,8 +836,16 @@ td.descuento-alto { background: var(--danger-suave); color: var(--danger); font-
 
 td.celda-nombre { white-space: nowrap; }
 
-.leyenda-asistencia { display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 12px 0 18px; font-size: var(--t-sm); }
-.leyenda-asistencia span { display: inline-flex; align-items: center; gap: 6px; }
+/* Leyenda en columnas parejas: cada tipo ocupa el mismo espacio. */
+.leyenda-asistencia {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 8px 16px;
+  padding: 12px 0 18px;
+  font-size: var(--t-sm);
+}
+.leyenda-asistencia span { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.leyenda-asistencia .leyenda-color { flex: none; }
 .leyenda-color { display: inline-block; width: 22px; height: 14px; border: 1px solid var(--border-fuerte); border-radius: 2px; }
 
 .asist-tooltip {
