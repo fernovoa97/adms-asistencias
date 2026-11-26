@@ -244,6 +244,7 @@ document.getElementById('workerForm').addEventListener('submit', async (e) => {
   formData.append('email', document.getElementById('email').value.trim());
   formData.append('telefonoCorporativo', document.getElementById('telefonoCorporativo').value.trim());
   formData.append('estadoCivil', document.getElementById('estadoCivil').value);
+  formData.append('sexo', document.getElementById('sexo').value);
   const tieneHijos = document.getElementById('tieneHijos').checked;
   formData.append('tieneHijos', tieneHijos);
   formData.append('conyugeNombres', document.getElementById('conyugeNombres').value.trim());

@@ -1,0 +1,315 @@
+{% extends "base.html" %}
+
+{% block titulo %}Roster de mina · Personal y Asistencias{% endblock %}
+
+{% set ANCHO_NUM, ANCHO_NOMBRE, ANCHO_MINA, ANCHO_GUARDIA, ANCHO_REGIMEN = 36, 230, 96, 64, 52 %}
+{% set ANCHO_DIA, ANCHO_TOTAL, ANCHO_HORAS = 34, 44, 54 %}
+{% set ancho_tabla = ANCHO_NUM + ANCHO_NOMBRE + ANCHO_MINA + ANCHO_GUARDIA + ANCHO_REGIMEN
+     + ANCHO_DIA * roster.dias|length + ANCHO_TOTAL * categorias_totales|length + ANCHO_HORAS %}
+
+{% block contenido %}
+<h1>Roster de mina</h1>
+<p class="lead">Programación mensual del personal de mina. Elige un código y haz clic o arrastra sobre los días. Las vacaciones, los descansos médicos y los feriados registrados en el sistema aparecen solos.</p>
+
+<div class="barra">
+  <h2>{{ roster.titulo }}</h2>
+  <div class="doc-actions">
+    <a class="btn secondary" href="{{ url_for('roster.pagina_roster', anio=anio_prev, mes=mes_prev, mina=mina_id) }}">← Mes anterior</a>
+    {% if not es_mes_actual %}
+    <a class="btn secondary" href="{{ url_for('roster.pagina_roster', mina=mina_id) }}">Mes actual</a>
+    {% endif %}
+    <a class="btn secondary" href="{{ url_for('roster.pagina_roster', anio=anio_next, mes=mes_next, mina=mina_id) }}">Mes siguiente →</a>
+  </div>
+</div>
+
+<div class="barra">
+  <div class="doc-actions">
+    <label class="roster-filtro">
+      <span>Mina</span>
+      <select id="filtroMina">
+        <option value="">Todas</option>
+        {% for mina in minas %}
+        <option value="{{ mina.id }}" {{ 'selected' if mina.id == mina_id }}>{{ mina.nombre }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <button type="button" class="btn" id="agregarBtn">Agregar trabajadores</button>
+    {% if roster.filas %}
+    <button type="button" class="btn secondary" id="generarBtn">Generar por régimen</button>
+    {% endif %}
+  </div>
+  <div class="doc-actions">
+    <a class="btn secondary" href="{{ url_for('roster.exportar_roster', anio=anio, mes=mes, mina=mina_id) }}">Exportar a Excel</a>
+  </div>
+</div>
+
+<div class="error-msg" id="rosterError"></div>
+
+{% if roster.filas %}
+<div class="roster-zona">
+<div class="roster-pinceles" id="pinceles" role="toolbar" aria-label="Código a poner">
+  <span class="roster-pinceles-titulo">Poner:</span>
+  {% for c in roster.codigos %}
+  <button type="button" class="roster-pincel {{ 'activo' if loop.first }}" data-codigo-id="{{ c.id }}"
+          style="background:{{ c.color }};color:{{ c.color_texto }};" title="{{ c.nombre }}" aria-pressed="{{ 'true' if loop.first else 'false' }}">{{ c.codigo }}</button>
+  {% endfor %}
+  <button type="button" class="roster-pincel borrar" data-codigo-id="" title="Quitar el código del día" aria-pressed="false">Borrar</button>
+  <span class="roster-pincel-nombre muted" id="pincelNombre">{{ roster.codigos[0].nombre if roster.codigos }}</span>
+  <button type="button" class="btn secondary sm" id="deshacerBtn" disabled title="Ctrl+Z">Deshacer</button>
+  <span class="roster-guardado muted" id="estadoGuardado" aria-live="polite"></span>
+</div>
+
+<div class="tabla-contenedor roster-grid" id="rosterGrid">
+  <table style="width:{{ ancho_tabla }}px;">
+    <colgroup>
+      <col style="width:{{ ANCHO_NUM }}px"><col style="width:{{ ANCHO_NOMBRE }}px">
+      <col style="width:{{ ANCHO_MINA }}px"><col style="width:{{ ANCHO_GUARDIA }}px"><col style="width:{{ ANCHO_REGIMEN }}px">
+      {% for dia in roster.dias %}<col style="width:{{ ANCHO_DIA }}px">{% endfor %}
+      {% for c in categorias_totales %}<col style="width:{{ ANCHO_TOTAL }}px">{% endfor %}
+      <col style="width:{{ ANCHO_HORAS }}px">
+    </colgroup>
+    <thead>
+      <tr>
+        <th class="r-fijo r-num" rowspan="2">N.º</th>
+        <th class="r-fijo r-nombre" rowspan="2">Apellidos y nombres</th>
+        <th class="r-texto" rowspan="2">Mina</th>
+        <th rowspan="2">Guardia</th>
+        <th rowspan="2" title="Régimen (días de trabajo x descanso)">Rég.</th>
+        {% for dia in roster.dias %}
+        <th class="r-dia-cab {{ 'domingo' if dia.domingo }} {{ 'feriado' if dia.feriado }} {{ 'hoy' if dia.hoy }}"
+            {% if dia.feriado %}title="{{ dia.feriado }}"{% endif %}>{{ dia.inicial }}</th>
+        {% endfor %}
+        <th class="r-total-cab" colspan="{{ categorias_totales|length + 1 }}">Totales</th>
+      </tr>
+      <tr>
+        {% for dia in roster.dias %}
+        <th class="r-dia-cab {{ 'domingo' if dia.domingo }} {{ 'feriado' if dia.feriado }} {{ 'hoy' if dia.hoy }}">{{ dia.dia }}</th>
+        {% endfor %}
+        {% for c in categorias_totales %}
+        <th class="r-total-cab" title="{{ c.nombre }}">{{ c.corto }}</th>
+        {% endfor %}
+        <th class="r-total-cab" title="Días trabajados y de pago doble × horas de la guardia">Horas</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for fila in roster.filas %}
+      <tr data-trabajador="{{ fila.trabajador_id }}" data-horas-guardia="{{ fila.horas_guardia }}">
+        <td class="r-fijo r-num">{{ loop.index }}</td>
+        <td class="r-fijo r-nombre">
+          <button type="button" class="r-editar" data-fila='{{ fila|tojson }}' title="Editar datos de mina de {{ fila.nombre }}">{{ fila.nombre }}</button>
+        </td>
+        <td class="r-texto" title="{{ fila.mina }}">{{ fila.mina or '—' }}</td>
+        <td>{{ fila.guardia or '—' }}</td>
+        <td>{{ fila.regimen or '—' }}</td>
+        {% for celda in fila.celdas %}
+        {% set c = celda.codigo %}
+        <td class="r-dia {{ 'domingo' if roster.dias[loop.index0].domingo }}">
+          <button type="button" class="r-celda {{ 'auto' if c and not celda.guardado or (celda.guardado and not celda.manual and celda.auto) }}"
+                  data-f="{{ celda.fecha }}" data-g="{{ celda.guardado or '' }}" data-m="{{ 1 if celda.manual else 0 }}"
+                  data-a="{{ celda.auto or '' }}" data-fe="{{ 1 if celda.feriado else 0 }}"
+                  {% if c %}style="background:{{ c.color }};color:{{ c.color_texto }};"{% endif %}
+                  aria-label="{{ fila.nombre }}, {{ celda.fecha }}{{ ': ' ~ c.nombre if c }}">{{ c.codigo if c }}</button>
+        </td>
+        {% endfor %}
+        {% for cat in categorias_totales %}
+        <td class="r-total" data-cat="{{ cat.clave }}">{{ fila.totales[cat.clave] }}</td>
+        {% endfor %}
+        <td class="r-total r-horas">{{ fila.horas }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<p class="muted roster-nota">Los días con borde punteado vienen solos del sistema (vacaciones, descanso médico o feriado). Lo que pongas a mano tiene prioridad, y "Generar por régimen" no lo cambia. Clic en un nombre para editar su mina, guardia y régimen.</p>
+</div>
+{% else %}
+<div class="empty-state">
+  {% if copiables %}
+  <p>Este mes todavía no tiene trabajadores.</p>
+  <button type="button" class="btn" id="copiarBtn">Copiar los {{ copiables }} trabajadores de {{ titulo_prev }}</button>
+  <p class="muted">Se copian con su mina, guardia y régimen, y sus días se generan siguiendo el mismo ciclo.</p>
+  {% elif mina_id and filas_del_mes %}
+  No hay trabajadores de esta mina en {{ roster.titulo }}.
+  {% else %}
+  Este mes todavía no tiene trabajadores. Usa <strong>Agregar trabajadores</strong> para empezar.
+  {% endif %}
+</div>
+{% endif %}
+
+<details class="panel roster-config" id="configuracion">
+  <summary>Minas y códigos</summary>
+
+  <h3>Minas</h3>
+  <div class="error-msg" id="minasError"></div>
+  <form class="fila-form" id="nuevaMinaForm" autocomplete="off">
+    <input type="text" id="nuevaMina" placeholder="Nombre de la mina" maxlength="80" required>
+    <button type="submit" class="btn">Agregar mina</button>
+  </form>
+  <div class="tabla-contenedor">
+    <table class="roster-config-tabla">
+      <thead><tr><th>Mina</th><th class="num">Filas en roster</th><th></th></tr></thead>
+      <tbody>
+        {% for mina in minas %}
+        <tr data-mina-id="{{ mina.id }}">
+          <td><input type="text" class="mina-nombre" value="{{ mina.nombre }}" maxlength="80" aria-label="Nombre de la mina"></td>
+          <td class="num">{{ mina.filas }}</td>
+          <td class="acciones">
+            <button type="button" class="btn secondary sm mina-guardar">Guardar</button>
+            <button type="button" class="btn danger sm mina-eliminar">Eliminar</button>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="3" class="empty-state">Todavía no hay minas.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Códigos</h3>
+  <p class="muted">"Suma en" decide en qué total cuenta cada código. Los códigos T, DL, VA, DM y FE los usa el sistema: se pueden cambiar de nombre y color, pero no de letra.</p>
+  <div class="error-msg" id="codigosError"></div>
+  <div class="tabla-contenedor">
+    <table class="roster-config-tabla">
+      <thead><tr><th>Código</th><th>Significado</th><th>Fondo</th><th>Texto</th><th>Suma en</th><th>Vista</th><th></th></tr></thead>
+      <tbody>
+        {% for c in roster.codigos %}
+        <tr data-codigo-id="{{ c.id }}">
+          <td class="col-codigo"><input type="text" class="cod-codigo" value="{{ c.codigo }}" maxlength="4" {{ 'disabled' if c.sistema }} aria-label="Código"></td>
+          <td><input type="text" class="cod-nombre" value="{{ c.nombre }}" maxlength="120" aria-label="Significado"></td>
+          <td class="col-color"><input type="color" class="cod-color" value="{{ c.color }}" aria-label="Color de fondo"></td>
+          <td class="col-color"><input type="color" class="cod-texto" value="{{ c.color_texto }}" aria-label="Color del texto"></td>
+          <td>
+            <select class="cod-categoria" aria-label="Suma en">
+              {% for cat in categorias %}
+              <option value="{{ cat.clave }}" {{ 'selected' if cat.clave == c.categoria }}>{{ cat.nombre }}</option>
+              {% endfor %}
+            </select>
+          </td>
+          <td class="col-vista"><span class="roster-chip" style="background:{{ c.color }};color:{{ c.color_texto }};">{{ c.codigo }}</span></td>
+          <td class="acciones">
+            <button type="button" class="btn secondary sm cod-guardar">Guardar</button>
+            {% if not c.sistema %}<button type="button" class="btn danger sm cod-eliminar">Eliminar</button>{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+        <tr class="cod-nuevo">
+          <td class="col-codigo"><input type="text" class="cod-codigo" maxlength="4" placeholder="Ej. N" aria-label="Código nuevo"></td>
+          <td><input type="text" class="cod-nombre" maxlength="120" placeholder="Significado" aria-label="Significado del código nuevo"></td>
+          <td class="col-color"><input type="color" class="cod-color" value="#ffffff" aria-label="Color de fondo"></td>
+          <td class="col-color"><input type="color" class="cod-texto" value="#17202f" aria-label="Color del texto"></td>
+          <td>
+            <select class="cod-categoria" aria-label="Suma en">
+              {% for cat in categorias %}
+              <option value="{{ cat.clave }}" {{ 'selected' if cat.clave == 'otro' }}>{{ cat.nombre }}</option>
+              {% endfor %}
+            </select>
+          </td>
+          <td class="col-vista"><span class="roster-chip" style="background:#ffffff;color:#17202f;">—</span></td>
+          <td class="acciones"><button type="button" class="btn sm cod-agregar">Agregar</button></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</details>
+
+<!-- Editar fila -->
+<div id="filaOverlay" class="modal-overlay" hidden>
+  <div class="modal-box roster-modal" role="dialog" aria-modal="true" aria-labelledby="filaTitulo">
+    <h2 id="filaTitulo">Datos de mina</h2>
+    <p class="muted" id="filaSubtitulo"></p>
+    <div class="error-msg" id="filaError"></div>
+    <form id="filaForm" autocomplete="off">
+      <div class="roster-campos">
+        <div class="field">
+          <label for="filaMina">Mina</label>
+          <select id="filaMina">
+            <option value="">Sin mina</option>
+            {% for mina in minas %}<option value="{{ mina.id }}">{{ mina.nombre }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="filaGuardia">Guardia</label>
+          <select id="filaGuardia">
+            <option value="">—</option>
+            {% for g in guardias %}<option value="{{ g }}">{{ g }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="filaRegTrabajo">Régimen (días de trabajo × descanso)</label>
+          <div class="roster-regimen">
+            <input type="number" id="filaRegTrabajo" min="1" max="60" placeholder="14" aria-label="Días de trabajo">
+            <span>×</span>
+            <input type="number" id="filaRegDescanso" min="1" max="60" placeholder="7" aria-label="Días de descanso">
+          </div>
+        </div>
+        <div class="field">
+          <label for="filaInicio">Fecha de subida (inicio del ciclo)</label>
+          <input type="date" id="filaInicio">
+        </div>
+        <div class="field">
+          <label for="filaHoras">Horas por guardia</label>
+          <input type="number" id="filaHoras" min="1" max="24" step="0.5">
+        </div>
+        <div class="field">
+          <label for="filaCondicion">Condición</label>
+          <input type="text" id="filaCondicion" maxlength="60" list="condiciones">
+          <datalist id="condiciones"><option value="Titular"><option value="Reemplazo"><option value="Temporal"></datalist>
+        </div>
+        <div class="field">
+          <label for="filaSexo">Sexo</label>
+          <select id="filaSexo"><option value="">—</option><option value="M">M</option><option value="F">F</option></select>
+        </div>
+        <div class="field">
+          <label for="filaResidencia">Lugar de residencia</label>
+          <input type="text" id="filaResidencia" maxlength="120">
+        </div>
+        <div class="field campo-check roster-campo-ancho">
+          <label><input type="checkbox" id="filaConduce"> Conduce en mina</label>
+        </div>
+      </div>
+      <p class="muted roster-ayuda">Al guardar se vuelven a generar los días T y DL de este mes según el régimen y la fecha de subida. Lo que pusiste a mano no cambia. El sexo se guarda en la ficha del trabajador.</p>
+      <div class="modal-acciones">
+        <button type="button" class="btn danger" id="filaQuitarBtn">Quitar del roster</button>
+        <button type="button" class="btn secondary" id="filaCancelarBtn">Cancelar</button>
+        <button type="submit" class="btn" id="filaGuardarBtn">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Agregar trabajadores -->
+<div id="agregarOverlay" class="modal-overlay" hidden>
+  <div class="modal-box roster-modal" role="dialog" aria-modal="true" aria-labelledby="agregarTitulo">
+    <h2 id="agregarTitulo">Agregar trabajadores a {{ roster.titulo }}</h2>
+    <div class="error-msg" id="agregarError"></div>
+    <div class="roster-campos">
+      <div class="field">
+        <label for="agregarBuscar">Buscar</label>
+        <input type="text" id="agregarBuscar" placeholder="Nombre, DNI, cargo o sede" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="agregarMina">Mina</label>
+        <select id="agregarMina">
+          <option value="">La de su último roster</option>
+          {% for mina in minas %}<option value="{{ mina.id }}" {{ 'selected' if mina.id == mina_id }}>{{ mina.nombre }}</option>{% endfor %}
+        </select>
+      </div>
+    </div>
+    <ul class="roster-candidatos" id="agregarLista"><li class="muted">Cargando...</li></ul>
+    <p class="muted roster-ayuda">Si el trabajador ya estuvo en un roster anterior, se copian su guardia y su régimen, y sus días se generan solos.</p>
+    <div class="modal-acciones">
+      <button type="button" class="btn secondary" id="agregarCancelarBtn">Cancelar</button>
+      <button type="button" class="btn" id="agregarGuardarBtn" disabled>Agregar</button>
+    </div>
+  </div>
+</div>
+
+<script id="rosterDatos" type="application/json">{{ {
+  'anio': anio, 'mes': mes, 'mina_id': mina_id,
+  'codigos': roster.codigos, 'totales': categorias_totales|map(attribute='clave')|list
+}|tojson }}</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/roster.js"></script>
+{% endblock %}

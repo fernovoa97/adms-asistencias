@@ -39,6 +39,9 @@ abiertos para que el dispositivo pueda reportar datos.
   exportación a Excel.
 - `proveedores.py` — registro de proveedores (uno por RUC) que se llena al
   guardar órdenes de compra y alimenta el buscador del formulario.
+- `roster.py` — roster mensual del personal de mina: mina, guardia y
+  régimen por trabajador, días generados por régimen o puestos a mano,
+  totales para planilla y exportación a Excel con el formato de la empresa.
 - `montos.py` — cálculo de totales con IGV y monto en letras.
 - `validaciones.py` — fechas y cálculo de edad compartidos por esos módulos.
 - `templates/` — `base.html` es la plantilla común; el resto son páginas (login, asistencias, nuevo trabajador, buscar

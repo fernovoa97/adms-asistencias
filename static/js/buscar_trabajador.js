@@ -249,6 +249,7 @@ function renderViewMode(w) {
       ['Apellidos', w.apellidos],
       ['DNI', w.dni || '—'],
       ['Fecha de nacimiento', w.fecha_nacimiento || '—'],
+      ['Sexo', w.sexo === 'M' ? 'Masculino' : (w.sexo === 'F' ? 'Femenino' : '—')],
       ['Estado civil', w.estado_civil || '—'],
       ['Código de empleado', w.codigo_empleado || '— (no enrolado en el biométrico)']
     ]),
@@ -592,6 +593,14 @@ function renderEditForm(w) {
             <input type="date" id="editFechaNacimiento" value="${w.fecha_nacimiento || ''}">
           </div>
           <div class="field">
+            <label for="editSexo">Sexo</label>
+            <select id="editSexo">
+              <option value="" ${!w.sexo ? 'selected' : ''}>Sin especificar</option>
+              <option value="M" ${w.sexo === 'M' ? 'selected' : ''}>Masculino</option>
+              <option value="F" ${w.sexo === 'F' ? 'selected' : ''}>Femenino</option>
+            </select>
+          </div>
+          <div class="field">
             <label for="editEstadoCivil">Estado civil</label>
             <select id="editEstadoCivil">
               <option value="" ${!w.estado_civil ? 'selected' : ''}>Sin especificar</option>
@@ -742,6 +751,7 @@ function renderEditForm(w) {
       fechaNacimiento: document.getElementById('editFechaNacimiento').value,
       telefonoCorporativo: document.getElementById('editTelefonoCorporativo').value.trim(),
       estadoCivil: document.getElementById('editEstadoCivil').value,
+      sexo: document.getElementById('editSexo').value,
       tieneHijos: document.getElementById('editTieneHijos').checked,
       conyugeNombres: document.getElementById('editConyugeNombres').value.trim(),
       conyugeDni: document.getElementById('editConyugeDni').value.trim(),

@@ -21,6 +21,31 @@ TIPOS_JUSTIFICACION_INICIALES = [
     ("Descanso médico", "#c7e8d3", False),
 ]
 
+# Codigos del roster de mina (leyenda del Excel modelo). Categoria: para que
+# suman los totales de planilla. Los "sistema" no se pueden borrar ni cambiar
+# de codigo: el roster los usa al generar dias o al traer vacaciones,
+# descansos medicos y feriados.
+CODIGOS_ROSTER_INICIALES = [
+    # codigo, nombre, color, color_texto, categoria, sistema
+    ("T", "Día trabajado", "#ffff00", "#17202f", "trabajado", True),
+    ("OF", "Oficina", "#ffc000", "#17202f", "trabajado", False),
+    ("DL", "Días libres (descanso)", "#fbe5d6", "#17202f", "descanso", True),
+    ("C", "Coordinaciones o cursos", "#70ad47", "#ffffff", "trabajado", False),
+    ("VA", "Vacaciones", "#0d0d0d", "#ff0000", "vacaciones", True),
+    ("FE", "Feriado", "#d9d9d9", "#17202f", "descanso", True),
+    ("BA", "Bajadas adelantadas", "#e4dfec", "#17202f", "otro", False),
+    ("DM", "Descanso médico por otros motivos", "#ddebf7", "#17202f", "descanso_medico", True),
+    ("DMC", "Descanso médico por positivo a Covid", "#00b0f0", "#17202f", "descanso_medico", False),
+    ("DP", "Descanso por paternidad", "#e2efda", "#17202f", "licencia", False),
+    ("F", "Falta", "#ffffff", "#ff0000", "falta", False),
+    ("LSG", "Licencia sin goce", "#ffffff", "#ff0000", "licencia", False),
+    ("LCG", "Licencia con goce", "#ffffff", "#ff0000", "licencia", False),
+    ("LF", "Licencia por fallecimiento familiar directo", "#ffffff", "#ff0000", "licencia", False),
+    ("SP", "Suspensión", "#ffffff", "#ff0000", "falta", False),
+    ("STB", "Stand-by, a la espera de recibir órdenes", "#ffffff", "#ff0000", "otro", False),
+    ("9A", "Abonado al 100% (pago doble)", "#a9d08e", "#17202f", "pago_doble", False),
+]
+
 if not DATABASE_URL:
     raise RuntimeError("No se encontró la variable de entorno DATABASE_URL")
 
@@ -715,6 +740,8 @@ def inicializar_base_datos():
             )
             print("USUARIO POR DEFECTO CREADO -> usuario: admin / contraseña: admin123")
 
+        _migrar_roster(cursor)
+
         conexion.commit()
         print("BASE DE DATOS POSTGRESQL INICIALIZADA CORRECTAMENTE")
     except Exception as error:
@@ -724,3 +751,71 @@ def inicializar_base_datos():
     finally:
         cursor.close()
         conexion.close()
+
+def _migrar_roster(cursor):
+    """Tablas del roster de mina: minas, codigos (leyenda), una fila por
+    trabajador y mes (sus datos de mina) y un codigo por trabajador y dia."""
+    _agregar_columna_si_falta(cursor, "trabajadores", "sexo", "TEXT")
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS roster_minas (
+            id SERIAL PRIMARY KEY,
+            nombre TEXT NOT NULL UNIQUE,
+            creado_en TIMESTAMP NOT NULL
+        )
+    """)
+
+    cursor.execute("SELECT to_regclass('roster_codigos') IS NULL")
+    sembrar_codigos = cursor.fetchone()[0]
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS roster_codigos (
+            id SERIAL PRIMARY KEY,
+            codigo TEXT NOT NULL UNIQUE,
+            nombre TEXT NOT NULL,
+            color TEXT NOT NULL DEFAULT '#ffffff',
+            color_texto TEXT NOT NULL DEFAULT '#17202f',
+            categoria TEXT NOT NULL DEFAULT 'otro',
+            sistema BOOLEAN NOT NULL DEFAULT FALSE,
+            orden INTEGER NOT NULL DEFAULT 100,
+            creado_en TIMESTAMP NOT NULL
+        )
+    """)
+    if sembrar_codigos:
+        for orden, (codigo, nombre, color, color_texto, categoria, sistema) in enumerate(CODIGOS_ROSTER_INICIALES, 1):
+            cursor.execute("""
+                INSERT INTO roster_codigos (codigo, nombre, color, color_texto, categoria, sistema, orden, creado_en)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """, (codigo, nombre, color, color_texto, categoria, sistema, orden, datetime.now()))
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS roster_filas (
+            id SERIAL PRIMARY KEY,
+            anio INTEGER NOT NULL,
+            mes INTEGER NOT NULL,
+            trabajador_id INTEGER NOT NULL REFERENCES trabajadores(id) ON DELETE CASCADE,
+            mina_id INTEGER REFERENCES roster_minas(id) ON DELETE SET NULL,
+            guardia TEXT,
+            regimen_trabajo INTEGER,
+            regimen_descanso INTEGER,
+            inicio_ciclo DATE,
+            horas_guardia NUMERIC(4,1) NOT NULL DEFAULT 12,
+            condicion TEXT,
+            conduce_mina BOOLEAN NOT NULL DEFAULT FALSE,
+            residencia TEXT,
+            creado_en TIMESTAMP NOT NULL,
+            UNIQUE (anio, mes, trabajador_id)
+        )
+    """)
+
+    # manual = puesto a mano (no lo pisa "Generar por regimen").
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS roster_dias (
+            trabajador_id INTEGER NOT NULL REFERENCES trabajadores(id) ON DELETE CASCADE,
+            fecha DATE NOT NULL,
+            codigo_id INTEGER NOT NULL REFERENCES roster_codigos(id) ON DELETE CASCADE,
+            manual BOOLEAN NOT NULL DEFAULT TRUE,
+            actualizado_por TEXT,
+            actualizado_en TIMESTAMP NOT NULL,
+            PRIMARY KEY (trabajador_id, fecha)
+        )
+    """)

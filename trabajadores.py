@@ -63,6 +63,11 @@ def _fecha_o_none(valor):
     return valor if valor else None
 
 
+def _sexo_o_none(valor):
+    valor = (valor or "").strip().upper()
+    return valor if valor in ("M", "F") else None
+
+
 def _sueldo_o_none(valor):
     valor = (valor or "").strip()
     if not valor:
@@ -153,7 +158,7 @@ COLUMNAS_TRABAJADOR = [
     "estado", "supervisor", "sueldo_neto", "telefono", "telefono_corporativo",
     "email", "email_corporativo", "fecha_ingreso", "fecha_fin_contrato",
     "fecha_renovacion", "tipo_contrato", "tiempo_renovacion",
-    "tiempo_renovacion_meses", "fecha_nacimiento", "estado_civil", "tiene_hijos",
+    "tiempo_renovacion_meses", "fecha_nacimiento", "sexo", "estado_civil", "tiene_hijos",
     "cantidad_hijos", "conyuge_nombres", "conyuge_dni",
     "contacto_emergencia_nombres", "contacto_emergencia_telefono",
     "contacto_emergencia_direccion", "pais", "departamento", "provincia",
@@ -458,6 +463,7 @@ def api_crear_trabajador():
     fecha_ingreso = _fecha_o_none(request.form.get("fechaIngreso"))
     fecha_nacimiento = _fecha_o_none(request.form.get("fechaNacimiento"))
     estado_civil = request.form.get("estadoCivil", "").strip()
+    sexo = _sexo_o_none(request.form.get("sexo"))
     tiene_hijos = request.form.get("tieneHijos") == "true"
     cantidad_hijos = request.form.get("cantidadHijos", type=int) if tiene_hijos else None
     conyuge_nombres = request.form.get("conyugeNombres", "").strip()
@@ -496,9 +502,9 @@ def api_crear_trabajador():
                 contacto_emergencia_nombres, contacto_emergencia_telefono,
                 contacto_emergencia_direccion, sede_id, excluido_asistencia,
                 pais, departamento, provincia, distrito,
-                direccion, observaciones, estado, fecha_registro
+                direccion, observaciones, sexo, estado, fecha_registro
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'ACTIVO', %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'ACTIVO', %s)
             RETURNING id
         """, (
             dni, nombres, apellidos, cargo, area, supervisor, sueldo_neto,
@@ -509,7 +515,7 @@ def api_crear_trabajador():
             contacto_emergencia_nombres, contacto_emergencia_telefono,
             contacto_emergencia_direccion, sede_id, excluido_asistencia,
             pais, departamento, provincia, distrito,
-            direccion, observaciones, datetime.now()
+            direccion, observaciones, sexo, datetime.now()
         ))
         worker_id = cursor.fetchone()[0]
 
@@ -728,7 +734,8 @@ def api_actualizar(worker_id):
                 sede_id = %s, excluido_asistencia = %s,
                 pais = %s, departamento = %s, provincia = %s, distrito = %s,
                 direccion = %s, observaciones = %s,
-                hora_entrada = %s, hora_salida = %s
+                hora_entrada = %s, hora_salida = %s,
+                sexo = CASE WHEN %s THEN %s ELSE sexo END
             WHERE id = %s
         """, (
             nombres, apellidos, dni,
@@ -761,6 +768,7 @@ def api_actualizar(worker_id):
             (datos.get("observaciones") or "").strip(),
             (datos.get("horaEntrada") or "").strip() or None,
             (datos.get("horaSalida") or "").strip() or None,
+            "sexo" in datos, _sexo_o_none(datos.get("sexo")),
             worker_id
         ))
 

@@ -4,12 +4,13 @@
   </div>
   <nav>
     {% if es_admin %}
-    <details class="nav-group" {% if active_page in ['inicio', 'asistencia', 'resumen', 'ajustes', 'historial'] %}open{% endif %}>
+    <details class="nav-group" {% if active_page in ['inicio', 'asistencia', 'resumen', 'ajustes', 'historial', 'roster'] %}open{% endif %}>
       <summary>Asistencias</summary>
       <div class="nav-submenu">
         <a href="{{ url_for('inicio') }}" class="{{ 'active' if active_page == 'inicio' }}">Panel</a>
         <a href="{{ url_for('asistencia.pagina_asistencia') }}" class="{{ 'active' if active_page == 'asistencia' }}">Panel de asistencia</a>
         <a href="{{ url_for('resumen.pagina_resumen') }}" class="{{ 'active' if active_page == 'resumen' }}">Resumen</a>
+        <a href="{{ url_for('roster.pagina_roster') }}" class="{{ 'active' if active_page == 'roster' }}">Roster de mina</a>
         <a href="{{ url_for('ajustes.pagina_ajustes') }}" class="{{ 'active' if active_page == 'ajustes' }}">Ajustes</a>
       </div>
     </details>

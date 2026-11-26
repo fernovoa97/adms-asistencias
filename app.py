@@ -26,6 +26,7 @@ from contratos import contratos_bp
 from ordenes_compra import ordenes_compra_bp
 from usuarios import usuarios_bp
 from proveedores import proveedores_bp
+from roster import roster_bp
 from asistencia import asistencia_bp, resumen_del_dia, SN_MANUAL, SN_IMPORTADO
 from ajustes import obtener_config_asistencia
 from reglas_asistencia import horario_del_trabajador, evaluar_marcaje_entrada
@@ -100,6 +101,7 @@ app.register_blueprint(contratos_bp)
 app.register_blueprint(ordenes_compra_bp)
 app.register_blueprint(usuarios_bp)
 app.register_blueprint(proveedores_bp)
+app.register_blueprint(roster_bp)
 
 
 # ==========================================
